@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write   # to publish the test build as a GitHub release
   id-token: write
 
 concurrency:
@@ -132,3 +132,18 @@ jobs:
             android/app/build/test-results/
           retention-days: 14
           if-no-files-found: ignore
+
+      # A stable download link for phones: the latest main build, replaced on every push.
+      # https://github.com/<owner>/<repo>/releases/download/test-build/found-with-test.apk
+      - name: Publish test build
+        if: success() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cp "$(find app/build/outputs/apk/full -name '*.apk' | head -1)" found-with-test.apk
+          cp "$(find app/build/outputs/apk/contactsOnly -name '*.apk' | head -1)" found-with-test-contacts-only.apk
+          gh release delete test-build --yes --cleanup-tag 2>/dev/null || true
+          gh release create test-build found-with-test.apk found-with-test-contacts-only.apk \
+            --prerelease --target "$GITHUB_SHA" --title "Test build ${GITHUB_SHA::7}" \
+            --notes "Latest test build from main (${GITHUB_SHA::7}, build ${{ github.run_number }}). It talks to the live server. On your phone, install found-with-test.apk. found-with-test-contacts-only.apk is the Google Play version, without the call log."
