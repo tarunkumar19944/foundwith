@@ -156,8 +156,7 @@ def run(config: dict) -> Report:
         raise Failed(f"test numbers missing for users {missing}")
 
     print("Server")
-    status, body = http.call("GET", "/healthz")
-    report.check("health check answers", status == 200, body)
+    # /healthz is only for Cloud Run's own probes: run.app reserves paths like it from outside.
     status, body = http.call("GET", "/readyz")
     report.check("database is ready", status == 200, body)
     status, body = http.call("GET", "/v1/me")
