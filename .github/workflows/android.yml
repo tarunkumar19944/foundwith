@@ -31,9 +31,9 @@ jobs:
         working-directory: android
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -68,6 +68,29 @@ jobs:
       - name: Lint (report only)
         continue-on-error: true
         run: ./gradlew --no-daemon lintFullDebug
+
+      - name: Summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import glob, xml.etree.ElementTree as ET
+          tests = failures = 0
+          for f in glob.glob("app/build/test-results/**/*.xml", recursive=True):
+              r = ET.parse(f).getroot()
+              tests += int(r.get("tests", 0)); failures += int(r.get("failures", 0)) + int(r.get("errors", 0))
+          print(f"Unit tests: {tests} run, {failures} failed")
+          for f in glob.glob("app/build/reports/lint-results-*.xml"):
+              issues = ET.parse(f).getroot().findall("issue")
+              by = {}
+              for i in issues:
+                  by.setdefault(i.get("severity"), []).append(i)
+              print(f"Lint ({f.split('/')[-1]}): " + ", ".join(f"{len(v)} {k}" for k, v in sorted(by.items())) or "no issues")
+              for sev in ("Fatal", "Error", "Warning"):
+                  for i in by.get(sev, []):
+                      loc = i.find("location")
+                      where = f"{loc.get('file', '').split('/app/')[-1]}:{loc.get('line', '')}" if loc is not None else ""
+                      print(f"  {sev} {i.get('id')} {where} {i.get('message')}")
+          PY
 
       - uses: actions/upload-artifact@v4
         with:
