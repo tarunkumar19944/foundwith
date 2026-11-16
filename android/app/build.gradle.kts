@@ -47,6 +47,7 @@ android {
         targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "API_BASE_URL", "\"$apiUrl\"")
         buildConfigField("String", "PRIVACY_URL", "\"$privacyUrl\"")
@@ -139,4 +140,11 @@ dependencies {
     implementation(libs.installreferrer)
 
     testImplementation(libs.junit)
+
+    androidTestImplementation(platform(libs.compose.bom))
+    androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.uiautomator)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

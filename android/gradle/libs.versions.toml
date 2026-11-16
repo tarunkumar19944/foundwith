@@ -15,6 +15,9 @@ firebaseBom = "33.7.0"
 installReferrer = "2.2"
 playServicesAuth = "21.2.0"
 junit = "4.13.2"
+androidxTestRunner = "1.6.2"
+androidxTestExtJunit = "1.2.1"
+uiautomator = "2.3.0"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -41,6 +44,12 @@ firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
 installreferrer = { module = "com.android.installreferrer:installreferrer", version.ref = "installReferrer" }
 junit = { module = "junit:junit", version.ref = "junit" }
+# Phone tests (src/androidTest), run in Firebase Test Lab.
+androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
+androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestExtJunit" }
+androidx-test-uiautomator = { module = "androidx.test.uiautomator:uiautomator", version.ref = "uiautomator" }
+compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

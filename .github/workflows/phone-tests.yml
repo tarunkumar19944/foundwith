@@ -1,0 +1,158 @@
+# The phone tests (android/app/src/androidTest): the app used end to end, as a person would, on
+# Firebase Test Lab. Emulators for every Android version on each app change; real phones from the
+# brands people in India use every week (and by hand). Results, videos and screenshots are in the
+# Firebase console, under Test Lab. Nothing secret is stored in GitHub: the Firebase config, the
+# signing key and the test number's code come from Secret Manager, keylessly.
+#
+# Cost: Test Lab gives 60 emulator minutes and 30 real-phone minutes a day free; beyond that about
+# $1 per emulator-hour and $5 per phone-hour. A real-phone run of all 14 phones is roughly $5.
+name: Phone tests
+
+on:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/phone-tests.yml", "tests/live/phone_fixture.py"]
+  schedule:
+    - cron: "30 21 * * 0"   # Mondays 3:00 am IST: real phones
+  workflow_dispatch:
+    inputs:
+      devices:
+        description: "emulators, phones or both"
+        default: "both"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: phone-tests
+  cancel-in-progress: true
+
+env:
+  PROJECT: foundwith
+  API_URL: https://found-with-api-zda4qqks6q-el.a.run.app
+  # Emulators: every Android version from 8 to 16, a small phone and a tablet.
+  EMULATORS: >-
+    model=MediumPhone.arm,version=26 model=MediumPhone.arm,version=28 model=MediumPhone.arm,version=30
+    model=MediumPhone.arm,version=31 model=MediumPhone.arm,version=33 model=MediumPhone.arm,version=34
+    model=MediumPhone.arm,version=35 model=MediumPhone.arm,version=36 model=SmallPhone.arm,version=30
+    model=MediumTablet.arm,version=33
+  # Real phones: the brands most used in India, old and new, a foldable and a tablet.
+  PHONES: >-
+    model=a10,version=29 model=a14m,version=34 model=a16,version=35 model=houji,version=35
+    model=OP5759L1,version=34 model=RE58C2,version=35 model=RMX3231,version=30 model=OP5958L1,version=34
+    model=TECNO-BG6,version=33 model=Infinix-X6525,version=33 model=caprip,version=31 model=akita,version=35
+    model=b6qsqw,version=36 model=gta9pwifi,version=34
+
+jobs:
+  phones:
+    if: github.repository == 'tarunkumar19944/foundwith'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/91945805289/locations/global/workloadIdentityPools/github/providers/github-actions
+          service_account: found-with-android-ci@foundwith.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Config, signing key and test account
+        run: |
+          set -euo pipefail
+          umask 077
+          gcloud secrets versions access latest --project=$PROJECT --secret=found-with-android-google-services > android/app/google-services.json
+          gcloud secrets versions access latest --project=$PROJECT --secret=found-with-android-debug-keystore | base64 -d > "$RUNNER_TEMP/debug.keystore"
+          gcloud secrets versions access latest --project=$PROJECT --secret=found-with-test-accounts > "$RUNNER_TEMP/live.json"
+          code=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['test_numbers']['+919000000010'])" "$RUNNER_TEMP/live.json")
+          echo "::add-mask::$code"
+          echo "FW_CODE=$code" >> "$GITHUB_ENV"
+
+      - name: Build the app and its phone tests
+        working-directory: android
+        run: >-
+          ./gradlew --no-daemon assembleFullDebug assembleFullDebugAndroidTest
+          assembleContactsOnlyDebug assembleContactsOnlyDebugAndroidTest
+          -Pfoundwith.apiUrl=$API_URL -Pfoundwith.debugKeystore=$RUNNER_TEMP/debug.keystore
+          -Pfoundwith.versionCode=${{ github.run_number }}
+
+      - name: The caller the tests expect is on Found With
+        run: cd tests/live && python3 phone_fixture.py "$RUNNER_TEMP/live.json"
+
+      - name: Which devices
+        id: which
+        run: |
+          case "${{ github.event_name }}:${{ github.event.inputs.devices }}" in
+            schedule:*) echo "set=phones" >> "$GITHUB_OUTPUT" ;;
+            workflow_dispatch:*) echo "set=${{ github.event.inputs.devices }}" >> "$GITHUB_OUTPUT" ;;
+            *) if git -C . diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q '^.github/workflows/phone-tests.yml$'; then
+                 echo "set=both" >> "$GITHUB_OUTPUT"; else echo "set=emulators" >> "$GITHUB_OUTPUT"; fi ;;
+          esac
+
+      - name: Run on Test Lab
+        env:
+          SET: ${{ steps.which.outputs.set }}
+        run: |
+          set -uo pipefail
+          apks=android/app/build/outputs/apk
+          run() {   # run <label> <flavour> <devices...>
+            label=$1; flavour=$2; shift 2
+            args=(); for d in "$@"; do args+=(--device "$d"); done
+            echo "::group::$label"
+            gcloud firebase test android run --project=$PROJECT --type=instrumentation \
+              --app "$apks/$flavour/debug/app-$flavour-debug.apk" \
+              --test "$apks/androidTest/$flavour/debug/app-$flavour-debug-androidTest.apk" \
+              "${args[@]}" \
+              --environment-variables "fwCode=$FW_CODE,fwNumber=9000000010,fwCaller=+919000000009" \
+              --results-bucket=$PROJECT-test-lab --results-dir="run-$GITHUB_RUN_ID-$label" \
+              --directories-to-pull=/sdcard/Android/data/app.foundwith/files \
+              --timeout=15m --num-flaky-test-attempts=1 --format=json > "$RUNNER_TEMP/$label.json"
+            status=$?
+            echo "::endgroup::"
+            python3 - "$RUNNER_TEMP/$label.json" "$label" <<'PY'
+          import json, sys
+          rows = json.load(open(sys.argv[1])) if open(sys.argv[1]).read().strip() else []
+          print(f"\n{sys.argv[2]}:")
+          for r in rows:
+              print(f"  {r.get('outcome','?'):8} {r.get('axis_value','?'):40} {r.get('test_details','')}")
+          PY
+            return $status
+          }
+          failed=0
+          if [ "$SET" = emulators ] || [ "$SET" = both ]; then
+            run emulators full $EMULATORS || failed=1
+            run contacts-only contactsOnly model=MediumPhone.arm,version=34 || failed=1
+          fi
+          if [ "$SET" = phones ] || [ "$SET" = both ]; then
+            run phones full $PHONES || failed=1
+          fi
+          echo "Results, videos and screenshots: https://console.firebase.google.com/project/$PROJECT/testlab/histories/"
+          exit $failed
+
+      - name: What failed, by phone
+        if: failure()
+        run: |
+          for f in $(gcloud storage ls "gs://$PROJECT-test-lab/run-$GITHUB_RUN_ID-*/**/test_result_*.xml" 2>/dev/null); do
+            python3 - "$f" <<'PY'
+          import subprocess, sys, xml.etree.ElementTree as ET
+          path = sys.argv[1]
+          xml = subprocess.run(["gcloud", "storage", "cat", path], capture_output=True, text=True).stdout
+          root = ET.fromstring(xml)
+          device = path.split("/")[-2]
+          for case in root.iter("testcase"):
+              for problem in list(case.findall("failure")) + list(case.findall("error")):
+                  first = (problem.text or problem.get("message") or "").strip().splitlines()[:4]
+                  print(f"::error::{device} {case.get('name')}: {' | '.join(first)}")
+          PY
+          done

@@ -1,7 +1,7 @@
-"""Live multi-user test: eight test users use the real Found With server the way people do, and every
+"""Live multi-user test: seven test users use the real Found With server the way people do, and every
 answer is checked. Runs from GitHub after each deploy and every night (.github/workflows/live-test.yml).
 
-It signs in with Identity Platform's test numbers (+91 90000 00002 to 09: no SMS is sent), so it
+It signs in with Identity Platform's test numbers (+91 90000 00002 to 08: no SMS is sent), so it
 needs the config JSON from Secret Manager (secret found-with-test-accounts):
     {"api_url": ..., "web_api_key": ..., "test_numbers": {"+919000000002": "123456", ...}}
 
@@ -24,7 +24,8 @@ import urllib.request
 PLUMBER = "+919000000090"
 CLINIC = "+919000000091"
 NAMES = {2: "Asha Test", 3: "Bala Test", 4: "Chitra Test", 5: "Deepak Test",
-         6: "Esha Test", 7: "Farhan Test", 8: "Gita Test", 9: "Hari Test"}
+         6: "Esha Test", 7: "Farhan Test", 8: "Gita Test"}
+# +91 90000 00009 and 10 belong to the phone tests (android/app/src/androidTest): never touched here.
 
 
 class Failed(Exception):
@@ -150,7 +151,7 @@ def known_names(result: dict) -> list[str]:
 def run(config: dict) -> Report:
     report = Report()
     http = Http(config["api_url"])
-    numbers = {int(p[-1]): (p, c) for p, c in config["test_numbers"].items() if p[-2:] != "01"}
+    numbers = {int(p[-2:]): (p, c) for p, c in config["test_numbers"].items() if int(p[-2:]) in NAMES}
     missing = [n for n in NAMES if n not in numbers]
     if missing:
         raise Failed(f"test numbers missing for users {missing}")
@@ -162,12 +163,12 @@ def run(config: dict) -> Report:
     status, body = http.call("GET", "/v1/me")
     report.check("signed-out requests are refused", status == 401, (status, body))
 
-    print("Signing in eight test users")
+    print("Signing in seven test users")
     users: dict[int, User] = {}
     for n in sorted(NAMES):
         phone, code = numbers[n]
         users[n] = User(n, phone, firebase_sign_in(config["web_api_key"], phone, code), http)
-    report.check("all eight sign in with Identity Platform", len(users) == 8)
+    report.check("all seven sign in with Identity Platform", len(users) == len(NAMES))
     for u in users.values():
         u.clean_up()
     # After an account is deleted the server wants a sign-in newer than the deletion before the
@@ -175,7 +176,7 @@ def run(config: dict) -> Report:
     time.sleep(2)
     for u in users.values():
         u.token = firebase_sign_in(config["web_api_key"], u.phone, numbers[u.n][1])
-    a, b, c, d, e, f, g, h = (users[n] for n in sorted(users))
+    a, b, c, d, e, f, g = (users[n] for n in sorted(users))
 
     try:
         print("First steps")
@@ -286,17 +287,16 @@ def run(config: dict) -> Report:
         report.check("Asha has an invite link", bool(code), circle)
         status, page = http.call("GET", f"/i/{code}", raw=True)
         report.check("the invite page names Asha", status == 200 and "Asha" in page, status)
-        h.call("POST", "/v1/me", {"display_name": h.name})
-        status, body = h.call("POST", "/v1/me/invite/redeem", {"code": "ZZZZZZZZ"})
+        status, body = e.call("POST", "/v1/me/invite/redeem", {"code": "ZZZZZZZZ"})
         report.check("a made-up invite code is refused", status == 404, (status, body))
         status, body = a.call("POST", "/v1/me/invite/redeem", {"code": code})
         report.check("your own invite doesn't count", status == 409, (status, body))
         # A number counts for an invite once, ever, so only the first run ever sees it count.
-        status, body = h.call("POST", "/v1/me/invite/redeem", {"code": code})
+        status, body = e.call("POST", "/v1/me/invite/redeem", {"code": code})
         if status == 200:
             status, circle = a.call("GET", "/v1/me/circle")
-            report.check("Hari joins with Asha's link and Asha sees it", circle["invite"]["joined"] == 1, circle)
-            status, body = h.call("POST", "/v1/me/invite/redeem", {"code": code})
+            report.check("Esha joined with Asha's link and Asha sees it", circle["invite"]["joined"] == 1, circle)
+            status, body = e.call("POST", "/v1/me/invite/redeem", {"code": code})
         report.check("the same number can't count twice",
                      status == 409 and body.get("error", {}).get("details", {}).get("reason") == "already_used", (status, body))
 
@@ -354,7 +354,7 @@ def run(config: dict) -> Report:
         seen = None
         time.sleep(2)
         try:
-            fresh = User(9, h.phone, firebase_sign_in(config["web_api_key"], h.phone, numbers[9][1]), http)
+            fresh = User(8, g.phone, firebase_sign_in(config["web_api_key"], g.phone, numbers[8][1]), http)
             fresh.call("POST", "/v1/me", {})
             seen = fresh.lookup(PLUMBER)
             fresh.clean_up()
