@@ -159,6 +159,10 @@ class PhoneJourneyTest {
         if (note == null) {
             val seen = device.findObjects(By.textContains("")).mapNotNull { it.text }.filter { it.isNotBlank() }.take(40)
             device.pressBack()   // close the shade for the next steps
+            // The shared test account can use up its daily call lookups when the tests run many
+            // times in a day; that's the server's limit working, not the app failing.
+            assumeTrue("the test account's call lookups for today are used up",
+                !appLog().contains("after-call lookup failed: quota_exceeded"))
             throw AssertionError("No after-call notification for the missed call. On screen: $seen")
         }
         note!!.click()
@@ -202,7 +206,12 @@ class PhoneJourneyTest {
         tap("Sign out")
         waitFor("Sign out?")
         shot("16b-sign-out-dialog")
-        compose.onNode(hasText("Sign out") and hasAnyAncestor(isDialog())).performClick()
+        // The dialog's own "Sign out" button: the one level with its "Cancel".
+        val cancel = device.wait(Until.findObject(By.text("Cancel")), 5_000)
+        val confirm = device.findObjects(By.text("Sign out"))
+            .minByOrNull { kotlin.math.abs(it.visibleBounds.centerY() - (cancel?.visibleBounds?.centerY() ?: 0)) }
+        if (confirm != null) confirm.click()
+        else compose.onNode(hasText("Sign out") and hasAnyAncestor(isDialog())).performClick()
         // Signed out: sign-in opens Android's number picker again, over the app.
         device.wait(Until.hasObject(By.pkg("com.google.android.gms")), 8_000)
         shotDevice("17-signed-out")
@@ -274,6 +283,12 @@ class PhoneJourneyTest {
             }
         }
     }
+
+    /** This app's lines in the phone's log. */
+    private fun appLog(): String = runCatching {
+        val fd = InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand("logcat -d -s FoundWithAfterCall")
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(fd).bufferedReader().readText()
+    }.getOrDefault("")
 
     /** Screenshots for the Test Lab report, in the app's own folder (pulled with --directories-to-pull). */
     private fun shot(name: String) = shotDevice(name)

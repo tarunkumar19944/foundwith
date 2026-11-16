@@ -202,6 +202,8 @@ class Service:
         self.settings = settings
         self.identity = identity
         self.names = NameCipher(settings.name_key)
+        self.quota_exempt = frozenset(
+            hasher.digest(e164) for e164 in (normalise(n, settings.country_code) for n in settings.quota_exempt_numbers) if e164)
 
     # ---------- accounts
 
@@ -719,7 +721,10 @@ class Service:
         digest = self.hasher.digest(e164)
         own = bytes(user["phone_hmac"])
         async with self.db.acquire() as conn, conn.transaction():
-            used = await repo.take_quota(conn, user["id"], context, s.quota_timezone, limit)
+            if own in self.quota_exempt:
+                used = 0
+            else:
+                used = await repo.take_quota(conn, user["id"], context, s.quota_timezone, limit)
             if used is None:
                 raise QuotaExceeded(
                     f"You've used all {limit} {noun} for today. The limit resets at midnight IST.",

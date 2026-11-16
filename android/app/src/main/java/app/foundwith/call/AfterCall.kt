@@ -103,8 +103,11 @@ object AfterCall {
         if (STARTED !in handled) {
             // First run after allowing the call log: calls from before that are history, not news.
             // Calls after it are news even when this first run comes late, for example when the
-            // first call after install is what wakes it.
-            val since = graph.store.callsWatchedSince.takeIf { it > 0 } ?: now
+            // first call after install is what wakes it. When the moment of allowing isn't known
+            // (allowed in Android settings, or an older version), the install time stands in.
+            val since = graph.store.callsWatchedSince.takeIf { it > 0 }
+                ?: runCatching { context.packageManager.getPackageInfo(context.packageName, 0).firstInstallTime }.getOrNull()
+                ?: now
             val history = calls.filter { it.at < since }.map { it.id }
             graph.store.saveCallState(history + STARTED, late, health)
             handled += history

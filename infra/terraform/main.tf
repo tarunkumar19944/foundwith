@@ -37,9 +37,11 @@ locals {
     HOLDER_VISIBILITY  = var.holder_visibility
     DB_POOL_SIZE       = tostring(var.db_pool_size)
     MIN_APP_VERSION    = tostring(var.min_app_version)
-    PUSH_MODE          = var.push_mode
-    PUSH_CALLER        = google_service_account.scheduler.email
-    PUSH_AUDIENCE      = local.push_audience
+    # The test numbers (not their codes): the automated tests' accounts skip the daily lookup limits.
+    QUOTA_EXEMPT_NUMBERS = join(",", sort(keys(var.test_phone_numbers)))
+    PUSH_MODE            = var.push_mode
+    PUSH_CALLER          = google_service_account.scheduler.email
+    PUSH_AUDIENCE        = local.push_audience
     # The opt-out web page (/out) signs people in with Identity Platform's web SDK.
     FIREBASE_WEB_API_KEY = var.firebase_web_api_key != "" ? var.firebase_web_api_key : data.google_firebase_web_app_config.web.api_key
     FIREBASE_AUTH_DOMAIN = "${var.project_id}.firebaseapp.com"

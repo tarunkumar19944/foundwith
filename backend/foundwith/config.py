@@ -134,6 +134,9 @@ class Settings:
 
     # HTTP
     cors_origins: tuple[str, ...] = ()
+    # Identity Platform's fictional test numbers: the automated tests' accounts, which use the
+    # live server many times a day, aren't held to the daily lookup limits.
+    quota_exempt_numbers: tuple[str, ...] = ()
     max_body_bytes: int = 1_500_000
     rate_limit_per_minute: int = 120   # per person, per API instance
     rate_limit_heavy_per_minute: int = 20   # cards, sync
@@ -159,6 +162,7 @@ class Settings:
             visibility=env.get("HOLDER_VISIBILITY", cls.visibility),
             quota_timezone=env.get("QUOTA_TIMEZONE", cls.quota_timezone),
             cors_origins=tuple(o.strip() for o in env.get("CORS_ORIGINS", "").split(",") if o.strip()),
+            quota_exempt_numbers=tuple(n.strip() for n in env.get("QUOTA_EXEMPT_NUMBERS", "").split(",") if n.strip()),
             play_store_url=env.get("PLAY_STORE_URL", cls.play_store_url),
             push_mode=env.get("PUSH_MODE", cls.push_mode),
             fcm_project_id=env.get("FCM_PROJECT_ID", env.get("FIREBASE_PROJECT_ID", env.get("GOOGLE_CLOUD_PROJECT", ""))),

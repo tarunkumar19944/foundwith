@@ -10,7 +10,7 @@ from foundwith import maintenance, push, repo
 from foundwith.api import create_app
 from foundwith.auth import DevPushCaller, DevVerifier
 from foundwith.contact_names import NameCipher, counting_key, tidy_contact_name
-from foundwith.errors import AccountSuspended
+from foundwith.errors import AccountSuspended, QuotaExceeded
 from foundwith.numbers import to_ref
 from tests.conftest import People
 from tests.test_service import (ARJUN, CLINIC, KARTHIK, LETTERS, MEENA, PLUMBER, PLUMBER_E164, PRIYA, RAVI,
@@ -488,3 +488,16 @@ async def test_moderators_act_on_a_number_from_a_complaint(db, identity):
     nobody = service.hasher.digest("+919811111111").hex()                                 # no account on it
     assert (await admin.run(db, ["suspend-number", nobody, "spam"]))["account_existed"] is False
     assert (await admin.run(db, ["number", nobody]))["suspended_at"] is not None
+
+
+async def test_test_numbers_are_not_held_to_lookup_limits(db, identity):
+    service = service_with(db, identity, search_daily_limit=1, quota_exempt_numbers=("+91 98450 31207",))
+    people = People(service)
+    arjun, _, _ = await people.add(ARJUN, "Arjun Rao", contacts=[])
+    ravi, _, _ = await people.add(RAVI, "Ravi Kumar", contacts=[])
+    for _ in range(3):
+        result = await service.lookup(arjun, PLUMBER, "search")       # Arjun's number is a test number
+    assert result["quota"]["left"] == 1
+    await service.lookup(ravi, PLUMBER, "search")
+    with pytest.raises(QuotaExceeded):
+        await service.lookup(ravi, PLUMBER, "search")                 # everyone else keeps the limit

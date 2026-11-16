@@ -173,10 +173,11 @@ jobs:
             gcloud storage cat "$f" 2>/dev/null | grep -E "FoundWith|AndroidRuntime|FATAL|WM-WorkerWrapper.*AfterCall" | tail -100
             echo "::endgroup::"
           done
-          for f in $(echo "$files" | grep '\.png$'); do
-            dir="$out/$(echo "$f" | awk -F/ '{print $4"-"$5}')"
+          # Screenshots: one copy per device (not per file), first attempt only.
+          for device in $(echo "$files" | grep '\.png$' | awk -F/ '{print "gs://"$3"/"$4"/"$5}' | grep -v rerun | sort -u); do
+            dir="$out/$(echo "$device" | awk -F/ '{print $4"-"$5}')"
             mkdir -p "$dir"
-            gcloud storage cp "$f" "$dir/" >/dev/null 2>&1 || true
+            gcloud storage cp "$device/**.png" "$dir/" >/dev/null 2>&1 || true
           done
           (cd "$out" && zip -qr "$RUNNER_TEMP/screens.zip" .) || exit 0
           gh release delete test-screens --yes --cleanup-tag 2>/dev/null || true
