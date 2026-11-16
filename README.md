@@ -114,27 +114,26 @@ gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleap
 
 ```bash
 cd infra/terraform
-cp terraform.tfvars.example terraform.tfvars   # set project_id, alert_email, test numbers, firebase_web_api_key
+cp terraform.tfvars.example terraform.tfvars   # set project_id, alert_email, test numbers, signing-key fingerprints
 terraform init
 terraform apply
 ```
 
 The first apply starts the service and jobs with Google's placeholder image. Terraform ignores image changes after that, because Cloud Build owns deployments.
 
-`firebase_web_api_key` is the **Web API key** from Firebase's Project settings; the opt-out page uses it to send its SMS code. Add the API's domain (`terraform output -raw api_url`, without `https://`) under Firebase Authentication, Settings, **Authorised domains**, or the page's SMS step fails.
-
 The apply also creates three Cloud Scheduler jobs that call the API with an OIDC token: pushes every minute, the evening note at 7:30 pm IST, and wake-ups at 10 am, 2 pm and 6 pm. `push_mode` defaults to `fcm`.
 
-**3. CI/CD.** Connect the GitHub repository in Cloud Build (Repositories, 2nd gen), then create a trigger on `main` that uses `cloudbuild.yaml` and the deployer service account from `terraform output deployer_service_account`:
+**3. CI/CD.** Set `github_repository = "owner/repo"` in `terraform.tfvars` and apply again. That lets `.github/workflows/deploy.yml` deploy without any key (Workload Identity Federation, main branch of that repository only): every push to `main` that touches `backend/` runs `cloudbuild.yaml`, which tests, builds, runs migrations, deploys and checks `/readyz`. Put the project number and IDs from `terraform output github_workload_identity_provider` and `deployer_service_account` into that workflow.
+
+To deploy by hand instead:
 
 ```bash
-gcloud builds triggers create github --name=found-with-main --region=asia-south1 \
-  --repository=projects/PROJECT_ID/locations/asia-south1/connections/CONNECTION/repositories/REPO \
-  --branch-pattern='^main$' --build-config=cloudbuild.yaml \
-  --service-account=projects/PROJECT_ID/serviceAccounts/found-with-deployer@PROJECT_ID.iam.gserviceaccount.com
+gcloud builds submit --region=asia-south1 --config=cloudbuild.yaml \
+  --substitutions=SHORT_SHA=$(git rev-parse --short HEAD) \
+  --gcs-source-staging-dir=gs://$(terraform -chdir=infra/terraform output -raw build_source_bucket)/source .
 ```
 
-Every push to `main` then tests, builds, runs migrations, deploys and checks `/readyz`.
+**Firebase** is set up by Terraform too (`firebase.tf`): the Android app with your signing-key fingerprints (`android_sha1`, `android_sha256`) and the web key the opt-out page uses. Get the app's config with `terraform output -raw google_services_json`.
 
 **4. Check it.**
 
