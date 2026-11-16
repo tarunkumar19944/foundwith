@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+backend.tf
+.env
+# Signing keys and Firebase config never go in the repo.
+*.keystore
+*.jks
+google-services.json

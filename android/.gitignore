@@ -1,0 +1,14 @@
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+# Your Firebase project's config and signing keys stay out of the repository.
+app/google-services.json
+*.jks
+*.keystore
+keystore.properties

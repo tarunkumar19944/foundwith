@@ -1,0 +1,31 @@
+# Copy to terraform.tfvars and fill in.
+
+project_id = "found-with-prod"
+region     = "asia-south1" # Mumbai
+
+# Keep at least one instance warm: incoming-call lookups can't wait for a cold start.
+api_min_instances = 1
+
+# Before launch, turn on regional (two-zone) Cloud SQL. It roughly doubles the database cost.
+db_high_availability = false
+
+# A cheaper database for a pilot: "db-g1-small" (shared core, no SLA). If you use it, also set
+# db_max_connections = 50 and keep api_max_instances x db_pool_size under about 40.
+db_tier = "db-custom-1-3840"
+
+# Who is named on a card: only people the viewer knows ("known": their number is in the
+# viewer's contacts or call log; everyone else is just a count), or "everyone".
+holder_visibility = "known"
+
+alert_email = "you@example.com"
+
+# Web app origin(s) once the web app has a domain.
+cors_origins       = []
+auth_extra_domains = []
+
+# Test numbers for your own testing and Google Play's app review. No SMS is sent; use the fixed
+# code. Anyone who knows a number and its code can sign in as it, so keep the code private and
+# keep only the one you give Play's reviewers once real users arrive.
+test_phone_numbers = {
+  "+919000000001" = "246810"
+}

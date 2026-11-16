@@ -1,0 +1,12 @@
+# Rename to backend.tf after creating the bucket:
+#   gcloud storage buckets create gs://YOUR-PROJECT-tfstate --location=asia-south1 \
+#     --uniform-bucket-level-access --public-access-prevention
+#   gcloud storage buckets update gs://YOUR-PROJECT-tfstate --versioning
+# State holds the database password and the number pepper; only admins should read this bucket.
+
+terraform {
+  backend "gcs" {
+    bucket = "YOUR-PROJECT-tfstate"
+    prefix = "found-with/prod"
+  }
+}

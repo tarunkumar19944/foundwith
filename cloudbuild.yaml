@@ -1,0 +1,81 @@
+# Test, build, migrate and deploy Found With. Runs as the found-with-deployer service account.
+# Triggered on every push to main (see README), or by hand:
+#   gcloud builds submit --config cloudbuild.yaml --substitutions=SHORT_SHA=$(git rev-parse --short HEAD)
+
+serviceAccount: projects/$PROJECT_ID/serviceAccounts/found-with-deployer@$PROJECT_ID.iam.gserviceaccount.com
+
+substitutions:
+  _REGION: asia-south1
+  _REPO: found-with
+  _SERVICE: found-with-api
+  _MIGRATE_JOB: found-with-migrate
+  _MAINTENANCE_JOB: found-with-maintenance
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  dynamicSubstitutions: true
+
+steps:
+  # A throwaway Postgres for the test suite, on Cloud Build's shared network.
+  - id: start-test-db
+    name: gcr.io/cloud-builders/docker
+    args: ["run", "-d", "--name=testdb", "--network=cloudbuild", "-e", "POSTGRES_PASSWORD=postgres", "postgres:16"]
+
+  - id: test
+    name: python:3.12-slim
+    dir: backend
+    entrypoint: bash
+    env:
+      - TEST_DATABASE_URL=host=testdb user=postgres password=postgres dbname=postgres
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        apt-get update -qq && apt-get install -y -qq --no-install-recommends libpq5 > /dev/null
+        pip install -q -r requirements-dev.txt
+        python -m pytest
+    waitFor: ["start-test-db"]
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args: ["build", "-t", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:$SHORT_SHA", "backend"]
+    waitFor: ["-"]
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: ["push", "${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:$SHORT_SHA"]
+    waitFor: ["build", "test"]
+
+  # Migrations run before the new code takes traffic, so every migration must also work with the old code.
+  - id: migrate
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        IMAGE="${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:$SHORT_SHA"
+        gcloud run jobs update ${_MIGRATE_JOB} --region=${_REGION} --image="$$IMAGE" --quiet
+        gcloud run jobs execute ${_MIGRATE_JOB} --region=${_REGION} --wait
+        gcloud run jobs update ${_MAINTENANCE_JOB} --region=${_REGION} --image="$$IMAGE" --quiet
+    waitFor: ["push"]
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args: ["run", "deploy", "${_SERVICE}", "--region=${_REGION}",
+           "--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:$SHORT_SHA", "--quiet"]
+    waitFor: ["migrate"]
+
+  - id: smoke-test
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        URL="$$(gcloud run services describe ${_SERVICE} --region=${_REGION} --format='value(status.url)')"
+        curl -fsS --retry 5 --retry-delay 3 "$$URL/readyz"
+    waitFor: ["deploy"]
+
+timeout: 1200s

@@ -1,0 +1,10 @@
+[project]
+name = "foundwith"
+version = "0.1.0"
+description = "Found With backend: discover which registered users have saved the same phone number"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-q"

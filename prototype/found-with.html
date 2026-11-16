@@ -1,0 +1,1121 @@
+<title>Found With</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;600;700&family=Rajdhani:wght@500;600;700&display=swap">
+<style>
+/* Layout: one phone-sized app column; on wide screens a demo-controls panel sits beside it.
+   Identity: a phone diary marked with a highlighter. Ink text, ruled cards, yellow marks on people you know. */
+:root {
+  --ground: #E7E8E2;
+  --surface: #FFFFFF;
+  --raised: #F3F4EF;
+  --ink: #15181E;
+  --muted: #555B65;
+  --faint: #80868F;
+  --rule: #DCDED6;
+  --rule-strong: #C2C5BB;
+  --hl: #FFDB33;
+  --hl-ink: #2A2300;
+  --hl-mark: rgba(255, 214, 40, .8);
+  --primary: #15181E;
+  --on-primary: #FFFFFF;
+  --toast-action: #FFDB33;
+  --green: #12804A;
+  --red: #C2362A;
+  --on-red: #FFFFFF;
+  --focus: #2563EB;
+  --scrim: rgba(17, 19, 24, .46);
+  --shadow: 0 1px 2px rgba(21, 24, 30, .05), 0 14px 36px rgba(21, 24, 30, .12);
+  --av1-bg: #DCE9FF; --av1-fg: #1C4787;
+  --av2-bg: #D7F1E0; --av2-fg: #16613A;
+  --av3-bg: #FFE3CF; --av3-fg: #87390C;
+  --av4-bg: #ECE0FA; --av4-fg: #592A88;
+  --av5-bg: #FCDFE5; --av5-fg: #8A1E39;
+  /* The incoming-call screen keeps one dark look in both themes, like a real dialer. */
+  --call-bg: #0E1115;
+  --call-panel: #1A1F26;
+  --call-rule: #2C323B;
+  --call-ink: #F2F3F5;
+  --call-muted: #9EA6B1;
+  --call-mark: rgba(245, 210, 60, .38);
+  --call-red: #E5483A;
+  --call-green: #1FA463;
+  --call-icon: #FFFFFF;
+  --font-display: "Rajdhani", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Mukta", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #090B0E; --surface: #13161B; --raised: #1B1F25; --ink: #ECEEF1; --muted: #A3AAB4; --faint: #737A85;
+    --rule: #272C34; --rule-strong: #3A414B; --hl: #F5D23C; --hl-ink: #1C1700; --hl-mark: rgba(245, 210, 60, .34);
+    --primary: #ECEEF1; --on-primary: #13161B; --toast-action: #6E5600; --green: #33BC78; --red: #F0604F; --on-red: #1B0906;
+    --focus: #7DA8FF; --scrim: rgba(0, 0, 0, .62); --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 14px 36px rgba(0, 0, 0, .45);
+    --av1-bg: #1D3253; --av1-fg: #A9C8FF; --av2-bg: #163927; --av2-fg: #9BE0B5; --av3-bg: #44291A; --av3-fg: #FFC49E;
+    --av4-bg: #33244A; --av4-fg: #D6B8F5; --av5-bg: #43202A; --av5-fg: #F7AFC0;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #090B0E; --surface: #13161B; --raised: #1B1F25; --ink: #ECEEF1; --muted: #A3AAB4; --faint: #737A85;
+  --rule: #272C34; --rule-strong: #3A414B; --hl: #F5D23C; --hl-ink: #1C1700; --hl-mark: rgba(245, 210, 60, .34);
+  --primary: #ECEEF1; --on-primary: #13161B; --toast-action: #6E5600; --green: #33BC78; --red: #F0604F; --on-red: #1B0906;
+  --focus: #7DA8FF; --scrim: rgba(0, 0, 0, .62); --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 14px 36px rgba(0, 0, 0, .45);
+  --av1-bg: #1D3253; --av1-fg: #A9C8FF; --av2-bg: #163927; --av2-fg: #9BE0B5; --av3-bg: #44291A; --av3-fg: #FFC49E;
+  --av4-bg: #33244A; --av4-fg: #D6B8F5; --av5-bg: #43202A; --av5-fg: #F7AFC0;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--ground); color: var(--ink);
+  font-family: var(--font-body); font-size: 15px; line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p { margin: 0; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; text-align: inherit; }
+input::placeholder { color: var(--faint); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+svg { display: block; }
+[hidden] { display: none !important; }
+
+/* ---------- stage ---------- */
+.stage {
+  height: 100%; display: flex; justify-content: center; align-items: center; gap: 44px;
+  padding-block: 24px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.phone {
+  position: relative; flex: 0 1 400px; min-width: 0; height: min(820px, 100%);
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 30px; box-shadow: var(--shadow);
+}
+.app { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.demo { flex: 0 0 300px; max-height: 100%; overflow-y: auto; padding-block: 4px; }
+@media (max-width: 760px) {
+  .stage { display: block; padding-block: 0; padding-left: 0; padding-right: 0; }
+  .phone { height: 100%; border: 0; border-radius: 0; box-shadow: none; }
+  .demo { display: none; }
+}
+@media (min-width: 761px) { .demo-chip { display: none; } }
+
+/* ---------- app chrome ---------- */
+.bar { flex: none; background: var(--surface); border-bottom: 1px solid var(--rule); }
+.bar-in {
+  min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.bar-actions { display: flex; align-items: center; gap: 10px; }
+.bar-title { flex: 1; min-width: 0; font-family: var(--font-display); font-weight: 700; font-size: 21px; letter-spacing: .01em; }
+.wordmark { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1; letter-spacing: .01em; }
+.mark { background: linear-gradient(transparent 50%, var(--hl-mark) 50%); padding: 0 2px; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.scroll-in {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start;
+  padding-block: 16px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.icon-btn { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px; margin-left: -8px; }
+.icon-btn:hover { background: var(--raised); }
+.chip { font-size: 13px; font-weight: 600; padding: 5px 12px; border: 1px solid var(--rule-strong); border-radius: 999px; }
+.avatar-btn { border-radius: 50%; }
+
+/* ---------- home: search box and rows ---------- */
+.hsearch { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 6px 0 16px; border: 1.5px solid var(--rule-strong); border-radius: 999px; background: var(--surface); color: var(--muted); }
+.hsearch:focus-within { border-color: var(--ink); color: var(--ink); }
+.hsearch input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font-size: 1.05rem; color: var(--ink); padding-block: 12px; }
+.hsearch .icon-btn { margin: 0; }
+.result { display: grid; gap: 4px; width: 100%; min-width: 0; text-align: left; padding: 14px 16px; border: 1px solid var(--rule); border-radius: 16px; background: var(--surface); }
+.result:not(:disabled):hover { border-color: var(--rule-strong); }
+.result-line { font-size: 1rem; line-height: 1.4; overflow-wrap: anywhere; }
+.section-label { font-size: .85rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+.rows { list-style: none; margin: 0; padding: 0; }
+.rows li + li .nrow { border-top: 1px solid var(--rule); }
+.nrow { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 2px; text-align: left; }
+.nrow:hover { background: var(--raised); }
+.nrow-text { display: grid; gap: 2px; min-width: 0; flex: 1; }
+.nrow-title { font-weight: 600; font-size: 1.02rem; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nrow-sub { font-size: .93rem; line-height: 1.35; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.big-line { font-family: var(--font-display); font-size: 1.45rem; font-weight: 700; line-height: 1.2; }
+.person-name small { display: block; color: var(--muted); font-size: .8rem; }
+.text-btn { font-weight: 600; padding: 10px 0; text-align: left; }
+.danger-text { color: var(--red); }
+.fw-line { font-size: 1rem; line-height: 1.4; color: var(--call-ink); font-weight: 600; }
+
+/* ---------- buttons, fields ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 48px; padding-inline: 18px; border-radius: 12px; font-weight: 600; font-size: 15.5px;
+}
+.btn.block { width: 100%; }
+.btn.primary { background: var(--primary); color: var(--on-primary); }
+.btn.ghost { border: 1px solid var(--rule-strong); }
+.btn.danger { color: var(--red); border: 1px solid var(--rule-strong); }
+.btn.danger-solid { background: var(--red); color: var(--on-red); }
+.link { text-decoration: underline; text-underline-offset: 3px; font-weight: 500; }
+.field-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.field {
+  display: flex; align-items: center; gap: 12px; height: 54px; padding-inline: 14px;
+  background: var(--raised); border: 1.5px solid var(--rule); border-radius: 13px;
+}
+.field:focus-within { border-color: var(--ink); }
+.field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: none; background: transparent; font-size: 17px; }
+.field input.num { font-family: var(--font-display); font-weight: 600; font-size: 21px; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.field input.otp { text-align: center; letter-spacing: .5em; font-size: 26px; }
+.cc { font-family: var(--font-display); font-weight: 600; font-size: 19px; color: var(--muted); padding-right: 12px; border-right: 1px solid var(--rule-strong); }
+.hint { font-size: 13.5px; color: var(--muted); }
+.error { font-size: 14px; color: var(--red); font-weight: 500; }
+
+/* ---------- home ---------- */
+.searchbar {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding-inline: 16px;
+  border-radius: 14px; background: var(--hl); color: var(--hl-ink); font-weight: 600; font-size: 16px;
+}
+.searchbar .tail { margin-left: auto; font-family: var(--font-display); font-weight: 600; letter-spacing: .04em; opacity: .72; }
+.summary { font-size: 14px; color: var(--muted); }
+.summary strong { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--ink); }
+.cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.card {
+  display: grid; gap: 12px; width: 100%; padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 16px;
+}
+.card:hover { border-color: var(--rule-strong); }
+.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.card-id { display: grid; gap: 1px; min-width: 0; }
+.card-label { font-weight: 600; font-size: 16.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.card-label.unknown { color: var(--muted); font-weight: 500; }
+.num-text { font-family: var(--font-display); font-weight: 600; font-size: 17px; letter-spacing: .03em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.src {
+  flex: none; margin-top: 2px; padding: 1px 8px; border: 1px solid var(--rule-strong); border-radius: 999px;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); white-space: nowrap;
+}
+.found { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; column-gap: 10px; row-gap: 6px; padding-top: 12px; border-top: 1px dashed var(--rule-strong); }
+.found-label { grid-column: 1 / -1; font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.found-names { font-size: 14.5px; line-height: 1.35; }
+mark.hl { color: inherit; background: linear-gradient(transparent 56%, var(--hl-mark) 56%); padding: 0 1px; }
+.empty { display: grid; gap: 12px; padding-block: 28px; }
+.empty h2 { font-family: var(--font-display); font-size: 24px; font-weight: 700; line-height: 1.15; }
+.empty p { color: var(--muted); }
+
+/* ---------- avatars ---------- */
+.stack { display: flex; }
+.stack .av { position: relative; }
+.stack .av + .av { margin-left: -6px; }
+.stack .av:nth-child(1) { z-index: 4; }
+.stack .av:nth-child(2) { z-index: 3; }
+.stack .av:nth-child(3) { z-index: 2; }
+.stack .av:nth-child(4) { z-index: 1; }
+.av {
+  flex: none; width: 30px; height: 30px; border-radius: 50%; display: inline-grid; place-items: center;
+  font-size: 12px; font-weight: 700; letter-spacing: .02em; line-height: 1; box-shadow: 0 0 0 2px var(--surface);
+}
+.av.lg { width: 56px; height: 56px; font-size: 20px; box-shadow: none; }
+.av.md { width: 36px; height: 36px; font-size: 13px; box-shadow: none; }
+.av1 { background: var(--av1-bg); color: var(--av1-fg); }
+.av2 { background: var(--av2-bg); color: var(--av2-fg); }
+.av3 { background: var(--av3-bg); color: var(--av3-fg); }
+.av4 { background: var(--av4-bg); color: var(--av4-fg); }
+.av5 { background: var(--av5-bg); color: var(--av5-fg); }
+.av.more { background: var(--raised); color: var(--muted); font-size: 11px; }
+
+/* ---------- lists of people ---------- */
+.people { list-style: none; margin: 0; padding: 0; display: grid; }
+.person { display: flex; align-items: center; gap: 12px; padding-block: 9px; border-bottom: 1px solid var(--rule); }
+.person:last-child { border-bottom: 0; }
+.person-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tag { flex: none; font-size: 12.5px; color: var(--muted); }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.section { display: grid; gap: 4px; }
+
+/* ---------- sheets ---------- */
+.scrim { position: absolute; inset: 0; z-index: 20; display: flex; align-items: flex-end; background: var(--scrim); animation: fade .16s ease-out; }
+.sheet {
+  width: 100%; max-height: 88%; display: flex; flex-direction: column;
+  background: var(--surface); border-radius: 22px 22px 0 0; animation: rise .22s cubic-bezier(.2, .8, .2, 1);
+}
+.sheet-grip { flex: none; width: 40px; height: 4px; margin: 8px auto 0; border-radius: 2px; background: var(--rule-strong); }
+.sheet-head {
+  flex: none; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-block: 14px 6px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px));
+}
+.sheet-title { font-family: var(--font-display); font-weight: 700; font-size: 23px; line-height: 1.15; overflow-wrap: anywhere; }
+.sheet-body {
+  overflow-y: auto; display: grid; gap: 18px; padding-block: 6px 24px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+.sheet .icon-btn { margin-left: 0; margin-right: -4px; }
+.sheet .persona[aria-pressed="true"] { background: var(--raised); }
+@keyframes rise { from { transform: translateY(28px); opacity: .5; } to { transform: none; opacity: 1; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------- incoming call ---------- */
+.call { position: absolute; inset: 0; z-index: 30; display: flex; flex-direction: column; background: var(--call-bg); color: var(--call-ink); animation: fade .2s ease-out; }
+.call-in {
+  flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 22px; padding-block: 28px 32px;
+  padding-left: max(24px, env(safe-area-inset-left, 0px)); padding-right: max(24px, env(safe-area-inset-right, 0px));
+}
+.call-status { display: flex; justify-content: space-between; gap: 12px; font-size: 12.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--call-muted); }
+.call-who { display: grid; gap: 4px; margin-top: 18px; text-align: center; }
+.call-name { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1.1; text-wrap: balance; overflow-wrap: anywhere; }
+.call-num { font-family: var(--font-display); font-weight: 600; font-size: 20px; letter-spacing: .05em; color: var(--call-muted); font-variant-numeric: tabular-nums; }
+.fw-panel { display: grid; gap: 10px; padding: 16px; background: var(--call-panel); border: 1px solid var(--call-rule); border-radius: 18px; }
+.fw-brand { font-family: var(--font-display); font-weight: 700; font-size: 16px; letter-spacing: .02em; }
+.fw-panel .mark, .call mark.hl { background: linear-gradient(transparent 56%, var(--call-mark) 56%); }
+.fw-panel .av { box-shadow: 0 0 0 2px var(--call-panel); }
+.fw-panel .found-names { font-size: 15px; }
+.fw-none { color: var(--call-muted); }
+.call-actions { margin-top: auto; display: flex; justify-content: space-around; gap: 24px; padding-top: 12px; }
+.round-wrap { display: grid; justify-items: center; gap: 8px; font-size: 13px; color: var(--call-muted); }
+.round { width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; color: var(--call-icon); }
+.round.decline { background: var(--call-red); }
+.round.answer { background: var(--call-green); }
+
+/* ---------- toast ---------- */
+.toast {
+  position: absolute; z-index: 40; bottom: 14px;
+  left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px;
+  background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow); font-size: 14px; animation: rise .2s ease-out;
+}
+.toast > span { flex: 1; min-width: 0; }
+.toast-undo { flex: none; font-weight: 700; color: var(--toast-action); }
+
+/* ---------- onboarding ---------- */
+.onb { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.onb-in {
+  flex: 1; display: flex; flex-direction: column; gap: 18px; padding-block: 28px 24px;
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+.onb-title { font-family: var(--font-display); font-weight: 700; font-size: 31px; line-height: 1.08; text-wrap: balance; }
+.onb-sub { color: var(--muted); font-size: 15.5px; }
+.onb-foot { margin-top: auto; display: grid; gap: 10px; padding-top: 12px; }
+.steps { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.onb-form { display: grid; gap: 8px; }
+.points { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.points li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 10px; align-items: start; }
+.points svg { margin-top: 3px; color: var(--green); }
+.welcome-mark { font-size: 44px; }
+.example { pointer-events: none; }
+.fine { font-size: 13px; line-height: 1.5; color: var(--muted); }
+
+/* ---------- search ---------- */
+.search-form { display: grid; gap: 8px; }
+.examples { display: flex; flex-wrap: wrap; gap: 8px; }
+.ex { font-family: var(--font-display); font-weight: 600; letter-spacing: .03em; font-size: 15px; padding: 4px 12px; border: 1px solid var(--rule-strong); border-radius: 999px; }
+.ex:hover { background: var(--raised); }
+.result { display: grid; gap: 14px; padding: 16px; border: 1px solid var(--rule); border-radius: 16px; }
+.result-head { display: grid; gap: 1px; }
+.count-line strong { font-family: var(--font-display); font-size: 19px; font-weight: 700; }
+
+/* ---------- settings ---------- */
+.profile { display: flex; align-items: center; gap: 14px; }
+.profile-name { font-family: var(--font-display); font-weight: 700; font-size: 22px; line-height: 1.1; overflow-wrap: anywhere; }
+.group { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--rule); }
+.group h3 { font-size: 16px; font-weight: 600; }
+.row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.row > div { min-width: 0; display: grid; gap: 4px; }
+.small { font-size: 14px; color: var(--muted); }
+.switch { position: relative; flex: none; width: 50px; height: 30px; border-radius: 999px; background: var(--rule-strong); transition: background .15s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgba(0, 0, 0, .25); transition: transform .15s; }
+.switch[aria-checked="true"] { background: var(--green); }
+.switch[aria-checked="true"]::after { transform: translateX(20px); }
+.hidden-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 8px; border-bottom: 1px solid var(--rule); }
+.hidden-row:last-child { border-bottom: 0; }
+.hidden-row > div { min-width: 0; display: grid; }
+
+/* ---------- your number, circle, invites ---------- */
+.av.me { background: var(--hl); color: var(--hl-ink); display: inline-grid; place-items: center; }
+.circle { display: grid; gap: 10px; padding: 14px 16px; border-radius: 16px; background: var(--raised); }
+.circle-line { font-weight: 600; line-height: 1.35; }
+.meter { height: 6px; border-radius: 999px; background: var(--rule); overflow: hidden; }
+.meter > span { display: block; height: 100%; border-radius: inherit; background: var(--green); }
+.person .btn { flex: none; padding-inline: 14px; }
+
+/* ---------- demo panel ---------- */
+.demo-in { display: grid; gap: 22px; }
+.demo-head { display: grid; gap: 4px; }
+.demo-head h2 { font-family: var(--font-display); font-weight: 700; font-size: 26px; line-height: 1.1; }
+.demo-block { display: grid; gap: 8px; }
+.demo-block h3 { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.personas { display: grid; gap: 4px; }
+.persona { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border: 1px solid transparent; border-radius: 12px; }
+.persona:hover { background: var(--raised); }
+.persona[aria-pressed="true"] { background: var(--surface); border-color: var(--rule-strong); }
+.persona .who { display: grid; min-width: 0; line-height: 1.25; }
+.persona small { color: var(--muted); font-size: 12.5px; }
+.presets { display: grid; gap: 6px; }
+.preset {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 12px;
+}
+.preset:hover { border-color: var(--rule-strong); }
+.preset .name { min-width: 0; overflow-wrap: anywhere; font-weight: 500; }
+.preset .num-text { font-size: 15px; flex: none; }
+.demo-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.demo-actions .btn { min-height: 40px; font-size: 14.5px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="stage">
+  <main class="phone" id="phone" aria-label="Found With app">
+    <div class="app" id="app"></div>
+    <div id="overlay"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  </main>
+  <aside class="demo" id="demo" aria-label="Demo controls"></aside>
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  /* ===== helpers ===== */
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const nf = new Intl.NumberFormat('en-IN');
+  const fmt = (n) => '+91 ' + n.slice(0, 5) + ' ' + n.slice(5);
+  const isMobile = (n) => /^[6-9]\d{9}$/.test(n);
+  function normalise(raw) {
+    let d = String(raw || '').replace(/\D/g, '');
+    if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
+    else if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+    return d;
+  }
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function hash(s) { let h = 2166136261; for (const ch of s) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+  function initials(name) {
+    const words = String(name).replace(/\(.*?\)/g, '').replace(/[^\p{L}\s]/gu, ' ').trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return '#';
+    return ((words[0][0] || '') + (words.length > 1 ? words[words.length - 1][0] : '')).toUpperCase();
+  }
+  const avClass = (seed) => 'av' + ((hash(seed) % 5) + 1);
+  const avatar = (seed, name, size = '') => `<span class="av ${size} ${avClass(seed)}" aria-hidden="true">${esc(initials(name))}</span>`;
+  function andList(parts) {
+    if (parts.length <= 1) return parts.join('');
+    return parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1];
+  }
+
+  const ICON = {
+    gear: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+    search: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></svg>',
+    back: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    person: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></svg>',
+    close: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    check: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+    phone: '<svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M6.6 10.8a15.2 15.2 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.25 1z"/></svg>',
+    hangup: '<svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 9c-1.6 0-3.15.25-4.6.72v3.1a1 1 0 01-.55.9 11.5 11.5 0 00-2.66 1.85 1 1 0 01-1.41-.01L.29 13.08a1 1 0 010-1.42C3.34 8.76 7.46 7 12 7s8.66 1.76 11.71 4.66a1 1 0 010 1.42l-2.48 2.48a1 1 0 01-1.41.01 11.4 11.4 0 00-2.67-1.85 1 1 0 01-.55-.9v-3.1A15 15 0 0012 9z"/></svg>'
+  };
+
+  /* ===== demo data ===== */
+  // Numbers that belong to people and businesses who are not on Found With.
+  const PLACES = {
+    suresh:   { n: '9845172046', label: 'Suresh Plumber' },
+    clinic:   { n: '9986031412', label: 'Dr. Kavitha Clinic' },
+    tiffin:   { n: '9739155208', label: 'Lakshmi Tiffin Service' },
+    manju:    { n: '9945680137', label: 'Manju Electrician' },
+    ramesh:   { n: '9663724819', label: 'Ramesh Auto' },
+    anand:    { n: '9880841275', label: 'Anand Maths Tutor' },
+    medicals: { n: '9019966310', label: 'Shree Ganesh Medicals' },
+    tailor:   { n: '9538107742', label: 'Bhavani Tailor' },
+    carwash:  { n: '8884419053', label: 'Raju Car Wash' },
+    kiran:    { n: '9845560921', label: 'Kiran (House Owner)' },
+    yoga:     { n: '7760934418', label: 'Sahana Yoga Classes' },
+    ca:       { n: '9886377105', label: 'Venkatesh CA' },
+    movers:   { n: '9108722546', label: 'Mohan Movers & Packers' },
+    gas:      { n: '9036088124', label: 'Sri Sai Gas Agency' },
+    rohan:    { n: '9844012963', label: 'Rohan' },
+    delivery: { n: '7619155380', label: 'Delivery Rahul' },
+    loan:     { n: '6366109284', label: 'Loan offer (spam)' },
+    unknown:  { n: '8095126647', label: '' }
+  };
+  const CORE = [
+    { id: 'arjun',   name: 'Arjun Rao',     phone: '9845031207' },
+    { id: 'ravi',    name: 'Ravi Kumar',    phone: '9900148823' },
+    { id: 'priya',   name: 'Priya Sharma',  phone: '9741266019' },
+    { id: 'meena',   name: 'Meena Iyer',    phone: '9886120457' },
+    { id: 'karthik', name: 'Karthik Reddy', phone: '9008073314' },
+    { id: 'sana',    name: 'Sana Shaikh',   phone: '9611850292' },
+    { id: 'deepa',   name: 'Deepa Hegde',   phone: '9448117736' },
+    { id: 'prakash', name: 'Prakash Gowda', phone: '8792405561' },
+    { id: 'neha',    name: 'Neha Gupta',    phone: '8147098832' }
+  ];
+  // Each person's own address book and call log. '@id' is another user; ':label' is the name *they* saved it under.
+  const BOOKS = {
+    arjun:   { contacts: ['@ravi', '@priya:Priya (Office)', '@meena', '@karthik', '@deepa', 'suresh', 'clinic', 'tiffin', 'manju', 'ramesh', 'medicals', 'kiran', 'ca', 'gas', "rohan:Rohan (Ravi's cousin)", 'tailor', 'movers'],
+               calls: ['suresh', 'delivery', 'loan', '@ravi', 'unknown', 'yoga'] },
+    ravi:    { contacts: ['@arjun', '@priya', '@karthik', '@prakash', 'suresh:Suresh (plumber)', 'rohan:Rohan bro', 'ramesh', 'clinic', 'movers', 'carwash'],
+               calls: ['@arjun', 'rohan', 'carwash'] },
+    priya:   { contacts: ['@arjun:Arjun (Office)', '@ravi', '@meena', '@neha', 'tiffin', 'clinic', 'anand', 'tailor', 'delivery'],
+               calls: ['@meena', 'delivery'] },
+    meena:   { contacts: ['@arjun', '@priya', '@deepa', '@sana', 'yoga', 'tiffin', 'medicals', 'clinic', 'tailor'],
+               calls: ['@deepa', 'yoga'] },
+    karthik: { contacts: ['@arjun', '@ravi', '@prakash', 'manju', 'suresh', 'ca', 'carwash', 'kiran:Kiran Owner'],
+               calls: ['kiran', 'manju'] },
+    sana:    { contacts: ['@meena', '@neha', 'yoga', 'medicals', 'loan:Loan agent, ignore'],
+               calls: ['loan'] },
+    deepa:   { contacts: ['@arjun', '@meena', 'yoga', 'gas', 'clinic', 'anand'],
+               calls: ['gas'] },
+    prakash: { contacts: ['@ravi', '@karthik', 'ramesh', 'manju', 'movers', 'gas'],
+               calls: ['movers'] },
+    neha:    { contacts: ['@priya', '@sana', 'ca', 'tiffin', 'loan:Spam loan'],
+               calls: [] }
+  };
+  // Popular local numbers are also saved by a crowd of generated users.
+  const CROWD_SIZE = 170;
+  const CROWD_HOLDS = { clinic: 118, gas: 84, medicals: 57, tiffin: 23, carwash: 14, loan: 12, yoga: 9, tailor: 6 };
+  const FIRST = ['Aditya', 'Akshay', 'Ananya', 'Bhavya', 'Chetan', 'Darshan', 'Gautam', 'Harini', 'Ishaan', 'Jyothi', 'Kavya', 'Lokesh', 'Madhu', 'Nandini', 'Pavan', 'Rakesh', 'Rashmi', 'Sachin', 'Shilpa', 'Sneha', 'Srinivas', 'Tejas', 'Usha', 'Varun', 'Yashas', 'Zoya', 'Farhan', 'Ayesha', 'Joseph', 'Maria', 'Gurpreet', 'Sunil', 'Anil', 'Pooja', 'Rahul', 'Swathi', 'Naveen', 'Keerthi', 'Manoj', 'Divakar'];
+  const LAST = ['Bhat', 'Shetty', 'Kamath', 'Nayak', 'Patil', 'Kulkarni', 'Naidu', 'Pillai', 'Menon', 'Joshi', 'Desai', 'Khan', "D'Souza", 'Fernandes', 'Verma', 'Agarwal', 'Jain', 'Rao', 'Murthy', 'Gowda', 'Hegde', 'Acharya', 'Prabhu', 'Iyengar'];
+  const DAILY_SEARCHES = 50;
+  const CIRCLE_GOAL = 20;       // people you know on Found With at which most cards fill in
+  const INVITE_REWARD = 20;     // extra searches a day for both sides of an invite
+
+  function makeUser(id, name, phone, kind) {
+    return { id, name, phone, kind, contacts: new Map(), calls: new Set(), excluded: new Set(), sync: true, searchesLeft: DAILY_SEARCHES };
+  }
+  function resolveEntry(entry) {
+    const [key, label] = entry.split(/:(.*)/s);
+    if (key.startsWith('@')) {
+      const u = CORE.find((c) => c.id === key.slice(1));
+      return { n: u.phone, label: label || u.name };
+    }
+    const p = PLACES[key];
+    return { n: p.n, label: label || p.label };
+  }
+  function fillBook(user, book) {
+    for (const e of book.contacts) { const r = resolveEntry(e); user.contacts.set(r.n, r.label); }
+    for (const e of book.calls) user.calls.add(resolveEntry(e).n);
+  }
+  function buildDemo() {
+    const users = new Map();
+    for (const c of CORE) { const u = makeUser(c.id, c.name, c.phone, 'core'); fillBook(u, BOOKS[c.id]); users.set(u.id, u); }
+    const rand = mulberry32(20261030);
+    const taken = new Set([...CORE.map((c) => c.phone), ...Object.values(PLACES).map((p) => p.n)]);
+    const names = new Set();
+    const crowd = [];
+    while (crowd.length < CROWD_SIZE) {
+      const name = FIRST[Math.floor(rand() * FIRST.length)] + ' ' + LAST[Math.floor(rand() * LAST.length)];
+      if (names.has(name)) continue;
+      let phone;
+      do { phone = String(7 + Math.floor(rand() * 3)) + String(Math.floor(rand() * 1e9)).padStart(9, '0'); } while (taken.has(phone));
+      taken.add(phone); names.add(name);
+      const u = makeUser('c' + crowd.length, name, phone, 'crowd');
+      crowd.push(u); users.set(u.id, u);
+    }
+    for (const [key, count] of Object.entries(CROWD_HOLDS)) {
+      const order = crowd.map((u, i) => [rand(), i]).sort((a, b) => a[0] - b[0]).slice(0, count);
+      for (const [, i] of order) crowd[i].contacts.set(PLACES[key].n, PLACES[key].label);
+    }
+    return users;
+  }
+
+  /* ===== matching engine (same rules as the backend) ===== */
+  let users = buildDemo();
+  let holderIndex = new Map(); // number -> Set of user ids who have it saved in contacts
+
+  function reindex() {
+    holderIndex = new Map();
+    for (const u of users.values()) {
+      if (!u.sync) continue;
+      for (const n of u.contacts.keys()) {
+        if (u.excluded.has(n)) continue; // a hidden number is never matched
+        let s = holderIndex.get(n);
+        if (!s) holderIndex.set(n, (s = new Set()));
+        s.add(u.id);
+      }
+    }
+  }
+
+  // Everyone who has the number saved in contacts (call logs never count here). Only people the
+  // viewer knows, whose number is in the viewer's contacts or call log, are ever named.
+  function holdersFor(number, viewer) {
+    const ids = holderIndex.get(number);
+    if (!ids) return [];
+    const out = [];
+    for (const id of ids) {
+      if (id === viewer.id) continue;
+      const u = users.get(id);
+      const myLabel = viewer.contacts.get(u.phone);
+      out.push({ id, name: u.name, display: myLabel || u.name, saved: Boolean(myLabel),
+                 known: Boolean(myLabel) || viewer.calls.has(u.phone) });
+    }
+    out.sort((a, b) => (b.known - a.known) || a.display.localeCompare(b.display));
+    return out;
+  }
+
+  // A number with no name saved gets its owner's own Found With name, if they use Found With.
+  // Cards and calls only, never search.
+  function ownerName(number, viewer) {
+    for (const u of users.values()) if (u.phone === number) return u.id !== viewer.id && u.sync ? u.name : '';
+    return '';
+  }
+
+  // One card per number in your contacts or call log that someone else has saved.
+  // Your call log only ever makes cards for you.
+  function cardsFor(viewer) {
+    if (!viewer.sync) return [];
+    const numbers = new Set([...viewer.contacts.keys(), ...viewer.calls]);
+    const cards = [];
+    for (const n of numbers) {
+      if (n === viewer.phone || viewer.excluded.has(n)) continue;
+      const holders = holdersFor(n, viewer);
+      if (!holders.length) continue;
+      cards.push({
+        number: n, label: viewer.contacts.get(n) || ownerName(n, viewer), inContacts: viewer.contacts.has(n), inCalls: viewer.calls.has(n),
+        holders, known: holders.filter((h) => h.known).length
+      });
+    }
+    cards.sort((a, b) => (b.known - a.known) || (b.holders.length - a.holders.length) || (a.label || '~').localeCompare(b.label || '~'));
+    return cards;
+  }
+
+  // How many people the viewer knows (contacts or call log) take part in Found With.
+  function circleMembers(viewer) {
+    const mine = new Set([...viewer.contacts.keys(), ...viewer.calls]);
+    let count = 0;
+    for (const u of users.values()) if (u.id !== viewer.id && u.sync && mine.has(u.phone)) count++;
+    return count;
+  }
+  function circleLine(m) {
+    if (m <= 0) return 'No one you know is on Found With yet.';
+    return m === 1 ? '1 person you know is on Found With.' : `${nf.format(m)} people you know are on Found With.`;
+  }
+  // Contacts not on Found With yet: people you call first, then by name. Mobiles only.
+  function inviteList(viewer) {
+    const registered = new Set([...users.values()].map((u) => u.phone));
+    const out = [];
+    for (const [n, label] of viewer.contacts) {
+      if (!isMobile(n) || registered.has(n)) continue;
+      out.push({ n, name: label || fmt(n), called: viewer.calls.has(n) });
+    }
+    out.sort((a, b) => (b.called - a.called) || a.name.localeCompare(b.name));
+    return out;
+  }
+
+  /* ===== state ===== */
+  const state = {
+    viewerId: 'arjun', screen: 'home', sheet: null, call: null, onb: null,
+    search: { q: '', result: null, showAll: false }, focusNext: null, toast: null, invited: new Set()
+  };
+  const viewer = () => users.get(state.viewerId);
+
+  /* ===== small view pieces ===== */
+  const srcLabel = (c) => (c.inContacts && c.inCalls ? 'Contacts · Call log' : c.inContacts ? 'Contacts' : 'Call log');
+  // The one line every card, search result and call panel shows: "Found with Priya, Ravi and 2 others".
+  function namesLine(holders, max = 3) {
+    if (!holders.length) return 'Found with no one yet';
+    // Names only for people you know; everyone else is just a number.
+    const shown = holders.filter((h) => h.known).slice(0, max).map((h) => esc(h.display));
+    const rest = holders.length - shown.length;
+    if (!shown.length) return `Found with ${nf.format(rest)} ${rest === 1 ? 'person' : 'people'}`;
+    if (rest <= 0) return 'Found with ' + andList(shown);
+    return 'Found with ' + shown.join(', ') + ` and ${nf.format(rest)} ${rest === 1 ? 'other' : 'others'}`;
+  }
+  function peopleList(holders, limit) {
+    return `<ul class="people">${holders.slice(0, limit).map((h) => `
+      <li class="person">${avatar(h.id, h.name, 'md')}
+        <span class="person-name">${esc(h.display)}${h.saved && h.display !== h.name ? `<small>On Found With: ${esc(h.name)}</small>` : ''}</span>
+      </li>`).join('')}</ul>`;
+  }
+  function bar(inner) { return `<header class="bar"><div class="bar-in">${inner}</div></header>`; }
+  const backBtn = `<button class="icon-btn" data-action="go" data-screen="home" aria-label="Back to home">${ICON.back}</button>`;
+
+  /* ===== screens ===== */
+  function viewHome() {
+    const v = viewer();
+    const cards = cardsFor(v);
+    const q = state.search;
+    const head = bar(`
+      <div class="wordmark"><span class="mark">Found</span> With</div>
+      <div class="bar-actions">
+        <button class="chip demo-chip" data-action="open-demo">Demo</button>
+        <button class="icon-btn" data-action="go" data-screen="settings" aria-label="Settings">${ICON.gear}</button>
+      </div>`);
+    let result = '';
+    if (q.result && q.result.error) {
+      result = `<p class="error" role="alert">${esc(q.result.error)}</p>`;
+    } else if (q.result) {
+      const r = q.result;
+      const known = r.holders.some((h) => h.known);
+      result = `<button class="result" data-action="open-card" data-number="${r.number}" ${known ? '' : 'disabled'} aria-live="polite">
+          <span class="nrow-title">${esc(r.label || fmt(r.number))}</span>
+          ${r.label ? `<span class="num-text">${fmt(r.number)}</span>` : ''}
+          <span class="result-line">${namesLine(r.holders)}</span>
+          <span class="small">${v.searchesLeft} searches left today</span>
+        </button>`;
+    }
+    let top = '';
+    if (v.sync) {
+      const members = circleMembers(v);
+      top = `<ul class="rows"><li><button class="nrow" data-action="open-card" data-number="${v.phone}">
+          <span class="av md me" aria-hidden="true">${ICON.person}</span>
+          <span class="nrow-text"><span class="nrow-title">Your number</span><span class="nrow-sub">${namesLine(holdersFor(v.phone, v))}</span></span>
+        </button></li></ul>
+        ${members < CIRCLE_GOAL ? `<div class="circle">
+          <p class="circle-line">${circleLine(members)}</p>
+          <p class="small">At ${CIRCLE_GOAL}, most of your numbers fill in.</p>
+          <div class="meter" role="progressbar" aria-label="People you know on Found With" aria-valuemin="0" aria-valuemax="${CIRCLE_GOAL}" aria-valuenow="${members}"><span style="width:${Math.min(100, members / CIRCLE_GOAL * 100)}%"></span></div>
+          <button class="btn primary block" data-action="open-invite">Invite friends</button>
+        </div>` : ''}`;
+    }
+    let body;
+    if (!v.sync) {
+      body = `<div class="empty">
+        <h2>Contact sync is off</h2>
+        <p>Turn it on to see who else has the numbers you've saved.</p>
+        <button class="btn primary block" data-action="toggle-sync">Turn on sync</button>
+      </div>`;
+    } else if (!cards.length) {
+      body = `<div class="empty"><h2>No cards yet</h2><p>When someone else on Found With has a number you've saved, it shows up here.</p></div>`;
+    } else {
+      body = `<div><p class="section-label">Your numbers · ${nf.format(cards.length)}</p>
+        <ul class="rows">${cards.map((c) => `
+          <li><button class="nrow" data-action="open-card" data-number="${c.number}">
+            ${avatar(c.number, c.label || '#', 'md')}
+            <span class="nrow-text">
+              <span class="nrow-title">${esc(c.label || fmt(c.number))}</span>
+              <span class="nrow-sub">${namesLine(c.holders)}</span>
+            </span>
+          </button></li>`).join('')}
+        </ul></div>`;
+    }
+    return head + `<div class="scroll"><div class="scroll-in">
+      <form class="hsearch" id="search-form" role="search" novalidate>
+        ${ICON.search}
+        <input id="q" inputmode="numeric" autocomplete="off" maxlength="16" placeholder="Search a mobile number" aria-label="Search a mobile number" value="${esc(q.q)}">
+        ${q.q ? `<button type="button" class="icon-btn" data-action="clear-search" aria-label="Clear">${ICON.close}</button>` : ''}
+      </form>
+      ${result}
+      ${top}
+      ${body}
+    </div></div>`;
+  }
+
+  function viewSettings() {
+    const v = viewer();
+    const hidden = [...v.excluded];
+    return bar(`${backBtn}<h1 class="bar-title">Settings</h1>`) + `<div class="scroll"><div class="scroll-in">
+      <div class="profile">${avatar(v.id, v.name, 'lg')}
+        <div><p class="profile-name">${esc(v.name)}</p><p class="num-text">${fmt(v.phone)}</p></div>
+      </div>
+      <section class="group">
+        <div class="row">
+          <div>
+            <h3 id="sync-label">Sync contacts</h3>
+            <p class="small">Needed for cards. Only people who have your number see your name.</p>
+          </div>
+          <button class="switch" role="switch" aria-checked="${v.sync}" aria-labelledby="sync-label" data-action="toggle-sync"></button>
+        </div>
+      </section>
+      <section class="group">
+        <div class="row">
+          <div><h3>Invite friends</h3><p class="small">Each friend who joins fills in more of your numbers.</p></div>
+          <button class="btn ghost" data-action="open-invite">Invite</button>
+        </div>
+      </section>
+      ${hidden.length ? `<section class="group">
+        <h3>Hidden numbers</h3>
+        <div>${hidden.map((n) => `<div class="hidden-row">
+            <div><span>${esc(v.contacts.get(n) || fmt(n))}</span></div>
+            <button class="btn ghost" data-action="unhide" data-number="${n}">Unhide</button>
+          </div>`).join('')}</div>
+      </section>` : ''}
+      <section class="group">
+        <button class="text-btn danger-text" data-action="ask-delete">Delete my account</button>
+      </section>
+    </div></div>`;
+  }
+
+  function viewOnboarding() {
+    const o = state.onb;
+    const err = o.error ? `<p class="error" role="alert">${esc(o.error)}</p>` : '';
+    const wrap = (inner) => `<div class="onb"><div class="onb-in">${inner}</div></div>`;
+    if (o.step === 'welcome') {
+      const sample = cardsFor(users.get('arjun') || viewer()).find((c) => c.number === PLACES.suresh.n);
+      return wrap(`
+        <div class="wordmark welcome-mark"><span class="mark">Found</span> With</div>
+        <h1 class="onb-title">See which of your people have a number</h1>
+        <p class="onb-sub">When a number calls you, or when you search one, Found With shows who you know has it saved.</p>
+        ${sample ? `<div class="result example" aria-hidden="true">
+            <span class="nrow-title">Suresh Plumber</span>
+            <span class="result-line">${namesLine(sample.holders)}</span>
+          </div>` : ''}
+        <form class="onb-foot" id="onb-form"><button class="btn primary block" type="submit">Get started</button>
+          <p class="fine">Prototype with demo data. No SMS is sent and nothing you type leaves this page.</p></form>`);
+    }
+    if (o.step === 'phone') {
+      return wrap(`
+        <p class="steps">Step 1 of 4</p>
+        <h1 class="onb-title">Your mobile number</h1>
+        <p class="onb-sub">We'll send a 6-digit code to check it's yours.</p>
+        <form class="onb-form" id="onb-form" novalidate>
+          <label class="field-label" for="onb-input">Mobile number</label>
+          <div class="field"><span class="cc">+91</span>
+            <input class="num" id="onb-input" data-onb="phone" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="98450 12345" value="${esc(o.phone)}">
+          </div>${err}
+          <div class="onb-foot"><button class="btn primary block" type="submit">Send code</button></div>
+        </form>`);
+    }
+    if (o.step === 'otp') {
+      return wrap(`
+        <p class="steps">Step 2 of 4</p>
+        <h1 class="onb-title">Enter the 6-digit code</h1>
+        <p class="onb-sub">Sent to <span class="num-text">${fmt(o.phone)}</span>. In this demo, any 6 digits work.</p>
+        <form class="onb-form" id="onb-form" novalidate>
+          <label class="field-label" for="onb-input">Code</label>
+          <div class="field"><input class="num otp" id="onb-input" data-onb="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="······" value="${esc(o.otp)}"></div>${err}
+          <div class="onb-foot"><button class="btn primary block" type="submit">Verify</button>
+            <button class="btn block" type="button" data-action="onb-back"><span class="link">Change number</span></button></div>
+        </form>`);
+    }
+    if (o.step === 'name') {
+      return wrap(`
+        <p class="steps">Step 3 of 4</p>
+        <h1 class="onb-title">Your name on Found With</h1>
+        <p class="onb-sub">People see this name on the card for any number you've saved.</p>
+        <form class="onb-form" id="onb-form" novalidate>
+          <label class="field-label" for="onb-input">Name</label>
+          <div class="field"><input id="onb-input" data-onb="name" autocomplete="name" maxlength="40" placeholder="Full name" value="${esc(o.name)}"></div>${err}
+          <div class="onb-foot"><button class="btn primary block" type="submit">Continue</button></div>
+        </form>`);
+    }
+    return wrap(`
+      <p class="steps">Step 4 of 4</p>
+      <h1 class="onb-title">Turn on contact sync</h1>
+      <ul class="points">
+        <li>${ICON.check}<span>Your saved numbers are matched with everyone on Found With, so you get a card for each number someone else also has.</span></li>
+        <li>${ICON.check}<span>Only people who have your number in their contacts or call log see your name next to numbers you've both saved. Everyone else sees just a count.</span></li>
+        <li>${ICON.check}<span>When you call someone on Found With who hasn't saved you, they see your Found With name.</span></li>
+        <li>${ICON.check}<span>Your call log only makes cards for you. Nobody else sees it.</span></li>
+        <li>${ICON.check}<span>Contact names stay on your phone. Only the numbers are matched.</span></li>
+      </ul>
+      <div class="onb-foot">
+        <button class="btn primary block" data-action="onb-finish" data-sync="1">Turn on sync</button>
+        <button class="btn ghost block" data-action="onb-finish" data-sync="0">Not now</button>
+        <p class="fine">This demo loads a sample address book for you.</p>
+      </div>`);
+  }
+
+  /* ===== overlays ===== */
+  function sheet(title, body, labelId = 'sheet-title') {
+    return `<div class="scrim" data-action="close-sheet" data-self="1">
+      <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="${labelId}">
+        <div class="sheet-grip" aria-hidden="true"></div>
+        <div class="sheet-head"><div>${title}</div>
+          <button class="icon-btn" data-action="close-sheet" aria-label="Close">${ICON.close}</button></div>
+        <div class="sheet-body">${body}</div>
+      </section></div>`;
+  }
+
+  function viewCardSheet() {
+    const v = viewer();
+    const n = state.sheet.number;
+    const holders = holdersFor(n, v);
+    const own = n === v.phone;
+    const label = own ? 'Your number' : v.contacts.get(n) || ownerName(n, v);
+    const known = holders.filter((h) => h.known);
+    const others = holders.length - known.length;
+    const mine = !own && (v.contacts.has(n) || v.calls.has(n));
+    return sheet(
+      `<h2 class="sheet-title" id="sheet-title">${esc(label || fmt(n))}</h2>${label ? `<p class="num-text">${fmt(n)}</p>` : ''}`,
+      `<p class="big-line">${holders.length ? `Found with ${nf.format(holders.length)} ${holders.length === 1 ? 'person' : 'people'}` : 'Found with no one yet'}</p>
+       ${known.length ? `<div class="section"><p class="section-label">People you know</p>${peopleList(known, known.length)}</div>` : ''}
+       ${others ? `<p class="small">${known.length ? `and ${nf.format(others)} ${others === 1 ? 'other' : 'others'}` : "You don't know any of them."}</p>` : ''}
+       ${own ? '' : `<button class="btn ghost block" data-action="share-card" data-number="${n}">Share this number</button>`}
+       ${mine ? `<button class="text-btn danger-text" data-action="hide-number" data-number="${n}">Hide this number</button>` : ''}`);
+  }
+
+  function viewInviteSheet() {
+    const v = viewer();
+    const list = inviteList(v);
+    return sheet(`<h2 class="sheet-title" id="sheet-title">Invite friends</h2>`,
+      `<p>Each friend who joins fills in more of your numbers.</p>
+       <p class="small">You both get ${INVITE_REWARD} more searches a day.</p>
+       <button class="btn primary block" data-action="share-invite">Share your invite link</button>
+       <p>${circleLine(circleMembers(v))}</p>
+       ${list.length ? `<div class="section"><p class="section-label">Invite people you know</p>
+         <ul class="people">${list.map((p) => `
+           <li class="person">${avatar(p.n, p.name, 'md')}
+             <span class="person-name">${esc(p.name)}<small>${fmt(p.n)}${p.called ? ' · you called recently' : ''}</small></span>
+             <button class="btn ghost" data-action="invite-one" data-number="${p.n}">${state.invited.has(p.n) ? 'Invited' : 'Invite'}</button>
+           </li>`).join('')}</ul></div>` : ''}`);
+  }
+
+  function viewDeleteSheet() {
+    return sheet(`<h2 class="sheet-title" id="sheet-title">Delete your account?</h2>`,
+      `<p>This removes your profile and every number you've synced. People stop seeing your name on cards straight away.</p>
+       <button class="btn danger-solid block" data-action="confirm-delete">Delete account</button>
+       <button class="btn ghost block" data-action="close-sheet">Cancel</button>`);
+  }
+
+  function viewCall() {
+    const v = viewer();
+    const n = state.call.number;
+    const label = v.contacts.get(n) || ownerName(n, v);
+    const holders = v.sync ? holdersFor(n, v) : [];
+    return `<section class="call" role="dialog" aria-modal="true" aria-label="Incoming call">
+      <div class="call-in">
+        <div class="call-status"><span>Incoming call</span><span>Mobile</span></div>
+        <div class="call-who">
+          <p class="call-name">${esc(label || 'Unknown number')}</p>
+          <p class="call-num">${fmt(n)}</p>
+        </div>
+        <div class="fw-panel">
+          ${!v.sync ? '<p class="fw-none">Contact sync is off, so Found With can\'t check this number.</p>'
+            : holders.length ? `<p class="fw-line">${namesLine(holders)}</p>`
+            : '<p class="fw-none">Found with no one yet.</p>'}
+        </div>
+        <div class="call-actions">
+          <div class="round-wrap"><button class="round decline" data-action="end-call" data-how="decline" aria-label="Decline">${ICON.hangup}</button>Decline</div>
+          <div class="round-wrap"><button class="round answer" data-action="end-call" data-how="answer" aria-label="Answer">${ICON.phone}</button>Answer</div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function personas() {
+    const list = CORE.map((c) => users.get(c.id)).filter(Boolean).slice(0, 6);
+    for (const u of users.values()) if (u.kind === 'new') list.push(u);
+    return list;
+  }
+  function callPresets(v) {
+    const nums = [PLACES.suresh.n, PLACES.delivery.n, PLACES.unknown.n];
+    const friend = ['ravi', 'arjun', 'priya'].map((id) => users.get(id)).find((u) => u && u.id !== v.id);
+    if (friend) nums.push(friend.phone);
+    return nums.map((n) => ({ n, name: v.contacts.get(n) || 'Unknown number' }));
+  }
+  function viewDemo() {
+    const v = viewer();
+    return `<div class="demo-in">
+      <div class="demo-head"><p class="eyebrow">Prototype</p><h2>Demo controls</h2>
+        <p class="fine">Matching runs in this page with the same rules as the backend. Nothing you type leaves it.</p></div>
+      ${v ? `<div class="demo-block"><h3>View as</h3><div class="personas">
+        ${personas().map((u) => `<button class="persona" data-action="view-as" data-id="${u.id}" aria-pressed="${u.id === v.id}">
+            ${avatar(u.id, u.name, 'md')}<span class="who"><span>${esc(u.name)}</span><small>${u.kind === 'new' ? 'New sign-up' : cardsFor(u).length + ' cards'}${u.sync ? '' : ' · sync off'}</small></span></button>`).join('')}
+        </div><p class="fine">Each person sees their own cards. Switch to Ravi to see the same numbers from his side.</p></div>
+      <div class="demo-block"><h3>Simulate an incoming call</h3><div class="presets">
+        ${callPresets(v).map((p) => `<button class="preset" data-action="call" data-number="${p.n}"><span class="name">${esc(p.name)}</span><span class="num-text">${fmt(p.n).slice(4)}</span></button>`).join('')}
+      </div></div>` : ''}
+      <div class="demo-block"><h3>Start over</h3><div class="demo-actions">
+        <button class="btn ghost" data-action="signup">Sign up as someone new</button>
+        <button class="btn ghost" data-action="reset">Reset demo data</button>
+      </div></div>
+      <p class="fine">Demo data: 9 named test users and ${CROWD_SIZE} generated users. Names and numbers are made up.</p>
+    </div>`;
+  }
+
+  /* ===== rendering ===== */
+  function render() {
+    const app = $('#app');
+    if (state.screen === 'onboarding') app.innerHTML = viewOnboarding();
+    else if (state.screen === 'settings') app.innerHTML = viewSettings();
+    else app.innerHTML = viewHome();
+    renderOverlay();
+    $('#demo').innerHTML = viewDemo();
+    if (state.focusNext) {
+      const el = $(state.focusNext);
+      state.focusNext = null;
+      if (el) {
+        el.focus({ preventScroll: true });
+        if (el.setSelectionRange && el.value) el.setSelectionRange(el.value.length, el.value.length);
+      }
+    }
+  }
+  function renderOverlay() {
+    const o = $('#overlay');
+    if (state.call) { o.innerHTML = viewCall(); $('.round.answer', o).focus({ preventScroll: true }); return; }
+    if (!state.sheet) { o.innerHTML = ''; return; }
+    if (state.sheet.type === 'card') o.innerHTML = viewCardSheet();
+    else if (state.sheet.type === 'delete') o.innerHTML = viewDeleteSheet();
+    else if (state.sheet.type === 'invite') o.innerHTML = viewInviteSheet();
+    else if (state.sheet.type === 'demo') o.innerHTML = sheet('<h2 class="sheet-title" id="sheet-title">Demo controls</h2>', viewDemo().replace('<div class="demo-head">', '<div class="demo-head" hidden>'));
+    const close = $('.sheet .icon-btn', o);
+    if (close) close.focus({ preventScroll: true });
+  }
+
+  let toastTimer = null;
+  function toast(text, undo) {
+    state.toast = { text, undo };
+    const t = $('#toast');
+    t.innerHTML = `<span>${esc(text)}</span>${undo ? '<button class="toast-undo" data-action="undo">Undo</button>' : ''}`;
+    t.hidden = false;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.hidden = true; state.toast = null; }, undo ? 6000 : 3500);
+  }
+
+  /* ===== onboarding flow ===== */
+  function startOnboarding() {
+    state.screen = 'onboarding';
+    state.onb = { step: 'welcome', phone: '', otp: '', name: '', error: '' };
+    state.sheet = null; state.call = null;
+    render();
+  }
+  const STEP_ORDER = ['welcome', 'phone', 'otp', 'name', 'sync'];
+  function onbSubmit() {
+    const o = state.onb;
+    o.error = '';
+    if (o.step === 'welcome') o.step = 'phone';
+    else if (o.step === 'phone') {
+      const n = normalise(o.phone);
+      if (!isMobile(n)) o.error = 'Enter a 10-digit mobile number starting with 6, 7, 8 or 9.';
+      else if ([...users.values()].some((u) => u.phone === n)) o.error = 'This number already has an account in the demo. Try another number.';
+      else { o.phone = n; o.step = 'otp'; }
+    } else if (o.step === 'otp') {
+      if (!/^\d{6}$/.test(o.otp.trim())) o.error = 'Enter the 6-digit code.';
+      else o.step = 'name';
+    } else if (o.step === 'name') {
+      const nm = o.name.trim().replace(/\s+/g, ' ');
+      if (nm.length < 2) o.error = "Enter your name the way you'd like people to see it.";
+      else { o.name = nm; o.step = 'sync'; }
+    }
+    state.focusNext = '#onb-input';
+    render();
+  }
+  function onbFinish(syncOn) {
+    const o = state.onb;
+    const u = makeUser('new' + Date.now().toString(36), o.name, o.phone, 'new');
+    fillBook(u, BOOKS.arjun);
+    u.sync = syncOn;
+    users.set(u.id, u);
+    reindex();
+    state.viewerId = u.id; state.screen = 'home'; state.onb = null;
+    render();
+    toast(syncOn ? 'Sync is on. These are your cards.' : 'You can turn on sync any time in Settings.');
+  }
+
+  /* ===== search ===== */
+  function doSearch() {
+    const v = viewer();
+    const s = state.search;
+    const n = normalise(s.q);
+    if (!v.sync) s.result = { error: 'Turn on contact sync in Settings to search.' };
+    else if (!isMobile(n)) s.result = { error: 'Enter a 10-digit Indian mobile number starting with 6, 7, 8 or 9.' };
+    else if (v.searchesLeft <= 0) s.result = { error: `You've used all ${DAILY_SEARCHES} searches for today. The limit resets at midnight.` };
+    else {
+      v.searchesLeft -= 1;
+      s.result = { number: n, holders: holdersFor(n, v), label: n === v.phone ? 'Your number' : (v.contacts.get(n) || '') };
+      s.showAll = false;
+    }
+    state.focusNext = '#q';
+    render();
+  }
+
+  /* ===== actions ===== */
+  const actions = {
+    'clear-search'() { state.search = { q: '', result: null, showAll: false }; state.focusNext = '#q'; render(); },
+    go(el) {
+      state.screen = el.dataset.screen; state.sheet = null;
+      render();
+      $('.scroll') && ($('.scroll').scrollTop = 0);
+    },
+    'open-card'(el) { state.sheet = { type: 'card', number: el.dataset.number, showAll: false }; renderOverlay(); },
+    'sheet-all'() { state.sheet.showAll = true; renderOverlay(); },
+    'close-sheet'(el, ev) {
+      if (el.dataset.self && ev.target !== el) return; // only close on a tap outside the sheet
+      state.sheet = null; renderOverlay();
+    },
+    'hide-number'(el) {
+      const v = viewer(); const n = el.dataset.number;
+      v.excluded.add(n); reindex(); state.sheet = null; render();
+      toast('Number hidden. It no longer appears on Found With for you or because of you.', () => { v.excluded.delete(n); reindex(); render(); });
+    },
+    unhide(el) { const v = viewer(); v.excluded.delete(el.dataset.number); reindex(); render(); toast('Number is back on Found With.'); },
+    'toggle-sync'() {
+      const v = viewer(); v.sync = !v.sync; reindex(); render();
+      toast(v.sync ? 'Contact sync is on.' : 'Contact sync is off. Your numbers were removed from Found With.');
+    },
+    'ask-delete'() { state.sheet = { type: 'delete' }; renderOverlay(); },
+    'open-invite'() { state.sheet = { type: 'invite' }; renderOverlay(); },
+    'share-invite'() { toast('Your share sheet opens with your invite link.'); },
+    'invite-one'(el) {
+      // On the phone: WhatsApp (or SMS) opens to this person with the invite typed in. They tap send.
+      state.invited.add(el.dataset.number);
+      el.textContent = 'Invited';
+      toast('WhatsApp opens with your invite typed in. You send it.');
+    },
+    'share-card'(el) {
+      // Shared: the name you saved, the number and counts. Never the names of who has it.
+      const v = viewer(); const n = el.dataset.number;
+      const holders = holdersFor(n, v); const known = holders.filter((h) => h.known).length;
+      const label = v.contacts.get(n);
+      let text = (label ? label + ' · ' : '') + fmt(n) + '.';
+      if (holders.length) text += ` Found with ${nf.format(holders.length)} ${holders.length === 1 ? 'person' : 'people'}` +
+        (known ? `, ${nf.format(known)} of them ${known === 1 ? 'someone' : 'people'} I know.` : '.');
+      toast('Shared: ' + text);
+    },
+    'confirm-delete'() {
+      const v = viewer(); users.delete(v.id); reindex();
+      state.sheet = null; startOnboarding(); toast('Your account was deleted.');
+    },
+    'view-as'(el) { state.viewerId = el.dataset.id; state.screen = 'home'; state.sheet = null; state.call = null; state.invited = new Set(); render(); },
+    call(el) { state.sheet = null; state.call = { number: el.dataset.number }; renderOverlay(); },
+    'end-call'(el) { state.call = null; renderOverlay(); toast(el.dataset.how === 'answer' ? 'Call answered (demo).' : 'Call declined (demo).'); },
+    'open-demo'() { state.sheet = { type: 'demo' }; renderOverlay(); },
+    signup() { startOnboarding(); },
+    reset() {
+      users = buildDemo(); reindex();
+      Object.assign(state, { viewerId: 'arjun', screen: 'home', sheet: null, call: null, onb: null, search: { q: '', result: null, showAll: false }, invited: new Set() });
+      render(); toast('Demo data reset.');
+    },
+    example(el) { state.search.q = el.dataset.number; doSearch(); },
+    'search-all'() { state.search.showAll = true; render(); },
+    'onb-back'() {
+      const o = state.onb; o.error = '';
+      o.step = STEP_ORDER[Math.max(0, STEP_ORDER.indexOf(o.step) - 1)];
+      state.focusNext = '#onb-input'; render();
+    },
+    'onb-finish'(el) { onbFinish(el.dataset.sync === '1'); },
+    undo() {
+      const u = state.toast && state.toast.undo;
+      $('#toast').hidden = true; state.toast = null; clearTimeout(toastTimer);
+      if (u) u();
+    }
+  };
+
+  document.addEventListener('click', (ev) => {
+    const el = ev.target.closest('[data-action]');
+    if (!el) return;
+    const fn = actions[el.dataset.action];
+    if (fn) fn(el, ev);
+  });
+  document.addEventListener('submit', (ev) => {
+    ev.preventDefault();
+    if (ev.target.id === 'search-form') doSearch();
+    else if (ev.target.id === 'onb-form') onbSubmit();
+  });
+  document.addEventListener('input', (ev) => {
+    const t = ev.target;
+    if (t.id === 'q') {
+      // Searches by itself once a full 10-digit mobile is typed.
+      const s = state.search;
+      s.q = t.value;
+      const n = normalise(s.q);
+      if (isMobile(n) && (!s.result || s.result.number !== n)) doSearch();
+      else if (!s.q && s.result) { s.result = null; state.focusNext = '#q'; render(); }
+    }
+    else if (t.dataset && t.dataset.onb && state.onb) state.onb[t.dataset.onb] = t.value;
+  });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape') return;
+    if (state.call) { state.call = null; renderOverlay(); }
+    else if (state.sheet) { state.sheet = null; renderOverlay(); }
+  });
+
+  reindex();
+  render();
+})();
+</script>
