@@ -157,9 +157,12 @@ class AppModel(private val graph: AppGraph) {
                 saveProfile(updated)
             }
             store.syncEnabledHint = true
+            if (store.callsWatchedSince == 0L) store.callsWatchedSince = System.currentTimeMillis()
             graph.sync.fullSync()
             val cards = fetchCards(first = true)
             Scheduling.scheduleAll(graph.context)
+            // Start the after-call history now, so the very first call after allowing is news.
+            app.foundwith.call.AfterCall.runNow(graph.context)
             _state.update { it.copy(cards = cards, index = store.index(), setup = Setup.READY, offline = false) }
             reloadPhone()
         } catch (e: CancellationException) {

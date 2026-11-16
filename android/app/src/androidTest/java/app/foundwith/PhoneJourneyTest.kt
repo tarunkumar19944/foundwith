@@ -92,7 +92,8 @@ class PhoneJourneyTest {
         assertTrue(onHome(30_000))
         if (exists("Allow")) {
             shot("05-allow-card")
-            tap("Allow")
+            // The card can go by itself (another phone on this test account already took part).
+            runCatching { compose.onAllNodes(hasText("Allow")).onFirst().performClick() }
         }
         waitFor("Updates", 120_000)
         if (exists("Your name on Found With") && exists("Not now")) tap("Not now")
@@ -153,8 +154,11 @@ class PhoneJourneyTest {
         val note = device.wait(Until.findObject(By.textContains("Test Caller")), 120_000)
             ?: device.wait(Until.findObject(By.textContains("00009")), 5_000)
         shotDevice("13-notification")
-        if (note == null) device.pressBack()   // close the shade for the next steps
-        assertTrue("No after-call notification for the missed call", note != null)
+        if (note == null) {
+            val seen = device.findObjects(By.textContains("")).mapNotNull { it.text }.filter { it.isNotBlank() }.take(40)
+            device.pressBack()   // close the shade for the next steps
+            throw AssertionError("No after-call notification for the missed call. On screen: $seen")
+        }
         note!!.click()
         waitFor("Test Caller", 30_000)
         shot("14-caller-card")
@@ -198,8 +202,11 @@ class PhoneJourneyTest {
         // The dialog's confirm button is the last "Sign out" on screen (the first is the row).
         val signOuts = compose.onAllNodes(hasText("Sign out"))
         signOuts[signOuts.fetchSemanticsNodes().size - 1].performClick()
-        waitFor("Type your number", 30_000)
-        shot("17-signed-out")
+        // Signed out: sign-in opens Android's number picker again, over the app.
+        device.wait(Until.hasObject(By.pkg("com.google.android.gms")), 8_000)
+        shotDevice("17-signed-out")
+        if (device.currentPackageName != PACKAGE) device.pressBack()
+        waitForAny(listOf("Type your number", "Your mobile number"), 30_000)
     }
 
     // ------------------------------------------------------------------ helpers

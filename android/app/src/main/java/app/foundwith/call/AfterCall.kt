@@ -101,9 +101,15 @@ object AfterCall {
 
         val calls = graph.book.calls(sinceMs = now - CallCatchUp.LOOK_BACK_MS, limit = 300)
         if (STARTED !in handled) {
-            // First run after allowing the call log: earlier calls are history, not news.
-            graph.store.saveCallState(calls.map { it.id } + STARTED, late, health)
-            return@withLock true
+            // First run after allowing the call log: calls from before that are history, not news.
+            // Calls after it are news even when this first run comes late, for example when the
+            // first call after install is what wakes it.
+            val since = graph.store.callsWatchedSince.takeIf { it > 0 } ?: now
+            val history = calls.filter { it.at < since }.map { it.id }
+            graph.store.saveCallState(history + STARTED, late, health)
+            handled += history
+            handled += STARTED
+            if (history.size == calls.size) return@withLock true
         }
         val plan = CallCatchUp.plan(calls, handled, now)
         val contacts = graph.book.contacts().mapNotNull { c -> c.e164?.let { it to c } }.toMap()

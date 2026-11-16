@@ -53,6 +53,18 @@ TEST_DATABASE_URL="host=localhost user=postgres password=postgres" python -m pyt
 
 The suite (240 tests, run on every push by `.github/workflows/backend.yml` against a real Postgres) covers the matching rules, contacts and call logs both counting, hidden numbers, opt-out (with and without deleting the account), blocks, name rules, contact names and popular names, the evening note, wake-ups, health by brand, the app-version gate, the invite and opt-out pages, moderation by number, sync on/off, quotas and allowances, stored holder counts staying exact through every kind of change, the changes endpoint, recycled numbers, account deletion and inactivity, the v0.1 → current database upgrade, token verification and the HTTP layer. `test_asyncpg_driver.py` runs the main flow through the production driver and is skipped where asyncpg isn't installed. Cloud Build installs it, so every deploy runs it.
 
+### Automated testing on GitHub
+
+| Workflow | What it does | When |
+|---|---|---|
+| `backend.yml` | The 240 backend tests against a real Postgres | Every change under `backend/` |
+| `android.yml` | Both app builds, the 44 unit tests, lint; publishes the test APK to the `test-build` release | Every change under `android/` |
+| `deploy.yml` | Tests, builds, migrates and deploys the server (keyless) | Every change under `backend/` on `main` |
+| `live-test.yml` | `tests/live/e2e.py`: seven test users use the live server (sign-in, sync with names, cards, search, call logs, hide, block, rename, changes, invites, taking a number out, deleting accounts) and every answer is checked; everything is cleaned up | After each deploy, nightly, and when the test changes |
+| `phone-tests.yml` | `android/app/src/androidTest`: the app end to end in Firebase Test Lab: sign in, allow, contacts, card, search, calls, an after-call notification, settings, sign out. Emulators for Android 8 to 16, a small phone and a tablet; 14 real phones (Samsung, Xiaomi, OPPO, realme, OnePlus, Tecno, Infinix, Motorola, Pixel, a foldable, a tablet) | Emulators on app changes; real phones weekly and by hand |
+
+The test numbers (+91 90000 00002 to 10) and their codes are Identity Platform test numbers: no SMS is sent. The codes live in Secret Manager (`found-with-test-accounts`) and GitHub reads them keylessly, so nothing secret is in the repository. Test Lab results, videos and screenshots are in the Firebase console under Test Lab.
+
 ## Check real-time latency
 
 ```bash

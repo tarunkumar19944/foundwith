@@ -137,6 +137,11 @@ class LocalStore(context: Context) {
         get() = prefs.getBoolean("after_calls", true)
         set(value) { prefs.edit().putBoolean("after_calls", value).apply() }
 
+    /** When Found With started watching calls (the person allowed it): calls before are history. */
+    var callsWatchedSince: Long
+        get() = prefs.getLong("calls_watched_since", 0L)
+        set(value) { prefs.edit().putLong("calls_watched_since", value).apply() }
+
     /** The phone-settings banner was closed; it comes back if calls are missed again later. */
     var fixDismissedAt: Long
         get() = prefs.getLong("fix_dismissed", 0L)
