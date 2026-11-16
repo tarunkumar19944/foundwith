@@ -1,8 +1,7 @@
 # Builds the Android app on every change under android/ and keeps the APKs for 14 days.
 #
 # Optional settings (repository Settings > Secrets and variables > Actions):
-#   variable FOUNDWITH_API_URL      your Cloud Run URL (terraform output api_url); without it the
-#                                   APK talks to http://10.0.2.2:8080, a backend on the emulator's host
+#   variable FOUNDWITH_API_URL      the API's address; defaults to the live server below
 #   secret   GOOGLE_SERVICES_JSON   the contents of google-services.json, for SMS sign-in
 #   secret   DEBUG_KEYSTORE_BASE64  base64 of a debug.keystore, so every build has the same SHA-1
 #                                   (the one you registered in Firebase)
@@ -62,7 +61,7 @@ jobs:
 
       - name: Build debug APKs
         env:
-          API_URL: ${{ vars.FOUNDWITH_API_URL }}
+          API_URL: ${{ vars.FOUNDWITH_API_URL || 'https://found-with-api-zda4qqks6q-el.a.run.app' }}
         run: ./gradlew --no-daemon assembleFullDebug assembleContactsOnlyDebug -Pfoundwith.versionCode=${{ github.run_number }} ${API_URL:+-Pfoundwith.apiUrl=$API_URL}
 
       - name: Lint (report only)
