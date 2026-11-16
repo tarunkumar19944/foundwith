@@ -1,6 +1,7 @@
 """Gets the live server ready for the phone tests (android/app/src/androidTest): the fixed caller
 +91 90000 00009 has a Found With account named "Test Caller", so a missed call from it is one the
-app must tell the phone about. Safe to run any number of times.
+app must tell the phone about; and the phones' own account, +91 90000 00010, starts afresh, so
+nothing an earlier run saved is still on the server. Safe to run any number of times.
 
     python3 tests/live/phone_fixture.py config.json
 """
@@ -14,6 +15,7 @@ from e2e import Failed, Http, firebase_sign_in
 
 CALLER = "+919000000009"
 NAME = "Test Caller"
+PHONES = "+919000000010"
 
 
 def main() -> int:
@@ -31,6 +33,14 @@ def main() -> int:
     if status != 200:
         raise Failed(f"caller account: {status} {me}")
     print(f"Caller ready: {me.get('name')}")
+
+    token = firebase_sign_in(config["web_api_key"], PHONES, config["test_numbers"][PHONES])
+    status, _ = http.call("GET", "/v1/me", token)
+    if status == 200:
+        status, body = http.call("DELETE", "/v1/me", token)
+        if status not in (200, 204):
+            raise Failed(f"phones' account: {status} {body}")
+        print("Phones' account deleted: it starts afresh")
     return 0
 
 

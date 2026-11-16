@@ -270,7 +270,8 @@ fun DataScreen(graph: AppGraph, onBack: () -> Unit, onBlocked: () -> Unit, onSig
                 scope.launch {
                     graph.forgetEverything()
                     android.util.Log.i("FoundWith", "signed out")
-                    onSignedOut()
+                    // Navigation must happen on the main thread, whatever thread sign-out ended on.
+                    withContext(Dispatchers.Main) { onSignedOut() }
                 }
             }, onDismiss = { confirm = null })
         "delete" -> ConfirmDialog("Delete your account?",
@@ -282,7 +283,7 @@ fun DataScreen(graph: AppGraph, onBack: () -> Unit, onBlocked: () -> Unit, onSig
                         graph.api.deleteAccount()
                         graph.forgetEverything()
                         graph.justDeleted = true
-                        onDeleted()
+                        withContext(Dispatchers.Main) { onDeleted() }
                     } catch (e: ApiException) {
                         error = e.message
                     } catch (e: OfflineException) {
