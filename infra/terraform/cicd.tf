@@ -52,11 +52,19 @@ resource "google_project_iam_member" "deployer_starts_builds" {
   member  = "serviceAccount:${google_service_account.deployer.email}"
 }
 
+# gcloud builds submit checks the bucket itself before uploading, so objects alone aren't enough.
 resource "google_storage_bucket_iam_member" "deployer_uploads_source" {
   count  = var.github_repository == "" ? 0 : 1
   bucket = google_storage_bucket.build_source.name
-  role   = "roles/storage.objectAdmin"
+  role   = "roles/storage.admin"
   member = "serviceAccount:${google_service_account.deployer.email}"
+}
+
+resource "google_project_iam_member" "deployer_uses_apis" {
+  count   = var.github_repository == "" ? 0 : 1
+  project = var.project_id
+  role    = "roles/serviceusage.serviceUsageConsumer"
+  member  = "serviceAccount:${google_service_account.deployer.email}"
 }
 
 resource "google_service_account_iam_member" "deployer_acts_as_itself" {

@@ -7,7 +7,7 @@ name: Deploy server
 on:
   push:
     branches: [main]
-    paths: ["backend/**", "cloudbuild.yaml", ".github/workflows/deploy.yml"]
+    paths: ["backend/**", "cloudbuild.yaml", ".gcloudignore", ".github/workflows/deploy.yml"]
   workflow_dispatch:
 
 permissions:

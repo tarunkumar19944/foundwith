@@ -3,6 +3,8 @@
 .gcloudignore
 .git
 .github/
+# The GitHub deploy job's short-lived sign-in file must never be uploaded.
+gha-creds-*.json
 #!include:.gitignore
 android/
 prototype/
