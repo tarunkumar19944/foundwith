@@ -63,11 +63,19 @@ class PhoneJourneyTest {
 
     @Test
     fun step01_signsInWithTheTestNumber() {
+        // A first start opens Android's own number picker by itself, over the app; the test closes it
+        // and types the number, as someone would whose number isn't offered.
+        device.wait(Until.hasObject(By.pkg("com.google.android.gms")), 8_000)
+        if (device.currentPackageName != PACKAGE) {
+            shotDevice("00-number-picker")
+            device.pressBack()
+            device.wait(Until.hasObject(By.pkg(PACKAGE)), 5_000)
+        }
         shot("01-start")
         if (onHome(10_000)) return
         val code = args.getString("fwCode")
         assumeTrue("fwCode not given: can't sign in", !code.isNullOrBlank())
-        tap("Type your number")
+        if (!exists("Your mobile number")) tap("Type your number")
         waitFor("Your mobile number")
         field().performTextInput(args.getString("fwNumber") ?: "9000000010")
         shot("02-number")
@@ -196,18 +204,22 @@ class PhoneJourneyTest {
 
     // ------------------------------------------------------------------ helpers
 
+    private fun has(matcher: androidx.compose.ui.test.SemanticsMatcher): Boolean =
+        runCatching { compose.onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty() }.getOrDefault(false)
+
     private fun onHome(timeoutMs: Long): Boolean = try {
         compose.waitUntil(timeoutMs) {
-            compose.onAllNodes(hasContentDescription("Settings")).fetchSemanticsNodes().isNotEmpty() ||
-                compose.onAllNodes(hasText("Type your number")).fetchSemanticsNodes().isNotEmpty()
+            has(hasContentDescription("Settings")) || has(hasText("Type your number")) || has(hasText("Your mobile number"))
         }
-        compose.onAllNodes(hasContentDescription("Settings")).fetchSemanticsNodes().isNotEmpty()
+        has(hasContentDescription("Settings"))
     } catch (e: ComposeTimeoutException) {
         false
     }
 
-    private fun exists(text: String): Boolean =
+    /** False also while something else (a system sheet) is over the app. */
+    private fun exists(text: String): Boolean = runCatching {
         compose.onAllNodes(hasText(text, substring = true), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+    }.getOrDefault(false)
 
     private fun waitFor(text: String, timeoutMs: Long = 15_000) = waitForAny(listOf(text), timeoutMs)
 
