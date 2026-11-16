@@ -50,6 +50,11 @@ class AuthManager(private val context: Context, private val store: LocalStore) {
         callbacks: PhoneAuthProvider.OnVerificationStateChangedCallbacks,
     ) {
         val auth = firebase ?: error("SMS sign-in isn't set up in this build")
+        // Test builds only: the fixed test numbers (Terraform's test_phone_numbers, no SMS sent) skip
+        // Google's app check, which a build installed from outside the Play Store can fail. Real
+        // numbers always go through it; release builds never skip it.
+        auth.firebaseAuthSettings.setAppVerificationDisabledForTesting(
+            BuildConfig.DEBUG && e164.startsWith(TEST_NUMBER_PREFIX))
         val builder = PhoneAuthOptions.newBuilder(auth)
             .setPhoneNumber(e164)
             .setTimeout(60L, TimeUnit.SECONDS)
@@ -76,5 +81,10 @@ class AuthManager(private val context: Context, private val store: LocalStore) {
     fun signOut() {
         store.devPhone = null
         firebase?.signOut()
+    }
+
+    private companion object {
+        /** +91 90000 0000x: the fictional numbers set up for testing. */
+        const val TEST_NUMBER_PREFIX = "+9190000000"
     }
 }
