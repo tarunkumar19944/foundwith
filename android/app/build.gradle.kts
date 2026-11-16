@@ -19,6 +19,9 @@ val appVersionCode: Int = providers.gradleProperty("foundwith.versionCode").getO
 val appVersionName: String = providers.gradleProperty("foundwith.versionName").getOrElse("1.0.0")
 // Google Play requires a privacy policy link inside the app as well as on the store listing.
 val privacyUrl: String = providers.gradleProperty("foundwith.privacyUrl").getOrElse("").trim()
+// The project's shared debug key (CI passes it), so every test APK has the fingerprint registered in
+// Firebase for SMS sign-in. Without it, debug builds use this computer's own debug key.
+val sharedDebugKeystore: String? = providers.gradleProperty("foundwith.debugKeystore").orNull
 
 // A release build pointed at the emulator's laptop address (or any plain-http URL) would be a
 // broken app on every phone: refuse to build it.
@@ -68,8 +71,20 @@ android {
         }
     }
 
+    signingConfigs {
+        getByName("debug") {
+            if (sharedDebugKeystore != null) {
+                storeFile = file(sharedDebugKeystore)
+                storePassword = "android"
+                keyAlias = "androiddebugkey"
+                keyPassword = "android"
+            }
+        }
+    }
+
     buildTypes {
         debug {
+            signingConfig = signingConfigs.getByName("debug")
             buildConfigField("boolean", "DEV_SIGN_IN", devSignIn.toString())
         }
         release {

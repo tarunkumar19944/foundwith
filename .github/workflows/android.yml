@@ -74,8 +74,9 @@ jobs:
             echo "::notice::No Firebase config. The APK builds, but SMS sign-in is off."
           fi
           if [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
-            mkdir -p "$HOME/.android"
-            printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 -d > "$HOME/.android/debug.keystore"
+            printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/debug.keystore"
+            echo "DEBUG_KEYSTORE=$RUNNER_TEMP/debug.keystore" >> "$GITHUB_ENV"
+            keytool -list -v -keystore "$RUNNER_TEMP/debug.keystore" -storepass android -alias androiddebugkey | grep -E "SHA1:"
             echo "Signing with the project's debug key"
           else
             echo "::notice::No debug key: this APK's signature won't match the one registered for SMS sign-in."
@@ -88,7 +89,7 @@ jobs:
       - name: Build debug APKs
         env:
           API_URL: ${{ vars.FOUNDWITH_API_URL || 'https://found-with-api-zda4qqks6q-el.a.run.app' }}
-        run: ./gradlew --no-daemon assembleFullDebug assembleContactsOnlyDebug -Pfoundwith.versionCode=${{ github.run_number }} ${API_URL:+-Pfoundwith.apiUrl=$API_URL}
+        run: ./gradlew --no-daemon assembleFullDebug assembleContactsOnlyDebug -Pfoundwith.versionCode=${{ github.run_number }} ${API_URL:+-Pfoundwith.apiUrl=$API_URL} ${DEBUG_KEYSTORE:+-Pfoundwith.debugKeystore=$DEBUG_KEYSTORE}
 
       - name: Lint (report only)
         continue-on-error: true
@@ -143,6 +144,11 @@ jobs:
           set -euo pipefail
           cp "$(find app/build/outputs/apk/full -name '*.apk' | head -1)" found-with-test.apk
           cp "$(find app/build/outputs/apk/contactsOnly -name '*.apk' | head -1)" found-with-test-contacts-only.apk
+          # Refuse to publish an APK that SMS sign-in would reject.
+          apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
+          signer=$("$apksigner" verify --print-certs found-with-test.apk | grep -m1 "SHA-1 digest" | awk '{print $NF}')
+          echo "Signed with SHA-1 $signer"
+          [ "$signer" = "f0d83ac3dce3ae06b642e4f0ffe7526572d6a2a7" ] || { echo "::error::APK isn't signed with the project's debug key"; exit 1; }
           gh release delete test-build --yes --cleanup-tag 2>/dev/null || true
           gh release create test-build found-with-test.apk found-with-test-contacts-only.apk \
             --prerelease --target "$GITHUB_SHA" --title "Test build ${GITHUB_SHA::7}" \
