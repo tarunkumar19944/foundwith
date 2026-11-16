@@ -1,6 +1,9 @@
 # Builds the Android app on every change under android/ and keeps the APKs for 14 days.
 #
-# Optional settings (repository Settings > Secrets and variables > Actions):
+# On pushes to main the app's Firebase config (SMS sign-in, push) and the debug signing key come
+# from Secret Manager in the foundwith project, keylessly (infra/terraform/android_ci.tf).
+#
+# Optional settings (repository Settings > Secrets and variables > Actions), used instead when set:
 #   variable FOUNDWITH_API_URL      the API's address; defaults to the live server below
 #   secret   GOOGLE_SERVICES_JSON   the contents of google-services.json, for SMS sign-in
 #   secret   DEBUG_KEYSTORE_BASE64  base64 of a debug.keystore, so every build has the same SHA-1
@@ -16,6 +19,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: android-${{ github.ref }}
@@ -39,22 +43,44 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - name: Sign in to Google Cloud
+        id: gcp
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && github.repository == 'tarunkumar19944/foundwith'
+        continue-on-error: true
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/91945805289/locations/global/workloadIdentityPools/github/providers/github-actions
+          service_account: found-with-android-ci@foundwith.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+        if: steps.gcp.outcome == 'success'
+
       - name: Firebase config and debug key
         env:
           GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
           DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+          FROM_GCP: ${{ steps.gcp.outcome == 'success' }}
         run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ] && [ "$FROM_GCP" = "true" ]; then
+            GOOGLE_SERVICES_JSON="$(gcloud secrets versions access latest --project=foundwith --secret=found-with-android-google-services 2>/dev/null || true)"
+          fi
+          if [ -z "$DEBUG_KEYSTORE_BASE64" ] && [ "$FROM_GCP" = "true" ]; then
+            DEBUG_KEYSTORE_BASE64="$(gcloud secrets versions access latest --project=foundwith --secret=found-with-android-debug-keystore 2>/dev/null || true)"
+          fi
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             printf '%s' "$GOOGLE_SERVICES_JSON" > app/google-services.json
-            echo "google-services.json written: SMS sign-in is on"
+            echo "google-services.json written: SMS sign-in and push are on"
           else
-            echo "::notice::No GOOGLE_SERVICES_JSON secret. The APK builds, but SMS sign-in is off."
+            echo "::notice::No Firebase config. The APK builds, but SMS sign-in is off."
           fi
           if [ -n "$DEBUG_KEYSTORE_BASE64" ]; then
             mkdir -p "$HOME/.android"
             printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 -d > "$HOME/.android/debug.keystore"
-            echo "Using the debug key from DEBUG_KEYSTORE_BASE64"
+            echo "Signing with the project's debug key"
+          else
+            echo "::notice::No debug key: this APK's signature won't match the one registered for SMS sign-in."
           fi
+          rm -f "$GOOGLE_APPLICATION_CREDENTIALS" 2>/dev/null || true
 
       - name: Unit tests
         run: ./gradlew --no-daemon testFullDebugUnitTest
