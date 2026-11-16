@@ -4,6 +4,9 @@
 name: Live test
 
 on:
+  push:
+    branches: [main]
+    paths: ["tests/live/**", ".github/workflows/live-test.yml"]
   workflow_run:
     workflows: ["Deploy server"]
     types: [completed]
