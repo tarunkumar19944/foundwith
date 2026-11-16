@@ -27,7 +27,6 @@ import app.foundwith.core.Alert
 class Notifier(private val context: Context) {
 
     fun createChannels() {
-        if (Build.VERSION.SDK_INT < 26) return
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         manager.createNotificationChannels(listOf(
             NotificationChannel(CALLS_SOUND, "Callers you haven't saved", NotificationManager.IMPORTANCE_HIGH).apply {

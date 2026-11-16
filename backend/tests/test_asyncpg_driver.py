@@ -64,7 +64,7 @@ async def test_main_flows_through_asyncpg(db, pg_conninfo, identity):
         assert cards["total_cards"] == 2 and cards["next"] is not None        # numbers someone else has
         assert [h["name"] for h in cards["cards"][0]["known"]] == ["Ravi Kumar"]
         found = await service.lookup(ravi, "9845172046", "search")
-        assert found["total"] == 3 and sorted(h["name"] for h in found["others"]) == ["Arjun Rao", "Priya Sharma"]
+        assert found["total"] == 2 and sorted(h["name"] for h in found["others"]) == ["Arjun Rao", "Priya Sharma"]
         assert (await service.lookup(ravi, "7619155380", "call"))["total"] == 2          # contact + call log
         assert (await service.lookup(ravi, "011 2345 6789", "call"))["total"] == 0
         listed = await service.holders(ravi, found["ref"], None, 1)
@@ -123,8 +123,8 @@ async def test_main_flows_through_asyncpg(db, pg_conninfo, identity):
         await admin.unsuspend_user(database, priya["public_id"])
         hashed = service.hasher.digest(PLUMBER).hex()
         info = await admin.run(database, ["number", hashed])
-        assert info["people_who_have_it"] == 3
-        assert (await admin.run(database, ["hold-name", hashed, "test"]))["had_a_popular_name"] is True
+        assert info["people_who_have_it"] == 0 and info["taken_out"] is False     # opting out removed every copy
+        assert (await admin.run(database, ["hold-name", hashed, "test"]))["had_a_popular_name"] is False
         await admin.run(database, ["release-name", hashed])
         await admin.run(database, ["suspend-number", service.hasher.digest(RAVI).hex(), "driver", "test"])
         with pytest.raises(AccountSuspended):

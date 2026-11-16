@@ -1,6 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Found With</string>
-    <string name="channel_incoming">Incoming calls</string>
-    <string name="channel_incoming_description">Who on Found With has the caller\'s number saved</string>
 </resources>
