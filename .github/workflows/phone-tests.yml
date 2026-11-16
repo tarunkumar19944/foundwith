@@ -166,15 +166,17 @@ jobs:
         run: |
           set -u
           out="$RUNNER_TEMP/screens"; mkdir -p "$out"
-          for dir in $(gcloud storage ls "gs://$PROJECT-test-lab/run-$GITHUB_RUN_ID-*/" 2>/dev/null); do
-            for device in $(gcloud storage ls "$dir" | grep '/$'); do
-              name=$(basename "$dir")-$(basename "$device")
-              echo "::group::app log $name"
-              gcloud storage cat "${device}logcat" 2>/dev/null | grep -E "FoundWith|AndroidRuntime|FATAL" | tail -80
-              echo "::endgroup::"
-              mkdir -p "$out/$name"
-              gcloud storage cp "${device}artifacts/sdcard/Android/data/app.foundwith/files/screens/*.png" "$out/$name/" >/dev/null 2>&1 || true
-            done
+          files=$(gcloud storage ls "gs://$PROJECT-test-lab/run-$GITHUB_RUN_ID-*/**" 2>/dev/null || true)
+          for f in $(echo "$files" | grep '/logcat$'); do
+            name=$(echo "$f" | awk -F/ '{print $4"/"$5}')
+            echo "::group::app log $name"
+            gcloud storage cat "$f" 2>/dev/null | grep -E "FoundWith|AndroidRuntime|FATAL|WM-WorkerWrapper.*AfterCall" | tail -100
+            echo "::endgroup::"
+          done
+          for f in $(echo "$files" | grep '\.png$'); do
+            dir="$out/$(echo "$f" | awk -F/ '{print $4"-"$5}')"
+            mkdir -p "$dir"
+            gcloud storage cp "$f" "$dir/" >/dev/null 2>&1 || true
           done
           (cd "$out" && zip -qr "$RUNNER_TEMP/screens.zip" .) || exit 0
           gh release delete test-screens --yes --cleanup-tag 2>/dev/null || true
