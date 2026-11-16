@@ -9,7 +9,9 @@ import android.provider.CallLog
 import android.provider.ContactsContract
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -199,9 +201,8 @@ class PhoneJourneyTest {
         tap("Your data and account")
         tap("Sign out")
         waitFor("Sign out?")
-        // The dialog's confirm button is the last "Sign out" on screen (the first is the row).
-        val signOuts = compose.onAllNodes(hasText("Sign out"))
-        signOuts[signOuts.fetchSemanticsNodes().size - 1].performClick()
+        shot("16b-sign-out-dialog")
+        compose.onNode(hasText("Sign out") and hasAnyAncestor(isDialog())).performClick()
         // Signed out: sign-in opens Android's number picker again, over the app.
         device.wait(Until.hasObject(By.pkg("com.google.android.gms")), 8_000)
         shotDevice("17-signed-out")

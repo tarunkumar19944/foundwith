@@ -21,7 +21,7 @@ on:
         default: "both"
 
 permissions:
-  contents: read
+  contents: write   # publishes screenshots and logs as the test-screens release
   id-token: write
 
 concurrency:
@@ -51,8 +51,6 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
-        with:
-          fetch-depth: 2
 
       - uses: actions/setup-java@v5
         with:
@@ -92,13 +90,17 @@ jobs:
 
       - name: Which devices
         id: which
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+          ASKED: ${{ github.event.inputs.devices }}
         run: |
-          case "${{ github.event_name }}:${{ github.event.inputs.devices }}" in
-            schedule:*) echo "set=phones" >> "$GITHUB_OUTPUT" ;;
-            workflow_dispatch:*) echo "set=${{ github.event.inputs.devices }}" >> "$GITHUB_OUTPUT" ;;
-            *) if git -C . diff --name-only HEAD~1 HEAD 2>/dev/null | grep -q '^.github/workflows/phone-tests.yml$'; then
-                 echo "set=both" >> "$GITHUB_OUTPUT"; else echo "set=emulators" >> "$GITHUB_OUTPUT"; fi ;;
+          # Emulators on every app change; real phones weekly, by hand, or when a commit says [phones].
+          case "${{ github.event_name }}" in
+            schedule) set=phones ;;
+            workflow_dispatch) set="${ASKED:-both}" ;;
+            *) case "$MESSAGE" in *"[phones]"*) set=both ;; *) set=emulators ;; esac ;;
           esac
+          echo "set=$set" >> "$GITHUB_OUTPUT"
 
       - name: Run on Test Lab
         env:
@@ -156,3 +158,25 @@ jobs:
                   print(f"::error::{device} {case.get('name')}: {' | '.join(first)}")
           PY
           done
+
+      - name: App logs and screenshots
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -u
+          out="$RUNNER_TEMP/screens"; mkdir -p "$out"
+          for dir in $(gcloud storage ls "gs://$PROJECT-test-lab/run-$GITHUB_RUN_ID-*/" 2>/dev/null); do
+            for device in $(gcloud storage ls "$dir" | grep '/$'); do
+              name=$(basename "$dir")-$(basename "$device")
+              echo "::group::app log $name"
+              gcloud storage cat "${device}logcat" 2>/dev/null | grep -E "FoundWith|AndroidRuntime|FATAL" | tail -80
+              echo "::endgroup::"
+              mkdir -p "$out/$name"
+              gcloud storage cp "${device}artifacts/sdcard/Android/data/app.foundwith/files/screens/*.png" "$out/$name/" >/dev/null 2>&1 || true
+            done
+          done
+          (cd "$out" && zip -qr "$RUNNER_TEMP/screens.zip" .) || exit 0
+          gh release delete test-screens --yes --cleanup-tag 2>/dev/null || true
+          gh release create test-screens "$RUNNER_TEMP/screens.zip" --prerelease --target "$GITHUB_SHA" \
+            --title "Phone test screenshots ${GITHUB_SHA::7}" --notes "Screenshots from the latest phone tests (run $GITHUB_RUN_ID), one folder per device."

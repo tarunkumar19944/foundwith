@@ -112,6 +112,7 @@ object AfterCall {
             if (history.size == calls.size) return@withLock true
         }
         val plan = CallCatchUp.plan(calls, handled, now)
+        Log.i(TAG, "check: ${calls.size} calls, ${plan.toNotify.size} to check, ${plan.tooLate.size} late")
         val contacts = graph.book.contacts().mapNotNull { c -> c.e164?.let { it to c } }.toMap()
         val index = graph.store.index()
         val baseline = graph.store.changeLog()?.baseline.orEmpty()
@@ -138,6 +139,7 @@ object AfterCall {
             health = health.seen(checkedInTime = true)
             if (info == null || !graph.store.afterCalls) continue
             val note = AfterCallRules.decide(call, info, hour, CallCatchUp.repeats(call, calls))
+            Log.i(TAG, "call ${call.id} ${call.type}: ${note.alert} (found with ${info.total}, name ${info.ownerName != null})")
             if (note.alert != Alert.NONE) graph.notifier.postCall(note)
         }
         // Older calls from the same number were folded into the newest one's notification.
