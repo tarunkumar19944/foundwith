@@ -1,0 +1,10 @@
+# What `gcloud builds submit` leaves out of the upload. Cloud Build only needs backend/ and
+# cloudbuild.yaml; Terraform state, settings and the app stay on your machine.
+.gcloudignore
+.git
+.github/
+#!include:.gitignore
+android/
+prototype/
+infra/
+docs/
