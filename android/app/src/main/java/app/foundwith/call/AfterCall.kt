@@ -67,11 +67,15 @@ object AfterCall {
             OneTimeWorkRequestBuilder<AfterCallWorker>().build())
     }
 
-    /** No internet just after a call: try again as soon as it's back (still only within the hour). */
+    /**
+     * No internet just after a call, or a busy server: try again shortly, when online (still only
+     * within the hour). One retry job at a time; it keeps retrying itself until the check succeeds.
+     */
     private fun retryWhenOnline(context: Context) {
-        val request = OneTimeWorkRequestBuilder<AfterCallWorker>()
+        val request = OneTimeWorkRequestBuilder<AfterCallRetryWorker>()
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .setBackoffCriteria(BackoffPolicy.LINEAR, Duration.ofMinutes(1))
+            .setInitialDelay(Duration.ofSeconds(20))
+            .setBackoffCriteria(BackoffPolicy.LINEAR, Duration.ofSeconds(30))
             .build()
         WorkManager.getInstance(context).enqueueUniqueWork(RETRY, ExistingWorkPolicy.KEEP, request)
     }
@@ -136,6 +140,12 @@ object AfterCall {
                 continue
             } catch (e: ApiException) {
                 Log.w(TAG, "after-call lookup failed: ${e.code}")
+                // A busy server (too many requests, or a moment's outage) isn't a reason to drop
+                // the call: try again shortly, still only within the hour.
+                if (e.code == "rate_limited" || e.status >= 500) {
+                    needsRetry = true
+                    continue
+                }
                 null
             }
             handled += call.id
@@ -202,5 +212,21 @@ class AfterCallWorker(context: Context, params: WorkerParameters) : CoroutineWor
         }
         AfterCall.watch(applicationContext, rearm = true)
         return Result.success()
+    }
+}
+
+/** Retries the check until it gets through (see AfterCall.retryWhenOnline). */
+class AfterCallRetryWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
+    override suspend fun doWork(): Result = try {
+        when {
+            AfterCall.check(applicationContext) -> Result.success()
+            runAttemptCount < 40 -> Result.retry()   // linear 30 s steps: well past the hour
+            else -> Result.success()
+        }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w("FoundWithAfterCall", "retry failed", e)
+        if (runAttemptCount < 40) Result.retry() else Result.success()
     }
 }

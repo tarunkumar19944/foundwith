@@ -32,7 +32,7 @@ from .db import AsyncpgDatabase, Database, Row
 from .errors import ApiError, InvalidRequest, RateLimited, Unauthenticated, Unavailable, UpdateRequired
 from .identity import GoogleIdentityAdmin, IdentityAdmin, NoopIdentityAdmin
 from .logs import setup_logging
-from .numbers import NumberHasher
+from .numbers import NumberHasher, normalise
 from .ratelimit import RateLimiter
 from .schemas import (BlockIn, DeviceIn, HealthIn, InviteIn, LookupIn, NewProfileIn, NumberChangesIn, NumbersIn,
                       OptOutIn, ProfileIn, ReportIn, SettingsIn, SyncSettingIn)
@@ -111,7 +111,9 @@ def signed_in(fn: Handler, *, needs_profile: bool = True, allow_suspended: bool 
         ident = await authenticate(request)
         kind, per_minute = (("heavy", settings.rate_limit_heavy_per_minute) if heavy
                             else ("any", settings.rate_limit_per_minute))
-        wait = state.rate_limiter.check(ident.uid, kind, per_minute)
+        # The automated tests' test numbers run from many phones at once: no per-person limit.
+        exempt = normalise(ident.phone, settings.country_code) in state.limit_exempt
+        wait = None if exempt else state.rate_limiter.check(ident.uid, kind, per_minute)
         if wait is not None:
             raise RateLimited("Too many requests. Try again in a few seconds.", retry_after=wait)
         service: Service = state.service
@@ -432,6 +434,8 @@ def create_app(settings: Settings | None = None, *, db: Database | None = None, 
         app.state.settings = settings
         app.state.verifier = verifier
         app.state.rate_limiter = rate_limiter or RateLimiter()
+        app.state.limit_exempt = frozenset(
+            e164 for e164 in (normalise(n, settings.country_code) for n in settings.quota_exempt_numbers) if e164)
         app.state.push_sender = push_sender
         app.state.push_caller = push_caller
         app.state.service = Service(database, hasher, settings, identity)

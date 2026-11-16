@@ -266,7 +266,12 @@ fun DataScreen(graph: AppGraph, onBack: () -> Unit, onBlocked: () -> Unit, onSig
         "signout" -> ConfirmDialog("Sign out?", "Your account stays. Sign in again with your number any time.", "Sign out",
             onConfirm = {
                 confirm = null
-                scope.launch { graph.forgetEverything(); onSignedOut() }
+                android.util.Log.i("FoundWith", "sign out confirmed")
+                scope.launch {
+                    graph.forgetEverything()
+                    android.util.Log.i("FoundWith", "signed out")
+                    onSignedOut()
+                }
             }, onDismiss = { confirm = null })
         "delete" -> ConfirmDialog("Delete your account?",
             "Your name, contacts and call log numbers are deleted from Found With. This can't be undone.", "Delete", danger = true,

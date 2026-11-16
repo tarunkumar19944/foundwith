@@ -236,6 +236,15 @@ def test_a_runaway_client_is_slowed_down(db, identity):
         assert client.get("/v1/cards", headers=other).status_code == 200
 
 
+def test_test_numbers_are_not_slowed_down(db, identity):
+    settings = make_settings(rate_limit_heavy_per_minute=4, quota_exempt_numbers=(ARJUN,))
+    app = create_app(settings, db=db, verifier=DevVerifier(), identity=identity, configure_logging=False)
+    with TestClient(app) as client:
+        arjun = as_user(ARJUN)
+        client.post("/v1/me", json={"display_name": "Arjun Rao"}, headers=arjun)
+        assert all(client.get("/v1/cards", headers=arjun).status_code == 200 for _ in range(6))
+
+
 class FixedSignIn:
     """A verifier whose sign-in time we control (the dev verifier always says "just now")."""
 
