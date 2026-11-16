@@ -9,7 +9,10 @@ import android.provider.CallLog
 import android.provider.ContactsContract
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.hasScrollAction
@@ -49,7 +52,8 @@ import org.junit.runners.MethodSorters
  *   fwCaller  a number whose owner is on Found With with a name (default +919000000009)
  *
  * Every device in a run signs in as the same test account at the same time, so the checks are
- * about what the app shows and does, not about exact counts.
+ * about what the app shows and does, not about exact counts. The numbers it saves (+91 90000 0007x)
+ * are its own: the live test (tests/live) uses 0009x, so neither changes the other's counts.
  */
 @RunWith(AndroidJUnit4::class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -127,7 +131,7 @@ class PhoneJourneyTest {
         shot("10-search-name")
         search("98765")
         waitFor("Type the full number")
-        search("9000000090")
+        search("9000000070")
         waitForAny(listOf("Found with", "Only you have this number", "Found with no one yet",
             "Today's search limit is over"), 30_000)
         shot("11-search-number")
@@ -140,7 +144,7 @@ class PhoneJourneyTest {
         assumeTrue("contactsOnly build has no call log", BuildConfig.CALL_LOG)
         waitFor("Calls", 60_000)
         tap("Calls")
-        scrollToAny(listOf("90000 00092", "FW Test Plumber"))
+        scrollToAny(listOf("90000 00072", "FW Test Plumber"))
         shot("12-calls")
     }
 
@@ -206,12 +210,10 @@ class PhoneJourneyTest {
         tap("Sign out")
         waitFor("Sign out?")
         shot("16b-sign-out-dialog")
-        // The dialog's own "Sign out" button: the one level with its "Cancel".
-        val cancel = device.wait(Until.findObject(By.text("Cancel")), 5_000)
-        val confirm = device.findObjects(By.text("Sign out"))
-            .minByOrNull { kotlin.math.abs(it.visibleBounds.centerY() - (cancel?.visibleBounds?.centerY() ?: 0)) }
-        if (confirm != null) confirm.click()
-        else compose.onNode(hasText("Sign out") and hasAnyAncestor(isDialog())).performClick()
+        // The dialog's own "Sign out" button, pressed through its click action (a tap on dialogs
+        // misses on some emulators: their window offset isn't applied to injected taps).
+        compose.onNode(hasText("Sign out") and hasClickAction() and hasAnyAncestor(isDialog()))
+            .performSemanticsAction(SemanticsActions.OnClick)
         // Signed out: sign-in opens Android's number picker again, over the app.
         device.wait(Until.hasObject(By.pkg("com.google.android.gms")), 8_000)
         shotDevice("17-signed-out")
@@ -321,13 +323,13 @@ class PhoneJourneyTest {
             }
             for (p in perms) runCatching { ui.grantRuntimePermission(PACKAGE, p) }
             val context = instrumentation.targetContext
-            runCatching { addContact(context, "FW Test Plumber", "+91 90000 00090") }
-            runCatching { addContact(context, "FW Test Clinic", "090000 00091") }
-            runCatching { addContact(context, "FW Test Nobody", "9000000094") }
+            runCatching { addContact(context, "FW Test Plumber", "+91 90000 00070") }
+            runCatching { addContact(context, "FW Test Clinic", "090000 00071") }
+            runCatching { addContact(context, "FW Test Nobody", "9000000074") }
             if (BuildConfig.CALL_LOG) {
                 val hourAgo = System.currentTimeMillis() - 3_600_000
-                runCatching { addCall(context, "+919000000092", CallLog.Calls.MISSED_TYPE, hourAgo) }
-                runCatching { addCall(context, "+919000000090", CallLog.Calls.OUTGOING_TYPE, hourAgo + 60_000) }
+                runCatching { addCall(context, "+919000000072", CallLog.Calls.MISSED_TYPE, hourAgo) }
+                runCatching { addCall(context, "+919000000070", CallLog.Calls.OUTGOING_TYPE, hourAgo + 60_000) }
             }
         }
 
