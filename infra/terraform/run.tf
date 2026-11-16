@@ -111,8 +111,9 @@ resource "google_cloud_run_v2_service" "api" {
   }
 
   lifecycle {
-    # Cloud Build deploys new images; Terraform owns everything else.
-    ignore_changes = [template[0].containers[0].image, client, client_version]
+    # Cloud Build deploys new images; Terraform owns everything else. The service-level scaling
+    # block is filled in by Cloud Run itself (instance counts are set on the template).
+    ignore_changes = [template[0].containers[0].image, client, client_version, scaling]
 
     precondition {
       condition     = local.db_connections_needed <= var.db_max_connections

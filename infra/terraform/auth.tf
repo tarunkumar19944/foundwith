@@ -30,5 +30,10 @@ resource "google_identity_platform_config" "auth" {
     var.auth_extra_domains,
   )
 
+  # Identity Platform fills these in with its defaults (email sign-in off, no tenants).
+  lifecycle {
+    ignore_changes = [multi_tenant, sign_in[0].email]
+  }
+
   depends_on = [google_project_service.apis, google_firebase_project.main]
 }
