@@ -1,0 +1,44 @@
+# The live multi-user test (tests/live/e2e.py): eight test users use the real server and every
+# answer is checked. After each server deploy, every night, and by hand. The test numbers' codes
+# come from Secret Manager, keylessly (infra/terraform/testing.tf); nothing is stored in GitHub.
+name: Live test
+
+on:
+  workflow_run:
+    workflows: ["Deploy server"]
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: "40 20 * * *"   # 2:10 am IST, before the nightly job works out popular names
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: live-test
+  cancel-in-progress: false
+
+jobs:
+  live:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/91945805289/locations/global/workloadIdentityPools/github/providers/github-actions
+          service_account: found-with-android-ci@foundwith.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Eight users on the live server
+        run: |
+          set -euo pipefail
+          umask 077
+          gcloud secrets versions access latest --project=foundwith --secret=found-with-test-accounts > "$RUNNER_TEMP/live.json"
+          rm -f "$GOOGLE_APPLICATION_CREDENTIALS"
+          python3 tests/live/e2e.py "$RUNNER_TEMP/live.json"
