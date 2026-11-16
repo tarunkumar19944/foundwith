@@ -61,7 +61,8 @@ async def test_main_flows_through_asyncpg(db, pg_conninfo, identity):
 
         # cards, lookups (call logs count too), the paged list, profile
         cards = await service.cards(arjun, None, 1)
-        assert cards["total_cards"] == 3 and cards["next"] is not None
+        assert cards["total_cards"] == 2 and cards["next"] is not None        # numbers someone else has
+        assert [h["name"] for h in cards["cards"][0]["known"]] == ["Ravi Kumar"]
         found = await service.lookup(ravi, "9845172046", "search")
         assert found["total"] == 3 and sorted(h["name"] for h in found["others"]) == ["Arjun Rao", "Priya Sharma"]
         assert (await service.lookup(ravi, "7619155380", "call"))["total"] == 2          # contact + call log
