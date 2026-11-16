@@ -99,7 +99,7 @@ variable "push_mode" {
 }
 
 variable "firebase_web_api_key" {
-  description = "The Web API key of the Firebase project (Project settings > General), for the opt-out page's SMS sign-in. Not a secret."
+  description = "Overrides the Web API key Terraform reads from the Firebase web app (firebase.tf), for the opt-out page's SMS sign-in. Leave empty."
   type        = string
   default     = ""
 }
@@ -138,4 +138,16 @@ variable "alert_email" {
   description = "Where alerts go. Leave empty to create alerts without notifications."
   type        = string
   default     = ""
+}
+
+variable "android_sha1" {
+  description = "SHA-1 fingerprints of the keys the Android app is signed with (debug key, Play's app-signing key)."
+  type        = list(string)
+  default     = []
+}
+
+variable "android_sha256" {
+  description = "SHA-256 fingerprints of the same keys."
+  type        = list(string)
+  default     = []
 }

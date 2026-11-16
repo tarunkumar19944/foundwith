@@ -75,3 +75,29 @@ resource "google_service_account_iam_member" "deployer_acts_as" {
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.deployer.email}"
 }
+
+# Where `gcloud builds submit` uploads the code for a build started by hand (README, "Deploy").
+# Builds from the GitHub trigger don't use it.
+resource "google_storage_bucket" "build_source" {
+  name                        = "${var.project_id}-build-source"
+  location                    = var.region
+  uniform_bucket_level_access = true
+  public_access_prevention    = "enforced"
+  force_destroy               = true
+  labels                      = local.labels
+
+  lifecycle_rule {
+    condition {
+      age = 30
+    }
+    action {
+      type = "Delete"
+    }
+  }
+}
+
+resource "google_storage_bucket_iam_member" "deployer_reads_source" {
+  bucket = google_storage_bucket.build_source.name
+  role   = "roles/storage.objectViewer"
+  member = "serviceAccount:${google_service_account.deployer.email}"
+}

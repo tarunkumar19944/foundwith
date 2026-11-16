@@ -21,12 +21,14 @@ resource "google_identity_platform_config" "auth" {
     }
   }
 
-  # Web pages allowed to start a sign-in (the Android app doesn't need this). "localhost" is left
-  # out in production; add it to auth_extra_domains only while testing a web page locally.
+  # Web pages allowed to start a sign-in (the Android app doesn't need this): the API's own
+  # address, for the opt-out page. "localhost" is left out in production; add it to
+  # auth_extra_domains only while testing a web page locally.
   authorized_domains = concat(
-    ["${var.project_id}.firebaseapp.com", "${var.project_id}.web.app"],
+    ["${var.project_id}.firebaseapp.com", "${var.project_id}.web.app",
+    trimprefix(google_cloud_run_v2_service.api.uri, "https://")],
     var.auth_extra_domains,
   )
 
-  depends_on = [google_project_service.apis]
+  depends_on = [google_project_service.apis, google_firebase_project.main]
 }

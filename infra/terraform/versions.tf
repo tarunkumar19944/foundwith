@@ -6,6 +6,10 @@ terraform {
       source  = "hashicorp/google"
       version = "~> 6.40"
     }
+    google-beta = {
+      source  = "hashicorp/google-beta"
+      version = "~> 6.40"
+    }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.6"
@@ -19,6 +23,14 @@ provider "google" {
 
   # Identity Platform rejects calls made with your own gcloud login unless a billing (quota)
   # project is sent with them. These two lines send this project.
+  billing_project       = var.project_id
+  user_project_override = true
+}
+
+# Firebase's Android and web apps are only in the beta provider.
+provider "google-beta" {
+  project               = var.project_id
+  region                = var.region
   billing_project       = var.project_id
   user_project_override = true
 }
