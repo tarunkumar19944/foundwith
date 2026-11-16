@@ -18,8 +18,8 @@ class NamingTest {
 
     @Test
     fun tagsSayWhereANameCameFrom() {
-        assertEquals("name they gave", Naming.of(null, "Deepa Rao", null, e164).tag)
-        assertEquals("popular name", Naming.of(null, null, "Mahesh", e164).tag)
+        assertEquals("their own name", Naming.of(null, "Deepa Rao", null, e164).tag)
+        assertEquals("what others call it", Naming.of(null, null, "Mahesh", e164).tag)
         assertNull(Naming.of("Amma", null, null, e164).tag)
     }
 

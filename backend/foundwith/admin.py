@@ -1,4 +1,4 @@
-"""Moderation commands for the person running Found With. They run as a one-off execution of the
+"""Moderation commands for the person running WhoHas. They run as a one-off execution of the
 maintenance Cloud Run job, so nothing here is reachable from the internet:
 
     gcloud run jobs execute found-with-maintenance --region=asia-south1 --wait \\
@@ -167,7 +167,7 @@ async def release_name(db: Database, value: str) -> dict[str, Any]:
 
 
 async def health_report(db: Database, days: int = 14) -> list[dict[str, Any]]:
-    """After-call health by phone brand: of the calls phones saw, how many Found With checked."""
+    """After-call health by phone brand: of the calls phones saw, how many WhoHas checked."""
     async with db.acquire() as conn:
         rows = await repo.health_by_brand(conn, days)
     return [{"brand": r["brand"], "phone_days": r["phone_days"], "calls_seen": r["calls_seen"],

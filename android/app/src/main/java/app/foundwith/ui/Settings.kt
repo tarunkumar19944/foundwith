@@ -128,9 +128,9 @@ fun SettingsScreen(graph: AppGraph, onBack: () -> Unit, onPage: (String) -> Unit
         SettingRow(Icons.Filled.Notifications, "Notifications", if (notesOn) "On" else "Off", notesOn) { onPage("notifications") }
         SettingRow(Icons.Filled.AccountCircle, "Your name", state.profile?.name ?: "Not set") { onPage("name") }
         SettingRow(Icons.Filled.Share, "Invite friends", onClick = onInvite)
-        SettingRow(Icons.Filled.Lock, "Your data and account") { onPage("data") }
+        SettingRow(Icons.Filled.Lock, "Your data") { onPage("data") }
         SettingRow(Icons.Filled.Info, "Help") { onPage("help") }
-        Text("Turning Contacts or Call log off in Android settings also takes those numbers out of Found With at the next sync.",
+        Text("If you turn off Contacts or Call log in phone settings, WhoHas removes those numbers at the next sync.",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(20.dp))
     }
@@ -149,26 +149,26 @@ fun NotificationsScreen(graph: AppGraph, onBack: () -> Unit, onFix: () -> Unit) 
     }
     Page(onBack, "Notifications") {
         if (!graph.notifier.canPost()) {
-            Banner(Icons.Filled.Warning, "Notifications are off for Found With.", "Turn on", warning = true) {
+            Banner(Icons.Filled.Warning, "Notifications are off for WhoHas.", "Turn on", warning = true) {
                 if (Build.VERSION.SDK_INT >= 33 && graph.store.denials(Manifest.permission.POST_NOTIFICATIONS) < 2) {
                     ask.launch(Manifest.permission.POST_NOTIFICATIONS)
                 } else context.openNotificationSettings()
             }
         }
         if (BuildConfig.CALL_LOG) {
-            ToggleRow("After calls", "Callers you haven't saved, and contacts whose list changed", afterCalls) {
+            ToggleRow("After calls", "Tells you who has the number of anyone who calls.", afterCalls) {
                 afterCalls = it
                 graph.store.afterCalls = it
             }
         }
-        ToggleRow("Evening note", "Once a day, only if something changed", state.profile?.eveningNote ?: true) { on ->
+        ToggleRow("Daily summary", "Once a day, only when something changed.", state.profile?.eveningNote ?: true) { on ->
             scope.launch { error = graph.model.setEveningNote(on) }
         }
         ErrorText(error, Modifier.padding(horizontal = 20.dp))
-        Text("Silent from 9 pm to 9 am.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Text("No sound from 9 pm to 9 am.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
         if (BuildConfig.CALL_LOG) {
-            TextButton(onClick = onFix, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Not getting them after calls?") }
+            TextButton(onClick = onFix, modifier = Modifier.padding(horizontal = 8.dp)) { Text("Not getting notifications after calls?") }
         }
     }
 }
@@ -191,13 +191,13 @@ fun NameScreen(graph: AppGraph, onBack: () -> Unit) {
     var name by rememberSaveable { mutableStateOf(state.profile?.name.orEmpty()) }
     var error by remember { mutableStateOf<String?>(null) }
     var saved by remember { mutableStateOf(false) }
-    Page(onBack, "Your name on Found With") {
+    Page(onBack, "Your name on WhoHas") {
         Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("People who haven't saved your number see this name when they look it up.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("People who don't have you in their contacts see this name.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(value = name, onValueChange = { name = it.take(40); saved = false; error = null }, singleLine = true,
                 modifier = Modifier.fillMaxWidth(), isError = error != null)
             ErrorText(error)
-            if (saved) Text("Saved.", color = MaterialTheme.colorScheme.tertiary)
+            if (saved) Text("Name updated", color = MaterialTheme.colorScheme.tertiary)
             PrimaryButton("Save", {
                 scope.launch {
                     error = graph.model.setName(name)
@@ -227,8 +227,8 @@ fun DataScreen(graph: AppGraph, onBack: () -> Unit, onBlocked: () -> Unit, onSig
             error = e.message; null
         }
     }
-    Page(onBack, "Your data and account") {
-        Text("Found With stores these, encrypted", style = MaterialTheme.typography.labelLarge,
+    Page(onBack, "Your data") {
+        Text("Stored safely on WhoHas", style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
         SettingRow(null, "Your number", state.profile?.phone?.let { shown(it) } ?: "")
         SettingRow(null, "Your name", state.profile?.name ?: "Not set")
@@ -249,7 +249,7 @@ fun DataScreen(graph: AppGraph, onBack: () -> Unit, onBlocked: () -> Unit, onSig
                     val uri = FileProvider.getUriForFile(context, "${context.packageName}.files", file)
                     val send = Intent(Intent.ACTION_SEND).setType("application/json").putExtra(Intent.EXTRA_STREAM, uri)
                         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                    context.startActivity(Intent.createChooser(send, "Your Found With data").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                    context.startActivity(Intent.createChooser(send, "Your WhoHas data").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 } catch (e: ApiException) {
                     error = e.message
                 } catch (e: OfflineException) {
@@ -263,7 +263,7 @@ fun DataScreen(graph: AppGraph, onBack: () -> Unit, onBlocked: () -> Unit, onSig
         SettingRow(null, "Delete account", danger = true) { confirm = "delete" }
     }
     when (confirm) {
-        "signout" -> ConfirmDialog("Sign out?", "Your account stays. Sign in again with your number any time.", "Sign out",
+        "signout" -> ConfirmDialog("Sign out?", "Your account stays. Sign in again any time with your number.", "Sign out",
             onConfirm = {
                 confirm = null
                 android.util.Log.i("FoundWith", "sign out confirmed")
@@ -275,7 +275,7 @@ fun DataScreen(graph: AppGraph, onBack: () -> Unit, onBlocked: () -> Unit, onSig
                 }
             }, onDismiss = { confirm = null })
         "delete" -> ConfirmDialog("Delete your account?",
-            "Your name, contacts and call log numbers are deleted from Found With. This can't be undone.", "Delete", danger = true,
+            "Your name, contacts and call log numbers will be deleted from WhoHas. You can't undo this.", "Delete", danger = true,
             onConfirm = {
                 confirm = null
                 scope.launch {
@@ -302,11 +302,11 @@ fun BlockedScreen(graph: AppGraph, onBack: () -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     Page(onBack, "Blocked people") {
         if (state.blocks.isEmpty()) {
-            Text("No one is blocked.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(20.dp))
+            Text("You haven't blocked anyone.", color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(20.dp))
         }
         for (block in state.blocks) {
             val e164 = block.ref?.let { state.index.byRef[it]?.e164 }
-            val name = e164?.let { state.contactName(it) } ?: block.name ?: "Someone on Found With"
+            val name = e164?.let { state.contactName(it) } ?: block.name ?: "Someone on WhoHas"
             ListItem(
                 leadingContent = { Avatar(block.id.toString(), name) },
                 headlineContent = { Text(name) },
@@ -325,8 +325,8 @@ fun BlockedScreen(graph: AppGraph, onBack: () -> Unit) {
 fun HelpScreen(onBack: () -> Unit, onHowItWorks: () -> Unit) {
     val context = LocalContext.current
     Page(onBack, "Help") {
-        SettingRow(Icons.Filled.Info, "How it works", onClick = onHowItWorks)
-        SettingRow(Icons.Filled.Email, "Contact us", HELP_EMAIL) { context.email(HELP_EMAIL) }
+        SettingRow(Icons.Filled.Info, "How WhoHas works", onClick = onHowItWorks)
+        SettingRow(Icons.Filled.Email, "Write to us", HELP_EMAIL) { context.email(HELP_EMAIL) }
         if (PRIVACY_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Privacy policy") { context.openUrl(PRIVACY_URL) }
         if (PRIVACY_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Terms") { context.openUrl(PRIVACY_URL.replace("privacy", "terms")) }
         Text("Version ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodySmall,
@@ -334,16 +334,17 @@ fun HelpScreen(onBack: () -> Unit, onHowItWorks: () -> Unit) {
     }
 }
 
-/** How it works (83): what it uses, what you see, what others see, popular names, safety. */
+/** How WhoHas works: what it uses, what you see, what others see, shared names, safety. */
 @Composable
 fun HowItWorksScreen(onBack: () -> Unit) {
-    Page(onBack, "How it works") {
+    Page(onBack, "How WhoHas works") {
         Column(Modifier.padding(horizontal = 20.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Explain("What it uses", if (BuildConfig.CALL_LOG) "Your contacts and the numbers in your call log." else "Your contacts.")
-            Explain("What you see", "For any number, who has it. People you know are named. The rest are a count.")
-            Explain("What others see", "When someone who knows you looks up a number you have, they see your name. Everyone else sees a count.")
-            Explain("Popular name", "If 3 or more people saved a number under the same name, that name can show for it.")
-            Explain("Kept safe", "Everything is stored encrypted. Found With never messages or calls your contacts. Delete it all any time in Settings.")
+            Explain(if (BuildConfig.CALL_LOG) "1. You allow contacts and call log." else "1. You allow contacts.",
+                "WhoHas checks those numbers against other users.")
+            Explain("2. You see who has any number.", "People you know are shown by name. Others are a count.")
+            Explain("3. Others see you the same way.", "If someone who knows you looks up a number you have, they see your name.")
+            Explain("Names people know a number by", "If 3 or more people have the same name for a number in their contacts, that name can show for it.")
+            Explain("Kept safe", "We never message or call anyone. Everything is stored safely, and you can delete it any time in Settings › Your data.")
         }
     }
 }
@@ -361,7 +362,7 @@ private fun Explain(title: String, text: String) {
 fun UpdateNeededScreen() {
     val context = LocalContext.current
     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), verticalArrangement = Arrangement.Center) {
-        EmptyState(Icons.Filled.Warning, "Update Found With", "This version is too old. Update to keep using it.", "Update") {
+        EmptyState(Icons.Filled.Warning, "Update WhoHas", "This version is too old. Update from the Play Store.", "Update") {
             context.openUrl("https://play.google.com/store/apps/details?id=${context.packageName}")
         }
     }
@@ -372,8 +373,8 @@ fun UpdateNeededScreen() {
 fun SuspendedScreen(graph: AppGraph, onSignedOut: () -> Unit) {
     val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), verticalArrangement = Arrangement.Center) {
-        EmptyState(Icons.Filled.Warning, "This account is suspended",
-            "It broke Found With's rules. If that's a mistake, write to $HELP_EMAIL.")
+        EmptyState(Icons.Filled.Warning, "Your account is suspended",
+            "It broke WhoHas rules. If this is a mistake, write to $HELP_EMAIL.")
         OutlinedButton(onClick = { scope.launch { graph.forgetEverything(); onSignedOut() } }, modifier = Modifier.fillMaxWidth()) {
             Text("Sign out")
         }

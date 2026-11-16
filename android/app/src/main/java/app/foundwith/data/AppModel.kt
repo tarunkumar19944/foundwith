@@ -47,7 +47,7 @@ data class AppState(
     val gate: Gate = Gate.NONE,
     val offline: Boolean = false,
     val refreshing: Boolean = false,
-    /** Calls Found With only reached after the hour was up, in the last week (the phone stops it). */
+    /** Calls WhoHas only reached after the hour was up, in the last week (the phone stops it). */
     val lateCalls: Int = 0,
     /** Updates newer than this get a green dot: when the app was last left. */
     val dotsSince: Long = 0L,
@@ -181,6 +181,12 @@ class AppModel(private val graph: AppGraph) {
     /** "Try now" on "Couldn't finish". */
     suspend fun retryFinding() = startTakingPart()
 
+    /** Best effort: a Tell that doesn't reach the server only loses the "invited you" line. */
+    suspend fun recordTell(e164: String) {
+        graph.store.markTold(e164)
+        runCatching { api.recordTell(e164) }
+    }
+
     suspend fun setName(name: String): String? = try {
         saveProfile(api.rename(name))
         store.nameAsked = true
@@ -289,8 +295,23 @@ class AppModel(private val graph: AppGraph) {
         store.saveCards(cached)
         if (takingPart) {
             val totals = unique.associate { it.ref to it.total } + listOfNotNull(mine?.let { it.ref to it.total })
+            // Known people are tracked for your own number and for numbers only in the call log
+            // ("now known to Kiran"); a contact's change is told by its count.
+            val known = (unique.filter { !it.inContacts } + listOfNotNull(mine))
+                .associate { card -> card.ref to card.known.map { it.id }.toSet() }
+            val members = circle?.memberRefs?.toSet()
             val old = store.changeLog()
-            store.saveChangeLog(Changes.update(old ?: ChangeLog(), totals, System.currentTimeMillis(), first = first || old == null))
+            val updated = Changes.update(old ?: ChangeLog(), totals, System.currentTimeMillis(),
+                first = first || old == null, members = members, known = known)
+            store.saveChangeLog(updated)
+            // A contact who just joined: tell the person, quietly ("Priya joined WhoHas · Has your number").
+            val index = store.index()
+            for (ref in updated.joined.keys - old?.joined?.keys.orEmpty()) {
+                val e164 = index.byRef[ref]?.e164 ?: continue
+                val name = _state.value.contactsByE164[e164]?.shownName ?: continue
+                val hasYours = mine?.known?.any { it.contactRef == ref } == true
+                graph.notifier.postJoined(e164, "$name joined WhoHas", if (hasYours) "Has your number" else null)
+            }
         }
         return cached
     }

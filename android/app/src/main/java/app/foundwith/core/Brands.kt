@@ -38,27 +38,27 @@ object Brands {
     )
 
     fun fix(family: BrandFamily): PhoneFix = when (family) {
-        BrandFamily.XIAOMI -> PhoneFix("Turn on Autostart", "For Found With, in your phone's settings. Then set Battery saver to No restrictions.",
+        BrandFamily.XIAOMI -> PhoneFix("Turn on Autostart", "Turn on Autostart for WhoHas. Then set Battery saver to No restrictions.",
             listOf(SettingsScreen("com.miui.securitycenter", "com.miui.permcenter.autostart.AutoStartManagementActivity")))
-        BrandFamily.VIVO -> PhoneFix("Turn on Autostart", "For Found With, in your phone's settings. Then allow High background power use.",
+        BrandFamily.VIVO -> PhoneFix("Turn on Autostart", "Turn on Autostart for WhoHas. Then allow High background power use.",
             listOf(SettingsScreen("com.vivo.permissionmanager", "com.vivo.permissionmanager.activity.BgStartUpManagerActivity"),
                 SettingsScreen("com.iqoo.secure", "com.iqoo.secure.ui.phoneoptimize.BgStartUpManager")))
-        BrandFamily.OPPO, BrandFamily.REALME -> PhoneFix("Allow background activity", "For Found With, in your phone's settings: Auto launch, and battery set to Allow background activity.",
+        BrandFamily.OPPO, BrandFamily.REALME -> PhoneFix("Allow background activity", "Turn on Auto launch for WhoHas. Then set Battery to Allow background activity.",
             listOf(SettingsScreen("com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity"),
                 SettingsScreen("com.coloros.safecenter", "com.coloros.safecenter.permission.startup.StartupAppListActivity"),
                 SettingsScreen("com.oppo.safe", "com.oppo.safe.permission.startup.StartupAppListActivity")))
-        BrandFamily.ONEPLUS -> PhoneFix("Allow background activity", "For Found With, in your phone's settings: Auto launch, and battery set to Allow background activity.",
+        BrandFamily.ONEPLUS -> PhoneFix("Allow background activity", "Turn on Auto launch for WhoHas. Then set Battery to Allow background activity.",
             listOf(SettingsScreen("com.oneplus.security", "com.oneplus.security.chainlaunch.view.ChainLaunchAppListActivity"),
                 SettingsScreen("com.coloros.safecenter", "com.coloros.safecenter.startupapp.StartupAppListActivity")))
-        BrandFamily.SAMSUNG -> PhoneFix("Turn off battery limits", "For Found With: set Battery to Unrestricted, and keep it out of Sleeping apps.",
+        BrandFamily.SAMSUNG -> PhoneFix("Turn off battery limits", "Set Battery to Unrestricted for WhoHas, and keep it out of Sleeping apps.",
             listOf(SettingsScreen("com.samsung.android.lool", "com.samsung.android.sm.ui.battery.BatteryActivity")))
-        BrandFamily.TRANSSION -> PhoneFix("Turn on Auto-start", "For Found With, in Phone Master. Then remove it from battery saving.",
+        BrandFamily.TRANSSION -> PhoneFix("Turn on Auto-start", "In Phone Master, turn on Auto-start for WhoHas. Then take it out of battery saving.",
             listOf(SettingsScreen("com.transsion.phonemaster", "com.cyin.himgr.autostart.AutoStartActivity")))
-        BrandFamily.HUAWEI -> PhoneFix("Manage app launch manually", "For Found With, turn on Auto-launch and Run in background.",
+        BrandFamily.HUAWEI -> PhoneFix("Manage app launch manually", "Turn on Auto-launch and Run in background for WhoHas.",
             listOf(SettingsScreen("com.huawei.systemmanager", "com.huawei.systemmanager.startupmgr.ui.StartupNormalAppListActivity")))
-        BrandFamily.ASUS -> PhoneFix("Turn on Auto-start", "For Found With, in Mobile Manager.",
+        BrandFamily.ASUS -> PhoneFix("Turn on Auto-start", "In Mobile Manager, turn on Auto-start for WhoHas.",
             listOf(SettingsScreen("com.asus.mobilemanager", "com.asus.mobilemanager.autostart.AutoStartActivity")))
-        BrandFamily.OTHER -> PhoneFix("Turn off battery limits", "For Found With, set Battery to Unrestricted in your phone's settings.", emptyList())
+        BrandFamily.OTHER -> PhoneFix("Turn off battery limits", "In your phone's settings, set Battery to Unrestricted for WhoHas.", emptyList())
     }
 
     /** The brand as reported in the health numbers: lower case, letters and digits only. */

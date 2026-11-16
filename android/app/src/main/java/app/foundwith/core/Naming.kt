@@ -7,8 +7,8 @@ enum class NameSource { CONTACT, THEIR_OWN, POPULAR, NUMBER }
 data class ShownName(val text: String, val source: NameSource) {
     val tag: String?
         get() = when (source) {
-            NameSource.THEIR_OWN -> "name they gave"
-            NameSource.POPULAR -> "popular name"
+            NameSource.THEIR_OWN -> "their own name"
+            NameSource.POPULAR -> "what others call it"
             else -> null
         }
     val isNumber: Boolean get() = source == NameSource.NUMBER
@@ -17,8 +17,8 @@ data class ShownName(val text: String, val source: NameSource) {
 /**
  * Every number looks the same everywhere (Home, search, after calls). Its name, in order:
  *  1. the viewer's own contact name,
- *  2. the owner's own Found With name ("name they gave"),
- *  3. the popular name, what at least 3 people saved ("popular name"),
+ *  2. the name the owner typed into WhoHas ("their own name"),
+ *  3. the name at least 3 people have for it in their contacts ("what others call it"),
  *  4. the number.
  * Names are shown exactly as saved: "Dr. Anand" and "Lakshmi Aunty" are never shortened.
  */
@@ -36,7 +36,7 @@ object Naming {
 
     /**
      * How a person who has the number is shown on a card: the viewer's name for them, else their
-     * own Found With name, else their number. [contactRef] people the viewer knows always have one of these.
+     * own WhoHas name, else their number. [contactRef] people the viewer knows always have one of these.
      */
     fun person(contactName: String?, ownName: String?, e164: String?): String =
         contactName?.trim()?.takeIf { it.isNotEmpty() && !looksLikeNumber(it) }

@@ -64,6 +64,10 @@ class InviteIn(_Body):
     code: str = Field(min_length=4, max_length=16)
 
 
+class TellIn(_Body):
+    number: str = Field(max_length=64)
+
+
 class LookupIn(_Body):
     number: str = Field(max_length=64)
     context: Literal["search", "call"] = "search"

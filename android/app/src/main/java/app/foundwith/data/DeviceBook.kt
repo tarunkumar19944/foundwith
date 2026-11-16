@@ -132,6 +132,17 @@ class DeviceBook(private val context: Context) {
     suspend fun callLogNumbers(): Set<String> =
         calls().mapNotNullTo(HashSet()) { it.raw?.takeIf { raw -> raw.isNotBlank() } }
 
+    /** The name on the phone's own "Me" card, when there is one: to fill in "Add your name". */
+    suspend fun ownerName(): String? = withContext(Dispatchers.IO) {
+        if (!hasContactsPermission()) return@withContext null
+        runCatching {
+            context.contentResolver.query(android.provider.ContactsContract.Profile.CONTENT_URI,
+                arrayOf(android.provider.ContactsContract.Profile.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) c.getString(0)?.trim()?.takeIf { it.isNotEmpty() && it.any(Char::isLetter) } else null
+            }
+        }.getOrNull()
+    }
+
     /** One entry per call in the call log, for counting who the person talks to most. */
     suspend fun callLogCalls(): List<String> = calls().mapNotNull { it.raw?.takeIf { raw -> raw.isNotBlank() } }
 }

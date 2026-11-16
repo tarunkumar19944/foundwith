@@ -158,12 +158,12 @@ async def test_cards_carry_names_and_whether_the_owner_joined(db, identity):
 
 def test_evening_note_text():
     assert push.evening_text(0, 0) is None
-    assert push.evening_text(1, 0) == "1 number on your phone is found with more people today."
-    assert push.evening_text(3, 0) == "3 numbers on your phone are found with more people today."
-    assert push.evening_text(0, 1) == "Your number is found with 1 more person today."
-    assert push.evening_text(0, 4) == "Your number is found with 4 more people today."
-    assert push.evening_text(2, 2) == ("2 numbers on your phone are found with more people today. "
-                                       "Your number: 2 more people.")
+    assert push.evening_text(1, 0) == "1 number on your phone got more people."
+    assert push.evening_text(3, 0) == "3 numbers on your phone got more people."
+    assert push.evening_text(0, 1) == "1 more person has your number."
+    assert push.evening_text(0, 4) == "4 more people have your number."
+    assert push.evening_text(2, 2) == "2 more people have your number. 2 numbers on your phone got more people."
+    assert push.EVENING_TITLE == "Today on WhoHas"
 
 
 async def test_evening_note_counts_today_and_goes_once(db, people, service):
@@ -182,7 +182,7 @@ async def test_evening_note_counts_today_and_goes_once(db, people, service):
     assert got == {"people": 2, "sent": 1, "tokens_removed": 0}
     [(token, message)] = sender.messages
     assert token == token_for("arjun") and message["kind"] == "evening"
-    assert message["body"] == "2 numbers on your phone are found with more people today. Your number: 2 more people."
+    assert message["body"] == "2 more people have your number. 2 numbers on your phone got more people."
     assert "Ravi" not in message["body"] and "Meena" not in message["body"]        # counts only
 
     again = await push.send_evening_notes(db, push.LogSender(), "Asia/Kolkata", now=evening)
@@ -281,7 +281,7 @@ def test_opt_out_page_is_served_with_a_strict_policy(db, settings, identity):
     app = create_app(settings, db=db, verifier=DevVerifier(), identity=identity, configure_logging=False)
     with TestClient(app) as client:
         r = client.get("/out")
-        assert r.status_code == 200 and "Take your number out of Found With" in r.text
+        assert r.status_code == 200 and "Remove your number from WhoHas" in r.text
         policy = r.headers["content-security-policy"]
         nonce = policy.split("'nonce-")[1].split("'")[0]
         assert f'nonce="{nonce}"' in r.text and "unsafe-eval" not in policy and "frame-ancestors 'none'" in policy

@@ -1,4 +1,4 @@
-"""Deleting a person's sign-in account from Identity Platform when they delete their Found With account."""
+"""Deleting a person's sign-in account from Identity Platform when they delete their WhoHas account."""
 
 from __future__ import annotations
 

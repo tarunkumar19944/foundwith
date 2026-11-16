@@ -1,4 +1,4 @@
-"""Found With's product rules (v0.4, 16 Nov 2026).
+"""WhoHas's product rules (v0.4, 16 Nov 2026).
 
   1. A user takes part (their numbers count for others) only after allowing it, with consent to the
      current terms. Before that they can still see their own number's count and search, by count.
@@ -7,11 +7,11 @@
      visibility "known" (the default) only people the viewer knows are named: people whose own
      number is in the viewer's contacts or call log. The rest are a count.
   4. Every number looks the same everywhere (Home, search, after calls). Its name, in order: the
-     viewer's own contact name (on the phone), the owner's own Found With name, the popular name
+     viewer's own contact name (on the phone), the owner's own WhoHas name, the popular name
      (what at least 3 established people saved), the number.
   5. Search (any Indian mobile) and after-call lookups follow rule 3, within daily quotas.
-  6. "Hide this number" removes it from Found With for that user in both directions.
-  7. Anyone can take their own number out of Found With for everybody (opt-out), account or not.
+  6. "Hide this number" removes it from WhoHas for that user in both directions.
+  7. Anyone can take their own number out of WhoHas for everybody (opt-out), account or not.
   8. People can block each other: neither sees the other anywhere.
 """
 
@@ -51,7 +51,7 @@ SAMPLE_KNOWN_SKIP_MAX = 200     # how many known holders we are prepared to skip
 SAMPLE_KNOWN_EXCLUDE_MAX = 2000  # above this many known holders, skip them in Python instead of in SQL
 SEEN_REFRESH_S = 6 * 3600       # how often a signed-in request refreshes "last seen"
 DAY_S = 86_400
-NOT_REGISTERED = "Create your profile to start using Found With."
+NOT_REGISTERED = "Create your profile to start using WhoHas."
 INVITE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"   # no 0/O or 1/I, so a code read aloud survives
 INVITE_CODE = re.compile(r"^[A-HJ-NP-Z2-9]{8}$")
 MAX_PUSH_NUMBERS = 2000   # numbers per sync whose holders get a live update
@@ -62,7 +62,7 @@ MAX_PUSH_NUMBERS = 2000   # numbers per sync whose holders get a live update
 @dataclass
 class Holder:
     id: str
-    name: str | None   # their Found With name; None until they choose one
+    name: str | None   # their WhoHas name; None until they choose one
     known: bool
     contact_ref: str | None = None  # set when the viewer has this person saved, so the app can show its own label
 
@@ -81,8 +81,9 @@ class Match:
     known: list[Holder] = field(default_factory=list)
     others: list[Holder] = field(default_factory=list)
     known_ids: frozenset[int] = frozenset()   # every known holder, including any beyond the listed ones
-    name: str | None = None                   # the owner's own Found With name (rule 4)
-    popular_name: str | None = None           # what most people saved for it (rule 4)
+    name: str | None = None                   # the owner's own WhoHas name (rule 4)
+    popular_name: str | None = None           # the name most people have for it in their contacts (rule 4)
+    popular_name_people: int = 0              # how many people have that name for it
     owner_id: str | None = None               # the owner's public id, when they take part (for Block)
 
     @property
@@ -101,8 +102,10 @@ class Match:
             "known": [h.as_json() for h in self.known],
             "others": [h.as_json() for h in self.others],
             "more": self.more,
+            "known_count": max(len(self.known_ids), len(self.known)),
             "name": self.name,
             "popular_name": self.popular_name,
+            "popular_name_people": self.popular_name_people,
             "on_found_with": self.owner_id is not None,
             "owner_id": self.owner_id,
         }
@@ -260,7 +263,7 @@ class Service:
             if tomb is not None and not retired and ident.auth_time <= tomb["deleted_epoch"]:
                 # The account for this number was deleted after this sign-in happened. Without this
                 # check, a still-valid token could re-create the account in a loop to reset its limits.
-                raise ReauthRequired("Sign in again to set up Found With.")
+                raise ReauthRequired("Sign in again to set up WhoHas.")
             user = await repo.insert_user(conn, ident.uid, phone_hmac, name, self.settings.new_numbers_burst)
             if user is None:  # a concurrent request created it first
                 user = await repo.user_by_auth_uid(conn, ident.uid)
@@ -297,6 +300,7 @@ class Service:
         async with self.db.acquire() as conn:
             used = await repo.quota_used_today(conn, user["id"], s.quota_timezone)
             opted_out = await repo.is_suppressed(conn, bytes(user["phone_hmac"]))
+            told_by, told_count = await repo.tellers(conn, bytes(user["phone_hmac"]), user["id"])
             search_limit = s.search_daily_limit
         return {
             "id": user["public_id"],
@@ -306,6 +310,10 @@ class Service:
             "number_opted_out": opted_out,
             "visibility": s.visibility,
             "evening_note": user["evening_note"],
+            # Who tapped Tell for this number: "Priya and 2 others invited you". Names only of
+            # people who chose one; the count includes everyone.
+            "invited_by": [_first_name(n) for n in told_by if n] or (["A friend"] if told_count else []),
+            "invited_by_count": told_count,
             "sync": {
                 "enabled": user["sync_enabled"],
                 "consent_version": user["consent_version"],
@@ -635,7 +643,9 @@ class Service:
             if owner is not None:
                 m.owner_id, m.name = owner["public_id"], owner["display_name"]
             if m.number_hmac in popular:
-                m.popular_name = self.names.decrypt(popular[m.number_hmac], m.number_hmac)
+                name_enc, people = popular[m.number_hmac]
+                m.popular_name = self.names.decrypt(name_enc, m.number_hmac)
+                m.popular_name_people = people
 
     async def _add_samples(self, conn: Conn, viewer_id: int, matches: Sequence[Match],
                            excluded: Sequence[int]) -> None:
@@ -668,7 +678,7 @@ class Service:
 
     async def cards(self, user: Row, cursor: str | None, limit: int | None) -> dict[str, Any]:
         """The person's own number first, then a card for every number on their phone that someone
-        else has. Before they allow Found With to use their phone, only their own number: the count
+        else has. Before they allow WhoHas to use their phone, only their own number: the count
         of people who have it is the first thing they see."""
         s = self.settings
         after = _cards_cursor(cursor)
@@ -740,7 +750,7 @@ class Service:
             taken_out = await repo.is_suppressed(conn, digest)
             await repo.log_lookup(conn, user["id"], own, digest, context, match.total)
         result = match.as_json()
-        result["taken_out"] = taken_out   # the owner took it out: the app says "Not shown on Found With"
+        result["taken_out"] = taken_out   # the owner took it out: the app says "Not shown on WhoHas"
         result.update({"number": e164, "context": context, "hidden": hidden,
                        "quota": {"limit": limit, "left": max(0, limit - used)}})
         return result
@@ -755,7 +765,7 @@ class Service:
         return code
 
     async def circle(self, user: Row, base_url: str) -> dict[str, Any]:
-        """How many of the person's contacts are on Found With, which ones (so the phone can leave
+        """How many of the person's contacts are on WhoHas, which ones (so the phone can leave
         them out of the invite list), and their invite link with who joined through it."""
         s = self.settings
         own = bytes(user["phone_hmac"])
@@ -790,7 +800,7 @@ class Service:
             if inviter["id"] == user["id"]:
                 raise InviteRejected("That's your own invite.", details={"reason": "own_invite"})
             if (user["created_age_s"] or 0) > s.invite_window_days * DAY_S:
-                raise InviteRejected(f"Invites only count in your first {_days(s.invite_window_days)} on Found With.",
+                raise InviteRejected(f"Invites only count in your first {_days(s.invite_window_days)} on WhoHas.",
                                      details={"reason": "too_late"})
             if not await repo.redeem_invite(conn, own, inviter["id"]):
                 raise InviteRejected("This number has already joined through an invite.", details={"reason": "already_used"})
@@ -798,6 +808,20 @@ class Service:
                 await repo.queue_push(conn, inviter["id"], repo.PUSH_INVITE)
         log.info("invite redeemed", extra={"event": "invite_redeemed"})
         return {"redeemed": True}
+
+    # ---------- Tell
+
+    async def tell(self, user: Row, number: str) -> None:
+        """The person tapped Tell for one of their contacts: when that number joins, it hears who
+        told it. Mobile numbers only, never your own."""
+        e164 = normalise(number, self.settings.country_code)
+        if e164 is None or not is_indian_mobile(e164):
+            raise InvalidNumber("Enter a 10-digit Indian mobile number starting with 6, 7, 8 or 9.")
+        digest = self.hasher.digest(e164)
+        if digest == bytes(user["phone_hmac"]):
+            return
+        async with self.db.acquire() as conn:
+            await repo.record_tell(conn, user["id"], digest)
 
     # ---------- push messages, phone health, your data
 
@@ -810,7 +834,7 @@ class Service:
             await repo.delete_push_token(conn, user["id"], token)
 
     async def my_data(self, user: Row, ident: Identity) -> dict[str, Any]:
-        """What Found With holds about this person, in counts, for the "Your data" page."""
+        """What WhoHas holds about this person, in counts, for the "Your data" page."""
         s = self.settings
         async with self.db.acquire() as conn:
             counts = await repo.data_summary(conn, user["id"])
@@ -915,7 +939,7 @@ class Service:
         except ValueError as exc:
             raise NotFound("We couldn't find that number.") from exc
 
-    # ---------- opt-out: "take my number out of Found With"
+    # ---------- opt-out: "take my number out of WhoHas"
     # Needs only a verified sign-in for the number. No profile, no contact sync.
 
     async def opt_out_status(self, ident: Identity) -> dict[str, Any]:
@@ -925,13 +949,13 @@ class Service:
                     "has_account": await repo.user_by_phone(conn, phone_hmac) is not None}
 
     async def opt_out(self, ident: Identity, delete_account: bool = False) -> dict[str, Any]:
-        """Take the number out for everybody. If the number has a Found With account, that is
+        """Take the number out for everybody. If the number has a WhoHas account, that is
         deleted too, but only when the person said so (the page warns first)."""
         phone_hmac = self._own_phone_hmac(ident)
         async with self.db.acquire() as conn:
             account = await repo.user_by_phone(conn, phone_hmac)
         if account is not None and not delete_account:
-            raise AccountExists("This number has a Found With account. Taking it out also deletes the account.")
+            raise AccountExists("This number has a WhoHas account. Removing it also deletes the account.")
         deleted = False
         if account is not None:
             await self.delete_account(account)
@@ -985,6 +1009,12 @@ class Service:
     # ---------- phone health by brand
 
     async def record_health(self, brand: str, android: int, day: Any, calls_seen: int, calls_checked: int) -> None:
-        """One phone's day: calls it saw and how many Found With checked. Stored by brand only."""
+        """One phone's day: calls it saw and how many WhoHas checked. Stored by brand only."""
         async with self.db.acquire() as conn:
             await repo.add_health(conn, day, brand, android, calls_seen, min(calls_checked, calls_seen))
+
+
+def _first_name(name: str) -> str:
+    """"Priya Sharma" -> "Priya": the first word, as the invite page does."""
+    word = name.strip().split()[0] if name and name.strip() else name
+    return word[:40]

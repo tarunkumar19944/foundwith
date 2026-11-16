@@ -21,4 +21,16 @@ class AskOrderTest {
             ordered.map { it.second })
         assertEquals("In your call log", AskWhy.FROM_CALLS.hint)
     }
+
+    @Test
+    fun contactsComeBeforePeopleOnlyInTheCallLog() {
+        val order = AskOrder.order(listOf(
+            KnownPerson("a", "Anil Kumar", "+919845011111", inContacts = false, calls = 10),
+            KnownPerson("p", "Priya", "+919845022222", inContacts = true, calls = 0),
+            KnownPerson("m", "Meena", "+919845033333", inContacts = true, calls = 4),
+        ))
+        assertEquals(listOf("Meena", "Priya", "Anil Kumar"), order.map { it.first.name })
+        assertEquals("In your call log", order.last().second.hint)
+        assertEquals("In your contacts", order[1].second.hint)
+    }
 }

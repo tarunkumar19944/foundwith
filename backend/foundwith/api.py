@@ -34,7 +34,7 @@ from .identity import GoogleIdentityAdmin, IdentityAdmin, NoopIdentityAdmin
 from .logs import setup_logging
 from .numbers import NumberHasher, normalise
 from .ratelimit import RateLimiter
-from .schemas import (BlockIn, DeviceIn, HealthIn, InviteIn, LookupIn, NewProfileIn, NumberChangesIn, NumbersIn,
+from .schemas import (BlockIn, DeviceIn, HealthIn, InviteIn, LookupIn, TellIn, NewProfileIn, NumberChangesIn, NumbersIn,
                       OptOutIn, ProfileIn, ReportIn, SettingsIn, SyncSettingIn)
 from .service import Service
 
@@ -107,7 +107,7 @@ def signed_in(fn: Handler, *, needs_profile: bool = True, allow_suspended: bool 
         settings: Settings = state.settings
         version = request.headers.get("x-app-version", "")
         if settings.min_app_version and version.isdigit() and int(version) < settings.min_app_version:
-            raise UpdateRequired("This version of Found With is too old. Update it to keep using it.")
+            raise UpdateRequired("This version of WhoHas is too old. Update it from the Play Store.")
         ident = await authenticate(request)
         kind, per_minute = (("heavy", settings.rate_limit_heavy_per_minute) if heavy
                             else ("any", settings.rate_limit_per_minute))
@@ -213,6 +213,12 @@ async def redeem_invite(request: Request, svc: Service, ident: Identity, user: R
     return JSONResponse(await svc.redeem_invite(user, body.code))
 
 
+async def post_tell(request: Request, svc: Service, ident: Identity, user: Row) -> Response:
+    body = await read_body(request, TellIn)
+    await svc.tell(user, body.number)
+    return Response(status_code=204)
+
+
 async def put_device(request: Request, svc: Service, ident: Identity, user: Row) -> Response:
     body = await read_body(request, DeviceIn)
     await svc.save_device(user, body.token)
@@ -231,7 +237,7 @@ async def get_my_data(request: Request, svc: Service, ident: Identity, user: Row
 
 async def get_export(request: Request, svc: Service, ident: Identity, user: Row) -> Response:
     return JSONResponse(await svc.export(user, ident),
-                        headers={"Content-Disposition": 'attachment; filename="found-with-data.json"'})
+                        headers={"Content-Disposition": 'attachment; filename="whohas-data.json"'})
 
 
 async def _scheduler_only(request: Request) -> bool:
@@ -353,7 +359,7 @@ def _is_temporary(exc: BaseException) -> bool:
 async def handle_unexpected(request: Request, exc: Exception) -> Response:
     if _is_temporary(exc):
         log.error("temporary failure: %s", type(exc).__name__, exc_info=exc, extra={"event": "temporary_failure"})
-        return error_response(503, "unavailable", "Found With is busy right now. Try again in a moment.",
+        return error_response(503, "unavailable", "WhoHas is busy right now. Try again in a moment.",
                               retry_after=3)
     if any(cls.__name__ == "UniqueViolationError" for cls in type(exc).__mro__):
         # Two requests raced to create the same thing; the second one loses and can simply retry.
@@ -468,6 +474,7 @@ def create_app(settings: Settings | None = None, *, db: Database | None = None, 
         Route("/v1/numbers/{ref}/holders", signed_in(get_holders), methods=["GET"]),
         Route("/v1/me/circle", signed_in(get_circle), methods=["GET"]),
         Route("/v1/me/invite/redeem", signed_in(redeem_invite), methods=["POST"]),
+        Route("/v1/tells", signed_in(post_tell), methods=["POST"]),
         Route("/i/{code}", web.invite_page, methods=["GET"]),
         Route("/out", web.opt_out_page, methods=["GET"]),
         Route("/v1/me/device", signed_in(put_device), methods=["PUT"]),

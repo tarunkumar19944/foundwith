@@ -33,7 +33,7 @@ import app.foundwith.core.BrandFamily
 import app.foundwith.core.Brands
 
 /**
- * "Let Found With work after calls": the one-time phone setting that Xiaomi, Vivo, Oppo, Realme,
+ * "Let WhoHas work after calls": the one-time phone setting that Xiaomi, Vivo, Oppo, Realme,
  * Tecno and similar phones need before any app can run after a call. The same steps as
  * Truecaller's help pages per brand, with a button that opens the right settings page.
  */
@@ -45,8 +45,8 @@ fun PhoneFixScreen(graph: AppGraph, onBack: () -> Unit) {
     Column(Modifier.fillMaxSize().safeDrawingPadding()) {
         BackBar(onBack)
         Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Let Found With work after calls", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("Your phone closes apps to save battery. Then Found With can't tell you who knows a caller.",
+            Text("Let WhoHas check your calls", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text("Your phone stops apps to save battery. Turn this on so WhoHas can check every call.",
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
             Surface(color = MaterialTheme.colorScheme.surfaceVariant, shape = RoundedCornerShape(14.dp), modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(12.dp)) {
@@ -74,7 +74,7 @@ fun openFix(context: Context, family: BrandFamily) {
     context.openAppSettings()
 }
 
-/** Android's list of battery-optimised apps, where Found With can be set to "Don't optimise". */
+/** Android's list of battery-optimised apps, where WhoHas can be set to "Don't optimise". */
 fun openBattery(context: Context) {
     val intent = Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     if (runCatching { context.startActivity(intent) }.isFailure) context.openAppSettings()

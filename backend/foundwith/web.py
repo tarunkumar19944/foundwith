@@ -1,8 +1,8 @@
-"""The two web pages Found With needs, served by the API itself so there is no website to run:
+"""The two web pages WhoHas needs, served by the API itself so there is no website to run:
 
   /i/{code}  an invite link. On Android: a button to Google Play that carries the invite code
-             (Play Install Referrer). Elsewhere: "Found With is on Android for now".
-  /out       take your number out of Found With, for anyone, with or without the app. The person
+             (Play Install Referrer). Elsewhere: "WhoHas is on Android for now".
+  /out       take your number out of WhoHas, for anyone, with or without the app. The person
              proves the number with an SMS code (Identity Platform's web SDK), then the page calls
              /v1/optout. If the number has an account, the page says that it will be deleted too.
 """
@@ -89,46 +89,46 @@ async def invite_page(request: Request) -> HTMLResponse:
             inviter = _first_word(row["display_name"])
     agent = request.headers.get("user-agent", "")
     ios = bool(re.search(r"iPhone|iPad|iPod", agent))
-    title = f"{html.escape(inviter)} invited you to Found With" if inviter else "You're invited to Found With"
-    lead = "See who has your number. When an unknown number calls, see which people you know have it."
+    title = f"{html.escape(inviter)} invited you to WhoHas" if inviter else "You're invited to WhoHas"
+    lead = "See who has any number, even when someone unknown calls."
     if ios:
-        action = "<p>Found With is on Android for now.</p>"
+        action = "<p>WhoHas is on Android for now.</p>"
     else:
         action = f'<a class="btn" href="{html.escape(store)}">Get it on Google Play</a>'
-    body = f"""<div class="logo" aria-hidden="true">F</div><h1>{title}</h1><p>{lead}</p>{action}
-<small>Found With never messages or calls your contacts.</small>"""
-    return _page("Found With", body)
+    body = f"""<div class="logo" aria-hidden="true">W</div><h1>{title}</h1><p>{lead}</p>{action}
+<small>WhoHas never messages or calls anyone.</small>"""
+    return _page("WhoHas", body)
 
 
 _OUT_BODY = """
-<div class="logo" aria-hidden="true">F</div>
+<div class="logo" aria-hidden="true">W</div>
 <section id="s-number">
-  <h1>Take your number out of Found With</h1>
-  <p>Works even if you don't use the app. People on Found With won't see who has your number.</p>
+  <h1>Remove your number from WhoHas</h1>
+  <p>Works even if you don't use the app. People on WhoHas won't see who has your number.</p>
   <div class="row"><input class="cc" value="+91" disabled aria-label="Country code">
     <input id="number" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="98450 12345" aria-label="Mobile number"></div>
   <div class="err" id="number-err" role="alert"></div>
   <button class="btn" id="send">Send code</button>
 </section>
 <section id="s-code" hidden>
-  <h1>Enter the code</h1>
-  <p>Sent to <span id="sent-to"></span> · <a href="#" id="change">Change</a></p>
+  <h1>Enter the 6-digit code</h1>
+  <p>Sent to <span id="sent-to"></span> · <a href="#" id="change">Change number</a></p>
   <div class="row"><input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" aria-label="Code"></div>
   <div class="err" id="code-err" role="alert"></div>
   <button class="btn" id="verify">Continue</button>
 </section>
 <section id="s-account" hidden>
-  <h1>This number has a Found With account</h1>
-  <p>Taking it out also deletes the account and everything in it.</p>
-  <button class="btn danger" id="delete">Take out and delete</button>
+  <h1>This number has a WhoHas account</h1>
+  <p>Removing it also deletes the account and everything in it.</p>
+  <button class="btn danger" id="delete">Remove and delete</button>
   <button class="btn ghost" id="cancel">Cancel</button>
   <div class="err" id="account-err" role="alert"></div>
 </section>
 <section id="s-done" hidden>
-  <h1 class="done">Done. Your number is out.</h1>
-  <p>People on Found With won't see who has it, now or later.</p>
+  <h1 class="done">Done. Your number is removed.</h1>
+  <p>People on WhoHas won't see who has it, now or later.</p>
 </section>
-<section id="s-off" hidden><h1>This page isn't ready yet</h1><p>Write to help@found-with.app to take your number out.</p></section>
+<section id="s-off" hidden><h1>This page isn't ready yet</h1><p>Write to help@found-with.app to remove your number.</p></section>
 <div id="recaptcha"></div>
 """
 
@@ -221,4 +221,4 @@ async def opt_out_page(request: Request) -> HTMLResponse:
         "frame-src": "https://www.google.com https://*.firebaseapp.com https://recaptcha.google.com",
         "img-src": "'self' data: https://www.gstatic.com https://www.google.com",
     }
-    return _page("Take your number out · Found With", _OUT_BODY, nonce=nonce, extra_script=script, csp_extra=csp)
+    return _page("Remove your number · WhoHas", _OUT_BODY, nonce=nonce, extra_script=script, csp_extra=csp)

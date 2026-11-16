@@ -81,12 +81,20 @@ class PhoneJourneyTest {
         if (onHome(10_000)) return
         val code = args.getString("fwCode")
         assumeTrue("fwCode not given: can't sign in", !code.isNullOrBlank())
-        if (!exists("Your mobile number")) tap("Type your number")
+        if (!exists("Your mobile number")) {
+            // Still on Welcome: Get started opens the picker again; closing it leads to typing the number.
+            tap("Get started")
+            device.wait(Until.hasObject(By.pkg("com.google.android.gms")), 8_000)
+            if (device.currentPackageName != PACKAGE) {
+                device.pressBack()
+                device.wait(Until.hasObject(By.pkg(PACKAGE)), 5_000)
+            }
+        }
         waitFor("Your mobile number")
         field().performTextInput(args.getString("fwNumber") ?: "9000000010")
         shot("02-number")
         tap("Send code")
-        waitFor("Enter the code", 90_000)
+        waitFor("Enter the 6-digit code", 90_000)
         shot("03-code")
         field().performTextInput(code!!)
         assertTrue("Home didn't open after the code", onHome(90_000))
@@ -102,7 +110,8 @@ class PhoneJourneyTest {
             runCatching { compose.onAllNodes(hasText("Allow")).onFirst().performClick() }
         }
         waitFor("Updates", 120_000)
-        if (exists("Your name on Found With") && exists("Not now")) tap("Not now")
+        // The notification and name cards wait until names have shown; put both off.
+        repeat(2) { if (exists("Later")) runCatching { tap("Later") } }
         shot("06-ready")
     }
 
@@ -113,10 +122,10 @@ class PhoneJourneyTest {
         scrollTo("FW Test Plumber")
         shot("07-contacts")
         tap("FW Test Plumber")
-        waitForAny(listOf("Found with", "Only you have this number", "Found with no one yet"), 30_000)
+        waitForAny(listOf("have this number", "has this number", "No one else on WhoHas has it yet", "No one on WhoHas has this number"), 30_000)
         shot("08-card")
         compose.onNode(hasContentDescription("More")).performClick()
-        waitFor("Share this number")
+        waitFor("Share number")
         shot("09-card-menu")
         device.pressBack()
         back()
@@ -130,10 +139,10 @@ class PhoneJourneyTest {
         waitFor("FW Test Clinic")
         shot("10-search-name")
         search("98765")
-        waitFor("Type the full number")
+        waitFor("Type all 10 digits")
         search("9000000070")
-        waitForAny(listOf("Found with", "Only you have this number", "Found with no one yet",
-            "Today's search limit is over"), 30_000)
+        waitForAny(listOf("have it", "has it", "No one else on WhoHas has it yet", "No one on WhoHas has this number",
+            "Today's searches are over"), 30_000)
         shot("11-search-number")
         search("")
         waitFor("Contacts")
@@ -179,21 +188,21 @@ class PhoneJourneyTest {
     fun step07_settingsPagesOpen() {
         assertTrue(onHome(30_000))
         compose.onNode(hasContentDescription("Settings")).performClick()
-        waitFor("Your data and account")
+        waitFor("Your data")
         shot("15-settings")
         for ((row, inside) in listOf(
-            "Notifications" to "Evening note",
-            "Your data and account" to "Download my data",
-            "Help" to "How it works",
+            "Notifications" to "Daily summary",
+            "Your data" to "Download my data",
+            "Help" to "How WhoHas works",
             "Invite friends" to "Share your link",
         )) {
             tap(row)
             waitFor(inside)
             shot("16-" + row.lowercase().replace(' ', '-'))
             back()
-            waitFor("Your data and account")
+            waitFor("Your data")
         }
-        tap("Your data and account")
+        tap("Your data")
         tap("Blocked people")
         waitFor("Blocked people")
         back()
@@ -206,7 +215,7 @@ class PhoneJourneyTest {
     fun step08_signsOut() {
         assertTrue(onHome(30_000))
         compose.onNode(hasContentDescription("Settings")).performClick()
-        tap("Your data and account")
+        tap("Your data")
         tap("Sign out")
         waitFor("Sign out?")
         shot("16b-sign-out-dialog")
@@ -219,7 +228,7 @@ class PhoneJourneyTest {
         // sign-in shows or the picker covers it.
         runCatching {
             compose.waitUntil(30_000) {
-                exists("Type your number") || exists("Your mobile number") || device.currentPackageName != PACKAGE
+                exists("Get started") || exists("Your mobile number") || device.currentPackageName != PACKAGE
             }
         }
         shotDevice("17-signed-out")
@@ -227,7 +236,7 @@ class PhoneJourneyTest {
             device.pressBack()
             device.wait(Until.hasObject(By.pkg(PACKAGE)), 5_000)
         }
-        waitForAny(listOf("Type your number", "Your mobile number"), 30_000)
+        waitForAny(listOf("Get started", "Your mobile number"), 30_000)
     }
 
     // ------------------------------------------------------------------ helpers
@@ -237,7 +246,7 @@ class PhoneJourneyTest {
 
     private fun onHome(timeoutMs: Long): Boolean = try {
         compose.waitUntil(timeoutMs) {
-            has(hasContentDescription("Settings")) || has(hasText("Type your number")) || has(hasText("Your mobile number"))
+            has(hasContentDescription("Settings")) || has(hasText("Get started")) || has(hasText("Your mobile number"))
         }
         has(hasContentDescription("Settings"))
     } catch (e: ComposeTimeoutException) {

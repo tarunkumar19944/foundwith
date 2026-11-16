@@ -8,11 +8,19 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
 import android.provider.Settings
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +32,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -36,16 +46,26 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
@@ -177,7 +197,7 @@ fun IconAvatar(icon: ImageVector, size: Dp = 40.dp, accent: Boolean = false) {
 @Composable
 fun MeAvatar(size: Dp = 40.dp) = IconAvatar(Icons.Filled.Person, size, accent = true)
 
-/** A name with its small grey tag ("popular name", "name they gave") when it isn't the viewer's own. */
+/** A name with its small grey tag ("their own name", "what others call it") when it isn't the viewer's own. */
 @Composable
 fun NameText(name: ShownName, big: Boolean = false, maxLines: Int = 1) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -243,14 +263,33 @@ fun ErrorText(message: String?, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, danger: Boolean = false) {
+fun PrimaryButton(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    danger: Boolean = false,
+    saffron: Boolean = false,
+    icon: ImageVector? = null,
+) {
+    val colors = when {
+        danger -> ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+        saffron -> ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary, contentColor = MaterialTheme.colorScheme.onSecondary)
+        else -> ButtonDefaults.buttonColors()
+    }
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.fillMaxWidth().height(48.dp),
-        colors = if (danger) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors(),
-        shape = RoundedCornerShape(12.dp),
-    ) { Text(text) }
+        modifier = modifier.fillMaxWidth().height(52.dp),
+        colors = colors,
+        shape = RoundedCornerShape(26.dp),
+    ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(text, fontWeight = FontWeight.Bold)
+    }
 }
 
 /** A one-line strip above the tabs: offline, notifications off, phone settings. */
@@ -301,4 +340,184 @@ fun ConfirmDialog(title: String, text: String, confirm: String, danger: Boolean 
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
+}
+
+// ---------------------------------------------------------------- WhoHas pieces
+
+/** "WhoHas", with "Has" in indigo. */
+@Composable
+fun Wordmark(size: TextUnit = 22.sp) {
+    Text(
+        buildAnnotatedString {
+            append("Who")
+            withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("Has") }
+        },
+        fontSize = size, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.3).sp,
+    )
+}
+
+/** "just now", "5 min ago", "2 hr ago", else the time or day. */
+fun agoText(at: Long?, now: Long = System.currentTimeMillis()): String {
+    if (at == null) return "just now"
+    val gap = now - at
+    return when {
+        gap < 60_000 -> "just now"
+        gap < 3_600_000 -> "${gap / 60_000} min ago"
+        gap < 6 * 3_600_000 -> "${gap / 3_600_000} hr ago"
+        else -> whenText(at, now)
+    }
+}
+
+/** "Live · checked just now" with a slow green pulse, or what's shown while offline. */
+@Composable
+fun LiveStatus(checkedAt: Long?, offline: Boolean) {
+    var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(checkedAt) {
+        while (true) {
+            now = System.currentTimeMillis()
+            kotlinx.coroutines.delay(30_000)
+        }
+    }
+    if (offline) {
+        Text("No internet · showing what we had at ${checkedAt?.let { whenText(it, now) } ?: "last open"}",
+            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+    val pulse = rememberInfiniteTransition(label = "live")
+    val alpha by pulse.animateFloat(0.35f, 1f, infiniteRepeatable(tween(1100), RepeatMode.Reverse), label = "live-dot")
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(8.dp).background(MaterialTheme.colorScheme.tertiary.copy(alpha = alpha), CircleShape))
+        Spacer(Modifier.width(6.dp))
+        Text("Live · checked ${agoText(checkedAt, now)}", style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+/** A card on Home: white, a hairline edge, rounded. */
+@Composable
+fun WhCard(
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.surface,
+    edge: Boolean = true,
+    padding: Dp = 16.dp,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Surface(
+        color = color, shape = RoundedCornerShape(20.dp),
+        border = if (edge) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+    ) {
+        Column(Modifier.padding(padding), verticalArrangement = Arrangement.spacedBy(10.dp), content = content)
+    }
+}
+
+/** A small rounded label: saffron for what's new ("+5 this week"), indigo tint otherwise. */
+@Composable
+fun Chip(text: String, icon: ImageVector? = null, saffron: Boolean = true, strong: Boolean = false) {
+    val bg = when {
+        strong -> MaterialTheme.colorScheme.secondary
+        saffron -> MaterialTheme.colorScheme.secondaryContainer
+        else -> MaterialTheme.colorScheme.primaryContainer
+    }
+    val fg = when {
+        strong -> MaterialTheme.colorScheme.onSecondary
+        saffron -> MaterialTheme.colorScheme.onSecondaryContainer
+        else -> MaterialTheme.colorScheme.onPrimaryContainer
+    }
+    Surface(color = bg, contentColor = fg, shape = RoundedCornerShape(50)) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(15.dp))
+                Spacer(Modifier.width(5.dp))
+            }
+            Text(text, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+/** "Tell": saffron, at least 44 dp tall. After a tap it reads "Told" and does nothing. */
+@Composable
+fun TellButton(told: Boolean, name: String, onClick: () -> Unit) {
+    if (told) {
+        Surface(color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            shape = RoundedCornerShape(22.dp)) {
+            Row(Modifier.height(44.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Told", fontWeight = FontWeight.Bold)
+            }
+        }
+        return
+    }
+    Button(
+        onClick = onClick,
+        modifier = Modifier.height(44.dp),
+        shape = RoundedCornerShape(22.dp),
+        contentPadding = PaddingValues(horizontal = 18.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary, contentColor = MaterialTheme.colorScheme.onSecondary),
+    ) { Text("Tell", fontWeight = FontWeight.Bold, modifier = Modifier) }
+}
+
+/** Overlapping avatars for a few people. [people] are (seed, name). */
+@Composable
+fun PeopleStack(people: List<Pair<String, String>>, ring: Color, size: Dp = 30.dp) {
+    Box {
+        people.take(4).forEachIndexed { i, (seed, name) ->
+            Box(Modifier.padding(start = (size.value * 0.66f * i).dp).border(2.dp, ring, CircleShape)) { Avatar(seed, name, size) }
+        }
+    }
+}
+
+/** A line with a green tick, for "WhoHas will:" lists. */
+@Composable
+fun TickLine(text: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Box(Modifier.padding(top = 1.dp).size(22.dp).background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f), CircleShape),
+            contentAlignment = Alignment.Center) {
+            Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(14.dp))
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(text, style = MaterialTheme.typography.bodyLarge)
+    }
+}
+
+/** The big indigo card for your own number. */
+@Composable
+fun HeroCard(
+    number: String?,
+    count: Int,
+    countLabel: String,
+    line: String?,
+    people: List<Pair<String, String>> = emptyList(),
+    chip: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    val onHero = MaterialTheme.colorScheme.onPrimary
+    Surface(
+        color = MaterialTheme.colorScheme.primary, contentColor = onHero, shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+    ) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row {
+                Text("Your number", style = MaterialTheme.typography.labelLarge, color = onHero.copy(alpha = 0.88f), modifier = Modifier.weight(1f))
+                if (number != null) Text(number, style = MaterialTheme.typography.labelLarge, color = onHero.copy(alpha = 0.88f))
+            }
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(HolderText.grouped(count), fontSize = 52.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 52.sp)
+                Spacer(Modifier.width(10.dp))
+                Text(countLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+            }
+            if (line != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (people.isNotEmpty()) {
+                        PeopleStack(people, ring = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.width(10.dp))
+                    }
+                    Text(line, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            if (chip != null) Chip(chip, Icons.Filled.KeyboardArrowUp, strong = true)
+        }
+    }
 }

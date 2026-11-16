@@ -55,7 +55,7 @@ class FullSyncRequired(ApiError):
 
 
 class AccountExists(ApiError):
-    """Taking a number out of Found With would also delete its account; the page must say so first."""
+    """Taking a number out of WhoHas would also delete its account; the page must say so first."""
     status, code = 409, "account_exists"
 
 

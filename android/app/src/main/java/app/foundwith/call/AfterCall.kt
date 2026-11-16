@@ -33,7 +33,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * After a call: who knows the caller. Found With is never the phone's caller ID app, so it learns
+ * After a call: who knows the caller. WhoHas is never the phone's caller ID app, so it learns
  * about a call from the call log, three ways (whichever comes first handles the call, once):
  *  1. Android wakes it when the call log changes (a content trigger, no extra permission).
  *  2. Every time the app opens.
@@ -152,7 +152,7 @@ object AfterCall {
             health = health.seen(checkedInTime = true)
             if (info == null || !graph.store.afterCalls) continue
             val note = AfterCallRules.decide(call, info, hour, CallCatchUp.repeats(call, calls))
-            Log.i(TAG, "call ${call.id} ${call.type}: ${note.alert} (found with ${info.total}, name ${info.ownerName != null})")
+            Log.i(TAG, "call ${call.id} ${call.type}: ${note.alert} (has ${info.total}, name ${info.ownerName != null})")
             if (note.alert != Alert.NONE) graph.notifier.postCall(note)
         }
         // Older calls from the same number were folded into the newest one's notification.

@@ -48,7 +48,8 @@ jobs:
   phones:
     if: github.repository == 'tarunkumar19944/foundwith'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Real phones can wait a long time in Test Lab's queue: 90 minutes ran out on 16 Nov.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@v5
 
@@ -85,7 +86,7 @@ jobs:
           -Pfoundwith.apiUrl=$API_URL -Pfoundwith.debugKeystore=$RUNNER_TEMP/debug.keystore
           -Pfoundwith.versionCode=${{ github.run_number }}
 
-      - name: The caller the tests expect is on Found With
+      - name: The caller the tests expect is on WhoHas
         run: cd tests/live && python3 phone_fixture.py "$RUNNER_TEMP/live.json"
 
       - name: Which devices
@@ -170,7 +171,7 @@ jobs:
           for f in $(echo "$files" | grep '/logcat$'); do
             name=$(echo "$f" | awk -F/ '{print $4"/"$5}')
             echo "::group::app log $name"
-            gcloud storage cat "$f" 2>/dev/null | grep -E "FoundWith|AndroidRuntime|FATAL|WM-WorkerWrapper.*AfterCall" | tail -100
+            gcloud storage cat "$f" 2>/dev/null | grep -E "FoundWith|WhoHas|AndroidRuntime|FATAL|WM-WorkerWrapper.*AfterCall" | tail -100
             echo "::endgroup::"
           done
           # Screenshots: one copy per device (not per file), first attempt only.

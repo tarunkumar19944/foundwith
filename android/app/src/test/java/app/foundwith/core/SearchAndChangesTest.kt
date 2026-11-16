@@ -73,4 +73,22 @@ class SearchAndChangesTest {
         assertFalse(SyncPolicy.fullDue(1000, 1000 + week - 1))
         assertTrue(SyncPolicy.fullDue(1000, 1000 + week))
     }
+
+    @Test
+    fun joinsAndNewlyKnownPeopleAreNoticedAfterTheFirstLook() {
+        val t = mapOf("mine" to 5, "priya" to 3, "caller" to 2)
+        var log = Changes.update(ChangeLog(), t, now = 0, first = true, members = setOf("meena"), known = mapOf("mine" to setOf("m1")))
+        assertEquals(emptyMap<String, Long>(), log.joined)
+        log = Changes.update(log, t, now = 100, members = setOf("meena", "priya"), known = mapOf("mine" to setOf("m1", "p1"), "caller" to setOf("k1")))
+        assertEquals(setOf("priya"), log.joined.keys)
+        assertEquals(listOf("p1"), log.gains["mine"]?.ids)
+        assertEquals(null, log.gains["caller"])                     // first time tracked: only the baseline
+        log = Changes.update(log, t, now = 200, members = setOf("meena", "priya"), known = mapOf("mine" to setOf("m1", "p1", "s1"), "caller" to setOf("k1", "k2")))
+        assertEquals(listOf("p1", "s1"), log.gains["mine"]?.ids)
+        assertEquals(listOf("k2"), log.gains["caller"]?.ids)
+        // Old logs without members or known ids start tracking without reporting everyone as new.
+        val old = Changes.update(ChangeLog(baseline = t), t, now = 300, members = setOf("meena", "priya"), known = mapOf("mine" to setOf("m1")))
+        assertEquals(emptyMap<String, Long>(), old.joined)
+        assertEquals(emptyMap<String, KnownGain>(), old.gains)
+    }
 }

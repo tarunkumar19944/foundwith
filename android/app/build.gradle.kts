@@ -55,6 +55,9 @@ android {
         buildConfigField("String", "CONSENT_VERSION", "\"2026-11-16\"")
         buildConfigField("boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString())
         buildConfigField("boolean", "DEV_SIGN_IN", "false")
+        // The one number Google Play's reviewers sign in with: a Firebase test number whose code
+        // is typed by hand. Every other number must have its SMS read on this phone.
+        buildConfigField("String", "REVIEW_NUMBER", "\"${(project.findProperty("whohas.reviewNumber") as String?) ?: ""}\"")
     }
 
     // "full" reads the call log (the Calls tab and after-call notifications); "contactsOnly" doesn't
@@ -136,6 +139,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.messaging)
     implementation(libs.play.services.auth)
+    implementation(libs.play.services.auth.api.phone)
     // Which invite link the app was installed from (Google Play Install Referrer).
     implementation(libs.installreferrer)
 

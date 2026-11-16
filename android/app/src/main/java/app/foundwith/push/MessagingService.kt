@@ -13,7 +13,7 @@ import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
 
 /**
- * Push messages from the Found With server. None carries a name or a number:
+ * Push messages from the WhoHas server. None carries a name or a number:
  *  - "wake": check the call log for calls not yet checked (some phones stop apps in the background).
  *  - "cards", "joined", "invite": fetch the cards again, so Updates is fresh when the app opens.
  *  - "evening": the evening note. Android shows it by itself when the app isn't open; when it is,

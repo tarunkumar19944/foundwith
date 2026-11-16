@@ -2,7 +2,7 @@
     python -m foundwith.maintenance
 
   * deletes accounts that have not been seen for INACTIVE_DAYS (so holder lists only show people
-    who still use Found With, and a recycled number never inherits the previous owner's account)
+    who still use WhoHas, and a recycled number never inherits the previous owner's account)
   * retries sign-in account deletions that failed earlier
   * purges the lookup record, account tombstones and finished deletion records past their retention
   * recounts holders, works out popular names and starts a new day for the evening note
@@ -90,6 +90,7 @@ async def run(db: Database, identity: IdentityAdmin, settings: Settings) -> dict
         stats["day_started_numbers"] = await repo.start_new_day(conn)
         stats["push_tokens_purged"] = await repo.purge_push_tokens(conn, PUSH_TOKEN_KEEP_DAYS)
         stats["health_rows_purged"] = await repo.purge_health(conn, HEALTH_KEEP_DAYS)
+        stats["tells_purged"] = await repo.forget_old_tells(conn, 90)
     return stats
 
 

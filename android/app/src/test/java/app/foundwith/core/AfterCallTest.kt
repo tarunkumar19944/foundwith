@@ -16,7 +16,7 @@ class AfterCallTest {
             CallerInfo(null, total = 5, knownNames = listOf("Priya (Office)", "Ravi Kumar")), noon)
         assertEquals(Alert.SOUND, note.alert)
         assertEquals("Missed call: +91 77609 34418", note.title)
-        assertEquals("Found with Priya (Office), Ravi Kumar and 3 others", note.text)
+        assertEquals("Known to Priya (Office), Ravi Kumar and 3 more", note.text)
     }
 
     @Test
@@ -33,16 +33,16 @@ class AfterCallTest {
         val note = AfterCallRules.decide(call(1, "7760934418", CallType.ANSWERED), CallerInfo(null, total = 4), noon)
         assertEquals(Alert.SILENT, note.alert)
         assertEquals("Call from +91 77609 34418", note.title)
-        assertEquals("Found with 4 people", note.text)
+        assertEquals("4 people on WhoHas have this number", note.text)
     }
 
     @Test
     fun aNamedNumberIsWorthTellingEvenIfNobodyElseHasIt() {
         val note = AfterCallRules.decide(call(1, "9901566420", CallType.MISSED), CallerInfo(null, total = 0, ownerName = "Deepa Rao"), noon)
         assertEquals(Alert.SOUND, note.alert)
-        assertEquals("Deepa Rao (name they gave) · Found with no one yet", note.text)
+        assertEquals("Their own name: Deepa Rao · No one on WhoHas has this number", note.text)
         val popular = AfterCallRules.decide(call(2, "8095122764", CallType.MISSED), CallerInfo(null, total = 9, popularName = "Mahesh Electricals"), noon)
-        assertEquals("Mahesh Electricals (popular name) · Found with 9 people", popular.text)
+        assertEquals("People know it as “Mahesh Electricals” · 9 people on WhoHas have this number", popular.text)
     }
 
     @Test
@@ -62,7 +62,7 @@ class AfterCallTest {
         val unknownBefore = CallerInfo("Kiran Gowda", total = 12, previousTotal = null)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "9900148823", CallType.ANSWERED), unknownBefore, noon).alert)
         val grew = AfterCallRules.decide(call(1, "9900148823", CallType.ANSWERED), CallerInfo("Kiran Gowda", 12, previousTotal = 9), noon)
-        assertEquals(AfterCallNote(Alert.SILENT, "Call from Kiran Gowda", "Now found with 12 · 3 more", "+919900148823"), grew)
+        assertEquals(AfterCallNote(Alert.SILENT, "Call from Kiran Gowda", "3 more people have Kiran Gowda's number · now 12", "+919900148823"), grew)
         val missed = AfterCallRules.decide(call(1, "9900148823", CallType.MISSED), CallerInfo("Kiran Gowda", 12, previousTotal = 9), noon)
         assertEquals(Alert.SILENT, missed.alert)
         assertEquals("Missed call: Kiran Gowda", missed.title)

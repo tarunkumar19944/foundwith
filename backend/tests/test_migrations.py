@@ -50,7 +50,7 @@ async def test_upgrade_from_v01_keeps_existing_accounts_working(v01_database, id
     await conn.execute(
         "INSERT INTO lookup_quota (user_id, kind, day, used) SELECT id, 'search', (now() AT TIME ZONE 'Asia/Kolkata')::date, 2 FROM users WHERE auth_uid = 'uid-arjun'")
 
-    assert await apply_migrations(conn) == ["0002_safety_and_lifecycle", "0003_holder_counts", "0004_invites", "0005_names_calls_and_push", "0006_name_holds"]
+    assert await apply_migrations(conn) == ["0002_safety_and_lifecycle", "0003_holder_counts", "0004_invites", "0005_names_calls_and_push", "0006_name_holds", "0007_tells"]
     assert await apply_migrations(conn) == []                              # running again is a no-op
     # The holder counts are backfilled from the address books that were already there.
     assert (await conn.fetchrow("SELECT holders FROM number_stats WHERE number_hmac = $1::bytea", plumber))["holders"] == 2

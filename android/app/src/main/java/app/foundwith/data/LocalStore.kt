@@ -3,6 +3,7 @@ package app.foundwith.data
 import android.content.Context
 import app.foundwith.core.ChangeLog
 import app.foundwith.core.CountChange
+import app.foundwith.core.KnownGain
 import app.foundwith.core.HealthDay
 import app.foundwith.core.Snapshot
 import java.io.File
@@ -25,7 +26,7 @@ data class CachedCards(
     /** The viewer's own number. */
     val mine: Card? = null,
     val circle: Circle? = null,
-    /** False until the person allows Found With to use their phone. */
+    /** False until the person allows WhoHas to use their phone. */
     @SerialName("taking_part") val takingPart: Boolean = true,
 )
 
@@ -33,7 +34,14 @@ data class CachedCards(
 private data class ChangeFile(
     val baseline: Map<String, Int> = emptyMap(),
     val changes: List<ChangeRow> = emptyList(),
+    val members: List<String>? = null,
+    val joined: Map<String, Long> = emptyMap(),
+    val known: Map<String, List<String>>? = null,
+    val gains: List<GainRow> = emptyList(),
 )
+
+@Serializable
+private data class GainRow(val ref: String, val ids: List<String>, val at: Long)
 
 @Serializable
 private data class ChangeRow(val ref: String, val before: Int, val now: Int, val at: Long)
@@ -117,7 +125,33 @@ class LocalStore(context: Context) {
         get() = prefs.getLong("last_opened", 0L)
         set(value) { prefs.edit().putLong("last_opened", value).apply() }
 
-    /** The one-time "Your name on Found With" row has been answered or dismissed. */
+    /** When each number was last told from the Tell card or the Invite page (E.164 -> millis). */
+    fun toldAt(): Map<String, Long> = prefs.getStringSet("told", emptySet()).orEmpty().mapNotNull { entry ->
+        val (number, at) = entry.split('@').takeIf { it.size == 2 } ?: return@mapNotNull null
+        at.toLongOrNull()?.let { number to it }
+    }.toMap()
+
+    fun markTold(e164: String, at: Long = System.currentTimeMillis()) {
+        val kept = toldAt().filterKeys { it != e164 }.filterValues { at - it < 90L * 24 * 3600_000 }
+        prefs.edit().putStringSet("told", (kept + (e164 to at)).map { "${it.key}@${it.value}" }.toSet()).apply()
+    }
+
+    /** When the person tapped Hide on the Tell card (it stays away for 7 days). */
+    var tellHiddenAt: Long
+        get() = prefs.getLong("tell_hidden", 0L)
+        set(value) { prefs.edit().putLong("tell_hidden", value).apply() }
+
+    /** The "Turn on notifications" card was answered or put off with Later. */
+    var notifAsked: Boolean
+        get() = prefs.getBoolean("notif_asked", false)
+        set(value) { prefs.edit().putBoolean("notif_asked", value).apply() }
+
+    /** Whether names have shown on Home at least once: the name and notification cards wait for it. */
+    var firstNamesSeen: Boolean
+        get() = prefs.getBoolean("first_names_seen", false)
+        set(value) { prefs.edit().putBoolean("first_names_seen", value).apply() }
+
+    /** The one-time "Add your name" card has been answered or dismissed. */
     var nameAsked: Boolean
         get() = prefs.getBoolean("name_asked", false)
         set(value) { prefs.edit().putBoolean("name_asked", value).apply() }
@@ -174,11 +208,25 @@ class LocalStore(context: Context) {
     // ---------------------------------------------------------------- what changed
 
     suspend fun changeLog(): ChangeLog? = read("changes.json", ChangeFile.serializer())?.let { file ->
-        ChangeLog(file.baseline, file.changes.associate { it.ref to CountChange(it.ref, it.before, it.now, it.at) })
+        ChangeLog(
+            file.baseline,
+            file.changes.associate { it.ref to CountChange(it.ref, it.before, it.now, it.at) },
+            file.members?.toSet(),
+            file.joined,
+            file.known?.mapValues { it.value.toSet() },
+            file.gains.associate { it.ref to KnownGain(it.ref, it.ids, it.at) },
+        )
     }
 
     suspend fun saveChangeLog(value: ChangeLog) = write("changes.json", ChangeFile.serializer(),
-        ChangeFile(value.baseline, value.changes.values.map { ChangeRow(it.ref, it.before, it.now, it.at) }))
+        ChangeFile(
+            value.baseline,
+            value.changes.values.map { ChangeRow(it.ref, it.before, it.now, it.at) },
+            value.members?.toList(),
+            value.joined,
+            value.known?.mapValues { it.value.toList() },
+            value.gains.values.map { GainRow(it.ref, it.ids, it.at) },
+        ))
 
     // ---------------------------------------------------------------- after calls
 

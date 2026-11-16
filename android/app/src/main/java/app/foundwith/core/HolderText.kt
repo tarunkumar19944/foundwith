@@ -4,84 +4,129 @@ package app.foundwith.core
 data class ShownPerson(val name: String, val known: Boolean)
 
 /**
- * The one line every card, search result, list row and notification shows, so Found With reads
- * the same everywhere: "Found with Ravi Kumar, Priya Sharma and 2 others". Counts never include
- * the viewer.
+ * Every line that says who has a number, so WhoHas reads the same everywhere. The rules
+ * (docs/WHOHAS_COPY.md): the number comes first, "has" means contacts or call log (never
+ * "saved"), "you know" means someone in your contacts or call log, and counts are always real.
+ * Counts never include the viewer.
  */
 object HolderText {
-    const val NO_ONE = "Found with no one yet"
-    /** For a number on the viewer's own phone that nobody else has: "no one" would read as wrong. */
-    const val ONLY_YOU = "Only you have this number"
     const val POPULAR_FROM = 10
     const val HIGHLY_POPULAR_FROM = 50
 
+    /** Nobody on WhoHas has the number. */
+    const val NO_ONE = "No one on WhoHas has this number"
+    /** A number on the viewer's own phone that nobody else has: "no one" alone would read as wrong. */
+    const val NO_ONE_ELSE = "No one else on WhoHas has it yet"
+    /** The line under the 10+ labels. */
+    const val LABEL_HINT = "Often a business, or someone who calls a lot of people"
+
+    /** "1 person has this number", "12 people have this number", "10,000+ people have this number". */
+    fun haveThis(total: Int, lowerBound: Boolean = false): String =
+        count(total, lowerBound) + if (total == 1 && !lowerBound) " has this number" else " have this number"
+
+    /** "1 person has it", "5 people have it". */
+    fun haveIt(total: Int, lowerBound: Boolean = false): String =
+        count(total, lowerBound) + if (total == 1 && !lowerBound) " has it" else " have it"
+
+    /** Your own number: "1 person has your number", "23 people have your number". */
+    fun haveYours(total: Int, lowerBound: Boolean = false): String =
+        count(total, lowerBound) + if (total == 1 && !lowerBound) " has your number" else " have your number"
+
     /**
-     * "Found with Ravi Kumar", "Found with Ravi Kumar and Priya Sharma",
-     * "Found with Ravi, Priya, Meena and 120 others", "Found with 12 people" when there are no
-     * names to show. With nobody: [ONLY_YOU] when the number is on the viewer's phone, else [NO_ONE].
+     * A call row and a call notification, about the caller: "Known to Priya", "Known to Priya and
+     * Meena", "Known to Priya, Meena and 10 more". [known] are the people the viewer knows, in the
+     * order to show them; "more" counts everyone else who has it. With no one known: "4 people have
+     * this number". With nobody: [NO_ONE_ELSE] for a number on the viewer's phone, else [NO_ONE].
      */
-    fun foundWith(
-        people: List<ShownPerson>,
-        total: Int,
-        lowerBound: Boolean = false,
-        max: Int = 3,
-        onYourPhone: Boolean = false,
-    ): String {
-        if (total <= 0) return if (onYourPhone) ONLY_YOU else NO_ONE
-        val shown = people.take(max).map { it.name }
-        if (shown.isEmpty()) return "Found with " + count(total, lowerBound)
+    fun knownTo(known: List<String>, total: Int, lowerBound: Boolean = false, onYourPhone: Boolean = false, max: Int = 2): String {
+        if (total <= 0) return if (onYourPhone) NO_ONE_ELSE else NO_ONE
+        val shown = known.take(max)
+        if (shown.isEmpty()) return haveThis(total, lowerBound)
         val rest = total - shown.size
-        if (rest <= 0) {
-            return "Found with " + if (shown.size == 1) shown[0] else shown.dropLast(1).joinToString(", ") + " and " + shown.last()
-        }
-        return "Found with " + shown.joinToString(", ") + " and " + others(rest, lowerBound)
+        if (rest <= 0 && !lowerBound) return "Known to " + joined(shown)
+        return "Known to " + shown.joinToString(", ") + " and " + grouped(rest.coerceAtLeast(1)) + (if (lowerBound) "+" else "") + " more"
     }
 
-    /** "Popular number" (10 to 49 people) or "Highly popular number" (50 and up). None under 10. */
+    /**
+     * A contact row and a search result: "5 people have it · You know Priya and Meena",
+     * "14 people have it · You know Meena, Deepa and 4 more", "1 person has it". [knownCount] is
+     * how many of them the viewer knows (the names may be fewer).
+     */
+    fun haveItLine(known: List<String>, knownCount: Int, total: Int, lowerBound: Boolean = false, onYourPhone: Boolean = false): String {
+        if (total <= 0) return if (onYourPhone) NO_ONE_ELSE else NO_ONE
+        val head = haveIt(total, lowerBound)
+        val names = youKnowNames(known, knownCount) ?: return head
+        return "$head · $names"
+    }
+
+    /** "You know Priya", "You know Priya and Meena", "You know Priya, Meena and 4 more"; null when no one. */
+    fun youKnowNames(known: List<String>, knownCount: Int = known.size, max: Int = 2): String? {
+        val shown = known.take(max)
+        if (shown.isEmpty()) return null
+        val rest = knownCount.coerceAtLeast(shown.size) - shown.size
+        if (rest <= 0) return "You know " + joined(shown)
+        return "You know " + shown.joinToString(", ") + " and " + grouped(rest) + " more"
+    }
+
+    /** The card's second line: "You know 3 of them", "You know 1 of them", "You don't know any of them". */
+    fun youKnowCount(knownCount: Int): String =
+        if (knownCount <= 0) "You don't know any of them" else "You know ${grouped(knownCount)} of them"
+
+    /** "Many people have this number" (10 to 49) or "Lots of people have this number" (50 and up). None under 10. */
     fun label(total: Int, lowerBound: Boolean = false): String? = when {
-        total >= HIGHLY_POPULAR_FROM || (lowerBound && total >= HIGHLY_POPULAR_FROM) -> "Highly popular number"
-        total >= POPULAR_FROM -> "Popular number"
+        total >= HIGHLY_POPULAR_FROM || (lowerBound && total >= POPULAR_FROM) -> "Lots of people have this number"
+        total >= POPULAR_FROM -> "Many people have this number"
         else -> null
-    }
-
-    /** For the person's own number: "6 more people to a Popular number", "19 more people to Highly popular". */
-    fun nextLabel(total: Int): String? = when {
-        total >= HIGHLY_POPULAR_FROM -> null
-        total >= POPULAR_FROM -> "${more(HIGHLY_POPULAR_FROM - total)} to Highly popular"
-        else -> "${more(POPULAR_FROM - total)} to a Popular number"
     }
 
     /** "1 more person", "3 more people". */
     fun more(n: Int): String = if (n == 1) "1 more person" else "${grouped(n)} more people"
 
-    /** An Updates row and the after-call notification: "Now found with 12 · 3 more". */
-    fun change(total: Int, delta: Int): String = "Now found with ${grouped(total)} · ${grouped(delta)} more"
+    /** An Updates row and the after-call note for a contact: "3 more people have this number · now 12". */
+    fun change(total: Int, delta: Int): String =
+        "${more(delta)} ${if (delta == 1) "has" else "have"} this number · now ${grouped(total)}"
 
-    /** The green line on a card that changed today: "Today: 3 more people · now a Popular number". */
-    fun today(delta: Int, before: Int, now: Int): String {
-        val becameLabel = label(now) != null && label(now) != label(before)
-        val became = when {
-            !becameLabel -> ""
-            now >= HIGHLY_POPULAR_FROM -> " · now a Highly popular number"
-            else -> " · now a Popular number"
-        }
-        return "Today: ${more(delta)}$became"
+    /** The after-call note for a saved contact: "3 more people have Ravi's number · now 12". */
+    fun changeFor(name: String, total: Int, delta: Int): String =
+        "${more(delta)} ${if (delta == 1) "has" else "have"} $name's number · now ${grouped(total)}"
+
+    /** Your own number went up: "1 more person has your number", "2 more people have your number". */
+    fun mineUp(delta: Int): String = "${more(delta)} ${if (delta == 1) "has" else "have"} your number"
+
+    /** The chip on a card that went up today: "+3 today". */
+    fun today(delta: Int): String = "+${grouped(delta)} today"
+
+    /** The chip on your own number: "+5 this week". */
+    fun thisWeek(delta: Int): String = "+${grouped(delta)} this week"
+
+    /** A count that crossed 10 or 50 since it was last seen: the Updates line, else null. */
+    fun crossed(before: Int, now: Int): String? {
+        val was = label(before)
+        val isNow = label(now) ?: return null
+        return if (isNow != was) "$isNow now" else null
     }
 
-    /** What the "What it means" sheet says about the label. */
-    fun labelMeaning(total: Int): String? = when (label(total)) {
-        "Highly popular number" -> "${count(total)} have it. 50 or more is a highly popular number."
-        "Popular number" -> "${count(total)} have it. 10 to 49 is a popular number."
-        else -> null
+    /** The "What does this mean?" sheet, as (bold, rest) lines. */
+    fun meaning(total: Int, knownCount: Int, lowerBound: Boolean = false, mine: Boolean = false): List<Pair<String, String>> {
+        if (total <= 0) {
+            return listOf((if (mine) "No one on WhoHas has your number yet." else "No one on WhoHas has this number yet.") to
+                "When someone who has it joins, it shows here.")
+        }
+        val lines = mutableListOf<Pair<String, String>>()
+        lines += ((if (mine) haveYours(total, lowerBound) else haveThis(total, lowerBound)) + ".") to "It's in their contacts or call log."
+        if (knownCount > 0) lines += "${youKnowCount(knownCount)}." to "They're in your contacts or call log, so you see their names."
+        val unknown = total - knownCount
+        if (unknown > 0) lines += "${grouped(unknown)}${if (lowerBound) "+" else ""} you don't know." to "You only see how many."
+        if (!mine) label(total, lowerBound)?.let { lines += "${it.substringBefore(" have this number")} have it." to "It's often a business, or someone who calls a lot of people." }
+        return lines
     }
 
     /** "1 person", "12 people", "10,000+ people". */
     fun count(total: Int, lowerBound: Boolean = false): String =
         grouped(total) + (if (lowerBound) "+" else "") + if (total == 1 && !lowerBound) " person" else " people"
 
-    /** "1 other", "120 others", "9,997+ others". */
-    fun others(rest: Int, lowerBound: Boolean = false): String =
-        grouped(rest) + (if (lowerBound) "+" else "") + if (rest == 1 && !lowerBound) " other" else " others"
+    private fun joined(names: List<String>): String =
+        if (names.size == 1) names[0] else names.dropLast(1).joinToString(", ") + " and " + names.last()
 
     /** Indian digit grouping: 1,000 / 12,345 / 1,22,000 / 10,00,000. */
     fun grouped(n: Int): String {

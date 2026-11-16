@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
         if (!graph.auth.isSignedIn) return
         // Repairs background work if Android or an update cleared it. Cheap and idempotent.
         if (graph.store.syncEnabledHint) Scheduling.scheduleAll(this)
-        // Catch up on calls the phone didn't let Found With check, and on anything new.
+        // Catch up on calls the phone didn't let WhoHas check, and on anything new.
         AfterCall.runNow(this)
         lifecycleScope.launch {
             graph.model.reloadPhone()

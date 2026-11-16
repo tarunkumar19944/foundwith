@@ -10,7 +10,7 @@ import kotlinx.serialization.json.JsonObject
 @Serializable
 data class Holder(
     val id: String,
-    /** Their Found With name; null until they choose one. */
+    /** Their WhoHas name; null until they choose one. */
     val name: String? = null,
     val known: Boolean = false,
     /** Set when the viewer knows this person: the reference of their number on the viewer's phone. */
@@ -22,20 +22,27 @@ data class Card(
     val ref: String,
     @SerialName("in_contacts") val inContacts: Boolean = false,
     @SerialName("in_call_log") val inCallLog: Boolean = false,
-    /** Everyone on Found With who has the number, never counting the viewer. */
+    /** Everyone on WhoHas who has the number, never counting the viewer. */
     val total: Int = 0,
     @SerialName("total_is_lower_bound") val totalIsLowerBound: Boolean = false,
     val known: List<Holder> = emptyList(),
     val others: List<Holder> = emptyList(),
     val more: Int = 0,
-    /** The owner's own Found With name ("name they gave"). */
+    /** The owner's own WhoHas name ("name they gave"). */
     val name: String? = null,
-    /** What at least 3 people saved for the number ("popular name"). */
+    /** The name at least 3 people have for the number in their contacts ("what others call it"). */
     @SerialName("popular_name") val popularName: String? = null,
-    /** The owner uses Found With (so: no Invite button, and Block is possible). */
+    /** How many people have that name for it ("5 people know it as …"); 0 when not sent. */
+    @SerialName("popular_name_people") val popularNamePeople: Int = 0,
+    /** How many of the holders the viewer knows; [known] lists at most 100. -1 from older servers. */
+    @SerialName("known_count") val knownCount: Int = -1,
+    /** The owner uses WhoHas (so: no Invite button, and Block is possible). */
     @SerialName("on_found_with") val onFoundWith: Boolean = false,
     @SerialName("owner_id") val ownerId: String? = null,
-)
+) {
+    /** Everyone the viewer knows who has the number, including any beyond the listed ones. */
+    val knownTotal: Int get() = if (knownCount >= 0) maxOf(knownCount, known.size) else known.size
+}
 
 @Serializable
 data class CardsPage(
@@ -44,7 +51,7 @@ data class CardsPage(
     val next: String? = null,
     /** The viewer's own number: who has it. First page only. */
     val mine: Card? = null,
-    /** False until the person allows Found With to use their phone. */
+    /** False until the person allows WhoHas to use their phone. */
     @SerialName("taking_part") val takingPart: Boolean = true,
 )
 
@@ -65,13 +72,16 @@ data class LookupResult(
     val quota: Quota = Quota(),
     val name: String? = null,
     @SerialName("popular_name") val popularName: String? = null,
+    @SerialName("popular_name_people") val popularNamePeople: Int = 0,
+    @SerialName("known_count") val knownCount: Int = -1,
     @SerialName("on_found_with") val onFoundWith: Boolean = false,
     @SerialName("owner_id") val ownerId: String? = null,
-    /** The owner took the number out of Found With (web opt-out). */
+    /** The owner took the number out of WhoHas (web opt-out). */
     @SerialName("taken_out") val takenOut: Boolean = false,
 ) {
     fun asCard(): Card = Card(ref = ref, total = total, totalIsLowerBound = totalIsLowerBound, known = known,
-        others = others, more = more, name = name, popularName = popularName, onFoundWith = onFoundWith, ownerId = ownerId)
+        others = others, more = more, name = name, popularName = popularName, popularNamePeople = popularNamePeople,
+        knownCount = knownCount, onFoundWith = onFoundWith, ownerId = ownerId)
 }
 
 @Serializable
@@ -119,6 +129,9 @@ data class Profile(
     @SerialName("evening_note") val eveningNote: Boolean = true,
     val sync: SyncState = SyncState(),
     val quota: Quotas = Quotas(),
+    /** People on WhoHas who tapped Tell for this person's number, newest first (at most 3 names). */
+    @SerialName("invited_by") val invitedBy: List<String> = emptyList(),
+    @SerialName("invited_by_count") val invitedByCount: Int = 0,
 )
 
 @Serializable
@@ -132,7 +145,7 @@ data class InviteInfo(
 @Serializable
 data class Circle(
     val members: Int = 0,
-    /** References of the viewer's numbers that belong to people on Found With. */
+    /** References of the viewer's numbers that belong to people on WhoHas. */
     @SerialName("member_refs") val memberRefs: List<String> = emptyList(),
     val goal: Int = 20,
     val invite: InviteInfo = InviteInfo(),
@@ -158,7 +171,7 @@ data class BlocksList(val blocks: List<BlockEntry> = emptyList())
 @Serializable
 data class DataNumbers(val contacts: Int = 0, @SerialName("call_log") val callLog: Int = 0, val hidden: Int = 0)
 
-/** What Found With stores about the person, in counts, for "Your data and account". */
+/** What WhoHas stores about the person, in counts, for "Your data and account". */
 @Serializable
 data class MyData(
     val name: String? = null,

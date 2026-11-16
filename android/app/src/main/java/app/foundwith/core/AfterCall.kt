@@ -19,7 +19,7 @@ data class CallEvent(
     val isIncoming: Boolean get() = type == CallType.ANSWERED || type == CallType.MISSED || type == CallType.REJECTED
 }
 
-/** What Found With knows about the caller's number when deciding. */
+/** What WhoHas knows about the caller's number when deciding. */
 data class CallerInfo(
     /** The viewer's own contact name, when the number is saved. */
     val contactName: String?,
@@ -65,14 +65,13 @@ object AfterCallRules {
         val e164 = call.e164 ?: return AfterCallNote.NONE
         val missed = call.type != CallType.ANSWERED
         val saved = !info.contactName.isNullOrBlank() && !Naming.looksLikeNumber(info.contactName)
-        val people = info.knownNames.map { ShownPerson(it, true) }
-        val line = HolderText.foundWith(people, info.total, info.lowerBound)
+        val line = HolderText.knownTo(info.knownNames, info.total, info.lowerBound)
 
         if (saved) {
             val before = info.previousTotal ?: return AfterCallNote.NONE
             if (info.total <= before) return AfterCallNote.NONE
             val title = (if (missed) "Missed call: " else "Call from ") + info.contactName!!.trim()
-            return AfterCallNote(Alert.SILENT, title, HolderText.change(info.total, info.total - before), e164)
+            return AfterCallNote(Alert.SILENT, title, HolderText.changeFor(info.contactName.trim(), info.total, info.total - before), e164)
         }
 
         val name = Naming.of(null, info.ownerName, info.popularName, e164)
@@ -83,7 +82,14 @@ object AfterCallRules {
             repeats >= 2 -> "$repeats missed calls: $number"
             else -> "Missed call: $number"
         }
-        val text = if (name.isNumber) line else "${name.text} (${name.tag}) · $line"
+        // With no one known, say it plainly with "on WhoHas": the notification has no other context.
+        val who = if (info.knownNames.isEmpty() && info.total > 0) "${HolderText.count(info.total, info.lowerBound)} on WhoHas " +
+            (if (info.total == 1 && !info.lowerBound) "has" else "have") + " this number" else line
+        val text = when (name.source) {
+            NameSource.THEIR_OWN -> "Their own name: ${name.text} · $who"
+            NameSource.POPULAR -> "People know it as “${name.text}” · $who"
+            else -> who
+        }
         val alert = when {
             !missed -> Alert.SILENT
             isQuiet(hourOfDay) -> Alert.SILENT
@@ -94,7 +100,7 @@ object AfterCallRules {
 }
 
 /**
- * Which calls still need checking. Found With is woken when a call lands in the call log, again
+ * Which calls still need checking. WhoHas is woken when a call lands in the call log, again
  * when the app opens, and by the server a few times a day; whichever comes first handles a call.
  * A call is only notified about while it is still fresh: an hour later, a notification is noise,
  * and the call is in the Calls tab anyway.
@@ -136,7 +142,7 @@ data class HealthDay(val day: String, val callsSeen: Int = 0, val callsChecked: 
     fun seen(checkedInTime: Boolean) = copy(callsSeen = callsSeen + 1, callsChecked = callsChecked + if (checkedInTime) 1 else 0)
 
     /**
-     * Whether to offer the phone-settings fix: at least 2 calls in the last week that Found With
+     * Whether to offer the phone-settings fix: at least 2 calls in the last week that WhoHas
      * only got to after the hour was up, which means the phone is stopping it.
      */
     companion object {

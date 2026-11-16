@@ -17,11 +17,11 @@ import app.foundwith.core.AfterCallNote
 import app.foundwith.core.Alert
 
 /**
- * Found With's notifications. Three channels, so people can quieten any of them in Android's own
+ * WhoHas's notifications. Three channels, so people can quieten any of them in Android's own
  * settings too:
- *  - "Callers" (with sound): a missed call from a number you haven't saved, when someone has it.
- *  - "Calls, quietly": everything else after a call. No sound, no vibration.
- *  - "Evening note": once a day; the server sends it on this channel.
+ *  - "Calls from unknown numbers" (with sound): a missed call from a number not in your contacts, when someone has it.
+ *  - "Other calls (silent)": everything else after a call. No sound, no vibration.
+ *  - "Daily summary": once a day; the server sends it on this channel.
  * One notification per number: a second call from the same number updates it.
  */
 class Notifier(private val context: Context) {
@@ -29,14 +29,17 @@ class Notifier(private val context: Context) {
     fun createChannels() {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         manager.createNotificationChannels(listOf(
-            NotificationChannel(CALLS_SOUND, "Callers you haven't saved", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "After a missed call from a number you haven't saved: who you know has it."
+            NotificationChannel(CALLS_SOUND, "Calls from unknown numbers", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "After a missed call from a number not in your contacts: who you know has it."
             },
-            NotificationChannel(CALLS_QUIET, "Calls, quietly", NotificationManager.IMPORTANCE_LOW).apply {
+            NotificationChannel(CALLS_QUIET, "Other calls (silent)", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "After other calls, without sound."
             },
-            NotificationChannel(EVENING, "Evening note", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Once a day, only if something changed."
+            NotificationChannel(EVENING, "Daily summary", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "Once a day, only when something changed."
+            },
+            NotificationChannel(JOINED, "Friends who join", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "When someone in your contacts joins WhoHas. No sound."
             },
         ))
         // The caller-ID panel's channel from earlier versions.
@@ -94,12 +97,34 @@ class Notifier(private val context: Context) {
         runCatching { NotificationManagerCompat.from(context).notify(TAG_EVENING, 1, notification) }
     }
 
+    /** "Priya joined WhoHas · Has your number". Silent; tapping opens their card. */
+    fun postJoined(e164: String, title: String, text: String?) {
+        if (!canPost()) return
+        val open = Intent(context, MainActivity::class.java)
+            .setAction(ACTION_OPEN_NUMBER)
+            .putExtra(EXTRA_NUMBER, e164)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val pending = PendingIntent.getActivity(context, ("j" + e164).hashCode(), open,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val builder = NotificationCompat.Builder(context, JOINED)
+            .setSmallIcon(R.drawable.ic_stat_found_with)
+            .setContentTitle(title)
+            .setSilent(true)
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+        if (text != null) builder.setContentText(text)
+        @Suppress("MissingPermission")
+        runCatching { NotificationManagerCompat.from(context).notify(TAG_JOINED, e164.hashCode(), builder.build()) }
+    }
+
     fun cancelAll() = runCatching { NotificationManagerCompat.from(context).cancelAll() }
 
     companion object {
         const val CALLS_SOUND = "callers"
         const val CALLS_QUIET = "calls_quiet"
         const val EVENING = "evening"
+        const val JOINED = "joined"
+        private const val TAG_JOINED = "joined"
         const val ACTION_OPEN_NUMBER = "app.foundwith.OPEN_NUMBER"
         const val ACTION_OPEN_UPDATES = "app.foundwith.OPEN_UPDATES"
         const val EXTRA_NUMBER = "number"

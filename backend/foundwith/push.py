@@ -5,8 +5,8 @@
     changes wait at least cards_push_gap_s after the person's last push.
   * Wake-ups ("wake"), a few times a day: the app checks the call log for calls it didn't get to
     check (some phones stop apps in the background). /internal/push/wake.
-  * The evening note, once a day at 7:30 pm IST: a notification Android shows by itself, with
-    counts only ("3 numbers on your phone are found with more people today"). Sent from here
+  * The daily summary (the evening note), once a day at 7:30 pm IST: a notification Android shows by itself, with
+    counts only ("1 more person has your number. 3 numbers on your phone got more people."). Sent from here
     rather than built on the phone because on many phones a timer inside an app never fires.
     /internal/push/evening.
 """
@@ -43,19 +43,19 @@ def reasons(why: int) -> str:
 
 
 def evening_text(numbers_changed: int, own_more: int) -> str | None:
-    """The evening note, counts only. None when nothing changed today."""
+    """The daily summary, counts only: "1 more person has your number. 3 numbers on your phone got
+    more people." None when nothing changed today."""
     parts = []
-    if numbers_changed == 1:
-        parts.append("1 number on your phone is found with more people today.")
-    elif numbers_changed > 1:
-        parts.append(f"{numbers_changed:,} numbers on your phone are found with more people today.")
     if own_more:
-        people = "1 more person" if own_more == 1 else f"{own_more:,} more people"
-        parts.append(f"Your number: {people}." if parts else f"Your number is found with {people} today.")
+        parts.append("1 more person has your number." if own_more == 1 else f"{own_more:,} more people have your number.")
+    if numbers_changed == 1:
+        parts.append("1 number on your phone got more people.")
+    elif numbers_changed > 1:
+        parts.append(f"{numbers_changed:,} numbers on your phone got more people.")
     return " ".join(parts) or None
 
 
-EVENING_TITLE = "Today on Found With"
+EVENING_TITLE = "Today on WhoHas"
 
 
 class Sender(Protocol):

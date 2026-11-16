@@ -83,6 +83,9 @@ class ApiClient(private val baseUrl: String, private val auth: AuthManager) {
     suspend fun export(): String = send("GET", "/v1/me/export")
 
     /** The phone's push token, so the evening note and wake-ups reach it. */
+    /** Someone tapped Tell for [e164]: when that person joins, they see who told them. */
+    suspend fun recordTell(e164: String) { send("POST", "/v1/tells", buildJsonObject { put("number", e164) }) }
+
     suspend fun saveDevice(token: String) { send("PUT", "/v1/me/device", buildJsonObject { put("token", token) }) }
 
     suspend fun forgetDevice(token: String) { send("DELETE", "/v1/me/device", buildJsonObject { put("token", token) }) }

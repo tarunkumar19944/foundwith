@@ -22,7 +22,7 @@ BLOCKED_WORDS = frozenset({
     "police", "cbi", "rbi", "sbi", "bank", "banking", "govt", "government", "official", "support",
     "helpline", "helpdesk", "customercare", "verification", "verify", "verified", "kyc", "upi", "npci",
     "aadhaar", "aadhar", "uidai", "court", "customs", "cyber", "department", "dept", "ministry",
-    "officer", "inspector", "admin", "administrator", "refund", "lottery", "security", "foundwith",
+    "officer", "inspector", "admin", "administrator", "refund", "lottery", "security", "foundwith", "whohas",
     "truecaller", "trai",
     # the same in Devanagari and Kannada
     "पुलिस", "बैंक", "सरकार", "सरकारी", "अधिकारी", "ಪೊಲೀಸ್", "ಬ್ಯಾಂಕ್", "ಸರ್ಕಾರ", "ಸರ್ಕಾರಿ", "ಅಧಿಕಾರಿ",

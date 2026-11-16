@@ -14,6 +14,7 @@ coroutines = "1.9.0"
 firebaseBom = "33.7.0"
 installReferrer = "2.2"
 playServicesAuth = "21.2.0"
+playServicesAuthApiPhone = "18.1.0"
 junit = "4.13.2"
 androidxTestRunner = "1.6.2"
 androidxTestExtJunit = "1.2.1"
@@ -42,6 +43,7 @@ firebase-auth = { module = "com.google.firebase:firebase-auth" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
 # Android's own sheet that offers the phone's numbers at sign-in (Phone Number Hint API).
 play-services-auth = { module = "com.google.android.gms:play-services-auth", version.ref = "playServicesAuth" }
+play-services-auth-api-phone = { module = "com.google.android.gms:play-services-auth-api-phone", version.ref = "playServicesAuthApiPhone" }
 installreferrer = { module = "com.android.installreferrer:installreferrer", version.ref = "installReferrer" }
 junit = { module = "junit:junit", version.ref = "junit" }
 # Phone tests (src/androidTest), run in Firebase Test Lab.

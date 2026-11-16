@@ -1,5 +1,6 @@
 package app.foundwith.ui
 
+import app.foundwith.core.AskOrder
 import app.foundwith.core.CallEvent
 import app.foundwith.core.CallType
 import app.foundwith.core.HolderText
@@ -7,7 +8,6 @@ import app.foundwith.core.KnownPerson
 import app.foundwith.core.Naming
 import app.foundwith.core.PhoneNumbers
 import app.foundwith.core.ShownName
-import app.foundwith.core.ShownPerson
 import app.foundwith.data.AppState
 import app.foundwith.data.Card
 import app.foundwith.data.Holder
@@ -31,7 +31,7 @@ fun AppState.contactName(e164: String): String? = contactsByE164[e164]?.shownNam
 
 fun AppState.isSaved(e164: String): Boolean = contactName(e164)?.let { !Naming.looksLikeNumber(it) } == true
 
-/** Rule 4: your name for it, their own name, the popular name, the number. */
+/** Rule 4: your name for it, their own name, what others call it, the number. */
 fun AppState.nameFor(e164: String, card: Card?): ShownName =
     Naming.of(contactName(e164), card?.name, card?.popularName, e164)
 
@@ -43,12 +43,24 @@ fun AppState.personName(holder: Holder): String {
 
 fun AppState.knownNames(card: Card): List<String> = card.known.map { personName(it) }
 
-/** The one line: "Found with Priya, Ravi and 3 others". */
+/** People the viewer knows who have the number, in Ask order: contacts first, then call log. */
+fun AppState.knownOrdered(card: Card): List<String> = AskOrder.order(knownPeople(card)).map { it.first.name }
+
+/** A contact or search row: "5 people have it · You know Priya and Meena". */
 fun AppState.lineFor(card: Card?, onYourPhone: Boolean): String {
-    if (card == null) return HolderText.foundWith(emptyList(), 0, onYourPhone = onYourPhone)
-    val people = card.known.map { ShownPerson(personName(it), true) } + card.others.map { ShownPerson(personName(it), false) }
-    return HolderText.foundWith(people, card.total, card.totalIsLowerBound, onYourPhone = onYourPhone)
+    if (card == null) return HolderText.haveItLine(emptyList(), 0, 0, onYourPhone = onYourPhone)
+    return HolderText.haveItLine(knownOrdered(card), card.knownTotal, card.total, card.totalIsLowerBound, onYourPhone)
 }
+
+/** A call row, about the caller: "Known to Priya, Meena and 10 more". */
+fun AppState.callerLine(card: Card?, onYourPhone: Boolean): String {
+    if (card == null) return HolderText.knownTo(emptyList(), 0, onYourPhone = onYourPhone)
+    return HolderText.knownTo(knownOrdered(card), card.total, card.totalIsLowerBound, onYourPhone)
+}
+
+/** Whether a contact's number belongs to someone on WhoHas. */
+fun AppState.onWhoHas(e164: String, card: Card?): Boolean =
+    card?.onFoundWith == true || refFor(e164)?.let { it in cards?.circle?.memberRefs.orEmpty() } == true
 
 /** The people you know who have the number, for the Ask list (ordered by [app.foundwith.core.AskOrder]). */
 fun AppState.knownPeople(card: Card): List<KnownPerson> = card.known.map { holder ->

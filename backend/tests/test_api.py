@@ -332,6 +332,26 @@ def test_changes_endpoint_puts_a_new_contact_on_cards(client):
     assert r.status_code == 422
 
 
+def test_tell_names_who_invited_you_and_cards_count_who_you_know(client):
+    join(client, ARJUN, "Arjun Rao", contacts=[RAVI, PRIYA])
+    join(client, PRIYA, "Priya Sharma", contacts=[RAVI, ARJUN])
+    assert client.post("/v1/tells", json={"number": "99001 48823"}, headers=as_user(ARJUN)).status_code == 204
+    assert client.post("/v1/tells", json={"number": RAVI}, headers=as_user(PRIYA)).status_code == 204
+    assert client.post("/v1/tells", json={"number": RAVI}, headers=as_user(PRIYA)).status_code == 204   # again: one row
+    assert client.post("/v1/tells", json={"number": "044 2222 3333"}, headers=as_user(ARJUN)).status_code == 422
+    assert client.post("/v1/tells", json={"number": ARJUN}, headers=as_user(ARJUN)).status_code == 204   # own: ignored
+
+    join(client, RAVI, "Ravi Kumar", contacts=[ARJUN])
+    me = client.get("/v1/me", headers=as_user(RAVI)).json()
+    assert me["invited_by_count"] == 2 and sorted(me["invited_by"]) == ["Arjun", "Priya"]
+    assert client.get("/v1/me", headers=as_user(ARJUN)).json()["invited_by"] == []
+
+    # Arjun's card for Ravi: 2 people have it (Priya and Ravi's own contact list doesn't count), Arjun knows Priya.
+    cards = {c["ref"]: c for c in client.get("/v1/cards", headers=as_user(ARJUN)).json()["cards"]}
+    ravi = next(c for c in cards.values() if c["owner_id"] is not None and c["name"] == "Ravi Kumar")
+    assert ravi["known_count"] == len(ravi["known"]) and "popular_name_people" in ravi
+
+
 def test_invite_link_circle_and_redeem(client):
     join(client, ARJUN, "Arjun Rao", contacts=[RAVI])
     circle = client.get("/v1/me/circle", headers=as_user(ARJUN)).json()
@@ -342,7 +362,7 @@ def test_invite_link_circle_and_redeem(client):
     # on an iPhone "Android only for now". It names who invited.
     android = {"user-agent": "Mozilla/5.0 (Linux; Android 14; 23021RAA2Y) Mobile"}
     r = client.get(f"/i/{code}", headers=android)
-    assert r.status_code == 200 and "Arjun invited you to Found With" in r.text
+    assert r.status_code == 200 and "Arjun invited you to WhoHas" in r.text
     assert f"https://play.google.com/store/apps/details?id=app.foundwith&amp;referrer=invite%3D{code}" in r.text
     assert "default-src 'none'" in r.headers["content-security-policy"]
     iphone = client.get(f"/i/{code}", headers={"user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)"})

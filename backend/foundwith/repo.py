@@ -365,16 +365,47 @@ async def owners(conn: Conn, viewer_id: int, hmacs: Sequence[bytes],
     return {bytes(r["phone_hmac"]): r for r in rows}
 
 
-async def popular_names(conn: Conn, hmacs: Sequence[bytes]) -> dict[bytes, bytes]:
-    """The encrypted popular name of each number that has one."""
+# ---------------------------------------------------------------- Tell ("I'm on WhoHas, and 7 more people there have your number")
+
+async def record_tell(conn: Conn, teller_id: int, number_hmac: bytes) -> None:
+    await conn.execute(
+        """INSERT INTO tells (teller_id, number_hmac) VALUES ($1, $2::bytea)
+           ON CONFLICT (teller_id, number_hmac) DO UPDATE SET told_at = now()""",
+        teller_id, number_hmac)
+
+
+async def tellers(conn: Conn, number_hmac: bytes, viewer_id: int, days: int = 90, limit: int = 3) -> tuple[list[str | None], int]:
+    """Who told this number (the viewer's own) about WhoHas in the last [days], newest first: up
+    to [limit] names (None for someone with no name yet) and how many in all. Only unsuspended
+    people, and never anyone blocked either way."""
+    rows = await conn.fetch(
+        """SELECT u.display_name, count(*) OVER () AS n
+           FROM tells t JOIN users u ON u.id = t.teller_id
+           WHERE t.number_hmac = $1::bytea AND t.told_at > now() - make_interval(days => $2)
+             AND u.suspended_at IS NULL AND u.id <> $3
+             AND NOT EXISTS (SELECT 1 FROM blocks b
+                             WHERE (b.user_id = $3 AND b.blocked_phone_hmac = u.phone_hmac)
+                                OR (b.user_id = u.id AND b.blocked_phone_hmac = $1::bytea))
+           ORDER BY t.told_at DESC LIMIT $4""",
+        number_hmac, days, viewer_id, limit)
+    return [r["display_name"] for r in rows], (int(rows[0]["n"]) if rows else 0)
+
+
+async def forget_old_tells(conn: Conn, days: int = 90) -> int:
+    return _count(await conn.execute("DELETE FROM tells WHERE told_at < now() - make_interval(days => $1)", days))
+
+
+async def popular_names(conn: Conn, hmacs: Sequence[bytes]) -> dict[bytes, tuple[bytes, int]]:
+    """The encrypted popular name of each number that has one, with how many people have that
+    name for it ("5 people know it as …")."""
     if not hmacs:
         return {}
     rows = await conn.fetch(
-        """SELECT p.number_hmac, p.name_enc FROM popular_names p
+        """SELECT p.number_hmac, p.name_enc, p.people FROM popular_names p
            WHERE p.number_hmac = ANY($1::bytea[])
              AND NOT EXISTS (SELECT 1 FROM suppressed_numbers s WHERE s.number_hmac = p.number_hmac)""",
         list(hmacs))
-    return {bytes(r["number_hmac"]): bytes(r["name_enc"]) for r in rows}
+    return {bytes(r["number_hmac"]): (bytes(r["name_enc"]), int(r["people"] or 0)) for r in rows}
 
 
 async def set_contact_names(conn: Conn, user_id: int, hmacs: Sequence[bytes],
