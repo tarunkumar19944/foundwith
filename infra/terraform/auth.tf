@@ -15,6 +15,14 @@ resource "google_identity_platform_config" "auth" {
     }
   }
 
+  # Logs every sign-in request with its error, in Cloud Logging (resource "identitytoolkit_project"),
+  # so a failed sign-in can be explained from the server side.
+  monitoring {
+    request_logging {
+      enabled = true
+    }
+  }
+
   sms_region_config {
     allowlist_only {
       allowed_regions = ["IN"]

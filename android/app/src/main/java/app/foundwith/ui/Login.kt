@@ -1,6 +1,7 @@
 package app.foundwith.ui
 
 import android.app.Activity
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -49,12 +50,14 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.foundwith.AppGraph
+import app.foundwith.BuildConfig
 import app.foundwith.core.PhoneNumbers
 import com.google.android.gms.auth.api.identity.GetPhoneNumberHintIntentRequest
 import com.google.android.gms.auth.api.identity.Identity
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.FirebaseTooManyRequestsException
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthProvider
@@ -137,15 +140,17 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
 
         override fun onVerificationFailed(e: FirebaseException) {
             busy = false
-            when (e) {
-                is FirebaseTooManyRequestsException -> step = LoginStep.TOO_MANY
-                is FirebaseNetworkException -> step = LoginStep.NO_INTERNET
-                is FirebaseAuthInvalidCredentialsException -> {
+            when {
+                e is FirebaseTooManyRequestsException -> step = LoginStep.TOO_MANY
+                e is FirebaseNetworkException -> step = LoginStep.NO_INTERNET
+                // Only a badly formed number means "check the number"; the same exception type also
+                // carries app-verification failures, which are ours to fix, not the person's.
+                e is FirebaseAuthInvalidCredentialsException && e.errorCode == "ERROR_INVALID_PHONE_NUMBER" -> {
                     error = "10 digits, starting with 6, 7, 8 or 9."
                     step = LoginStep.TYPE_NUMBER
                 }
                 else -> {
-                    error = "We couldn't send the code. Try again."
+                    error = withDetail("We couldn't send the code. Try again.", e)
                     step = LoginStep.TYPE_NUMBER
                 }
             }
@@ -216,7 +221,7 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
             } catch (e: FirebaseNetworkException) {
                 step = LoginStep.NO_INTERNET
             } catch (e: Exception) {
-                error = "Something went wrong. Try again."
+                error = withDetail("Something went wrong. Try again.", e)
                 step = LoginStep.CODE
             } finally {
                 busy = false
@@ -378,4 +383,16 @@ private fun Example() {
         Text("Never messages or calls your contacts.", style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
+}
+
+/**
+ * Test builds add Firebase's own error under the message, so a failed sign-in can be diagnosed
+ * from a screenshot. Release builds show only the plain message. Both write it to the log.
+ */
+private fun withDetail(message: String, e: Exception): String {
+    Log.w("FoundWith", "Sign-in failed", e)
+    if (!BuildConfig.DEBUG) return message
+    val code = (e as? FirebaseAuthException)?.errorCode
+    val detail = listOfNotNull(code, e.message?.takeIf { it.isNotBlank() }).joinToString(": ")
+    return if (detail.isEmpty()) message else "$message\n\n${detail.take(300)}"
 }
