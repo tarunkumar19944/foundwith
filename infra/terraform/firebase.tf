@@ -4,7 +4,7 @@
 #  - a web app, whose key the opt-out page (/out) uses for its SMS sign-in.
 
 resource "google_project_service" "firebase" {
-  for_each           = toset(["firebase.googleapis.com", "firebaseinstallations.googleapis.com"])
+  for_each           = toset(["firebase.googleapis.com", "firebaseinstallations.googleapis.com", "firebasehosting.googleapis.com"])
   service            = each.value
   disable_on_destroy = false
 }
@@ -46,4 +46,22 @@ data "google_firebase_web_app_config" "web" {
   provider   = google-beta
   project    = var.project_id
   web_app_id = google_firebase_web_app.web.app_id
+}
+
+# The app's API key ("Android key (auto created by Firebase)") must have no application
+# restriction, only API limits, or that reCAPTCHA page can't use it. Firebase creates it with an
+# empty Android restriction; clear it once after the first apply:
+#   ARGS=$(gcloud services api-keys describe KEY_UID --format=json | python3 -c "import json,sys; \
+#     print(' '.join('--api-target=service='+t['service'] for t in json.load(sys.stdin)['restrictions']['apiTargets']))")
+#   gcloud services api-keys update KEY_UID --clear-restrictions && gcloud services api-keys update KEY_UID $ARGS
+#
+# The default Hosting site serves foundwith.firebaseapp.com/__/auth/handler: the page SMS sign-in
+# falls back to (a reCAPTCHA check) when Google Play can't vouch for the app, as with test builds
+# installed from a link. Enabling the Hosting API creates it (terraform import it if so). Its home
+# page is web/hosting/index.html.
+resource "google_firebase_hosting_site" "default" {
+  provider   = google-beta
+  project    = var.project_id
+  site_id    = var.project_id
+  depends_on = [google_firebase_project.main, google_project_service.firebase]
 }
