@@ -51,7 +51,7 @@ The tests start a throwaway Postgres if the server binaries are installed (`apt 
 TEST_DATABASE_URL="host=localhost user=postgres password=postgres" python -m pytest
 ```
 
-The suite (239 tests) covers the matching rules, contacts and call logs both counting, hidden numbers, opt-out (with and without deleting the account), blocks, name rules, contact names and popular names, the evening note, wake-ups, health by brand, the app-version gate, the invite and opt-out pages, moderation by number, sync on/off, quotas and allowances, stored holder counts staying exact through every kind of change, the changes endpoint, recycled numbers, account deletion and inactivity, the v0.1 → current database upgrade, token verification and the HTTP layer. `test_asyncpg_driver.py` runs the main flow through the production driver and is skipped where asyncpg isn't installed. Cloud Build installs it, so every deploy runs it.
+The suite (240 tests, run on every push by `.github/workflows/backend.yml` against a real Postgres) covers the matching rules, contacts and call logs both counting, hidden numbers, opt-out (with and without deleting the account), blocks, name rules, contact names and popular names, the evening note, wake-ups, health by brand, the app-version gate, the invite and opt-out pages, moderation by number, sync on/off, quotas and allowances, stored holder counts staying exact through every kind of change, the changes endpoint, recycled numbers, account deletion and inactivity, the v0.1 → current database upgrade, token verification and the HTTP layer. `test_asyncpg_driver.py` runs the main flow through the production driver and is skipped where asyncpg isn't installed. Cloud Build installs it, so every deploy runs it.
 
 ## Check real-time latency
 

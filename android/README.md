@@ -125,7 +125,7 @@ Three notification channels, so people can quieten any of them in Android's sett
 ## 8. What has been tested
 
 - `app/src/test/.../core` covers every rule the screens use: number parsing (3,020 numbers checked against the server's own parser), the sync diff with names, the card wording and labels, names and tags, the Ask order, every message, the after-call rules (sound, silent, none, quiet hours, repeats, catch-up), brand fixes, search input, change tracking and Updates. Run them with `./gradlew testFullDebugUnitTest`.
-- **The screens, the after-call engine and the push service were written without an Android build.** The machine they were written on couldn't download the Android SDK or Google's libraries, so their first compile happens in Android Studio or the GitHub workflow. If either shows an error, paste the first one back and it will be fixed.
+- **Every push builds the app on GitHub** (`.github/workflows/android.yml`): both builds compile, the unit tests run, and lint reports no errors. The run's Summary step prints the test count and every lint warning.
 - **Not yet tried on real phones**: see SPEC section 9, item 4.
 
 ## 9. Where things are
