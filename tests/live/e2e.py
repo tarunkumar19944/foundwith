@@ -8,7 +8,8 @@ needs the config JSON from Secret Manager (secret found-with-test-accounts):
     python3 tests/live/e2e.py config.json
 
 Everything it creates is deleted at the end, and at the start in case an earlier run stopped
-halfway. The shared numbers it saves (+91 90000 00090 and 91) belong to no test account.
+halfway. The shared numbers it saves (+91 90000 00090 and 91) belong to no test account, and the
+phone tests never save them (they use 0007x), so the counts here are exact.
 Standard library only.
 """
 

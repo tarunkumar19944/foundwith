@@ -214,10 +214,19 @@ class PhoneJourneyTest {
         // misses on some emulators: their window offset isn't applied to injected taps).
         compose.onNode(hasText("Sign out") and hasClickAction() and hasAnyAncestor(isDialog()))
             .performSemanticsAction(SemanticsActions.OnClick)
-        // Signed out: sign-in opens Android's number picker again, over the app.
-        device.wait(Until.hasObject(By.pkg("com.google.android.gms")), 8_000)
+        // Signed out: sign-in opens Android's number picker again, over the app. Compose only draws
+        // while the test drives its clock, so wait with Compose, not with UiAutomator, until either
+        // sign-in shows or the picker covers it.
+        runCatching {
+            compose.waitUntil(30_000) {
+                exists("Type your number") || exists("Your mobile number") || device.currentPackageName != PACKAGE
+            }
+        }
         shotDevice("17-signed-out")
-        if (device.currentPackageName != PACKAGE) device.pressBack()
+        if (device.currentPackageName != PACKAGE) {
+            device.pressBack()
+            device.wait(Until.hasObject(By.pkg(PACKAGE)), 5_000)
+        }
         waitForAny(listOf("Type your number", "Your mobile number"), 30_000)
     }
 
