@@ -80,7 +80,7 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Checking | Finding who you know… | Checking your contacts… This takes a few seconds. |
 | Name card | Your name on Found With · People who haven't saved your number see this name. | **Add your name** · People who don't have you in their contacts will see this name. · Save · Later |
 | Notifications card | (banner) Notifications are off. You won't hear after calls. | **Turn on notifications** · Get told who knows a caller right after a missed call. · Turn on |
-| First empty Updates | You're all caught up | **Your updates will show here** · New people with your number, friends who join, and changes in your contacts. |
+| First empty Updates | You're all caught up | **None of your numbers are with people on WhoHas yet** · When people you know join, every number in your contacts and calls that they have shows here, with who has it. · Share in group |
 
 ## Home
 
@@ -247,7 +247,7 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 |---|---|
 | Top bar, first line next to WhoHas (every tab) | **⤴ Share in group** (one small button; replaces the Updates card) |
 | Invite friends page | **Share in a group** (replaces "Share your link") |
-| What's shared | The Welcome screen picture with "Get WhoHas · Free on Android · link in the message", and: Hi all! I'm using WhoHas. When an unknown number calls, it shows which people you know have that number, so you can ask them who it is. The more of us on it, the more callers we can recognise for each other. Get it here: {link} |
+| What's shared | A picture of WhoHas in charcoal and gold (a missed call known to Priya, Meena and 10 more; "Unknown number calling?"; a gold band "Get WhoHas · Free on Android · link in the message"), and: Hi all! I'm using WhoHas. When an unknown number calls, it shows which people you know have that number, so you can ask them who it is. The more of us on it, the more callers we can recognise for each other. Get it here: {link} |
 
 ## Invite friends
 
@@ -255,7 +255,7 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 |---|---|---|
 | Title | Invite friends · When a friend joins, you see if they have your number. | **Invite friends** · When they join, you'll see if they have your number. |
 | Button | Share your link | Share your link |
-| List | People you call most · Invite | People you call most · Their number is with 7 people on WhoHas · **Share** (same list and rules as the Updates card, all of them) |
+| List | People you call most · Invite | **Let them know who has their number** · These people you call most aren't on WhoHas yet. Share it with them. · Their number is with 7 people on WhoHas · **Share** (the people you call most in the last 60 days, at least 3 calls, mobiles only, not on WhoHas; Shared leaves the list for 30 days) |
 
 ## Phone settings fix (Xiaomi, Vivo, Oppo and others)
 
