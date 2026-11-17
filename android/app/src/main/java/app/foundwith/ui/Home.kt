@@ -237,6 +237,20 @@ fun HomeScreen(
                         Wordmark()
                         if (state.setup != Setup.NOT_ALLOWED || state.cards != null) LiveStatus(state.cards?.savedAt, state.offline)
                     }
+                    // Share in a group: one button on the first line, next to WhoHas (Y, 17 Nov).
+                    OutlinedButton(
+                        onClick = {
+                            val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
+                            context.shareImage(R.drawable.share_whohas, Messages.groupShare(link), "Share WhoHas")
+                        },
+                        shape = RoundedCornerShape(22.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp),
+                        modifier = Modifier.height(44.dp),
+                    ) {
+                        Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Share in group", fontWeight = FontWeight.Bold, maxLines = 1)
+                    }
                     IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) { Icon(Icons.Filled.Settings, contentDescription = "Settings") }
                 }
             }
@@ -382,12 +396,12 @@ private fun InvitedCard(names: List<String>, count: Int, total: Int) {
 private fun AllowCard(onAllow: () -> Unit, onHowItWorks: () -> Unit) {
     WhCard(padding = 20.dp) {
         Text("See who has each number", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-        Text(if (BuildConfig.CALL_LOG) "Allow contacts and call log. Then, for every number on your phone:"
-            else "Allow contacts. Then, for every number in your contacts:",
+        Text(if (BuildConfig.CALL_LOG) "Allow contacts and call log. Then you can:" else "Allow contacts. Then you can:",
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        TickLine("See how many people on WhoHas have it")
-        if (BuildConfig.CALL_LOG) TickLine("After a call, see who has the caller's number")
-        TickLine("Know when more people have your number")
+        TickLine("Find out who has your number")
+        TickLine("See who has each number on your phone")
+        TickLine("Know when something new happens or changes")
+        if (BuildConfig.CALL_LOG) TickLine("After a call, get a notification if someone has the caller's number")
         PrimaryButton("Allow", onAllow)
         Row(Modifier.clickable(onClick = onHowItWorks).padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
             Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -451,7 +465,6 @@ private fun LazyListScope.updatesTab(graph: AppGraph, state: AppState, onNumber:
         item { NotificationsCard(onTurnOn = onTurnOnNotifications, onLater = { graph.store.notifAsked = true }) }
     }
     item { TellCard(graph, state, onInvite) }
-    item { GroupShareCard(state) }
 
     val entries = updateEntries(state)
     if (entries.isEmpty()) {
@@ -566,7 +579,12 @@ private fun UpdateItem(state: AppState, entry: UpdateEntry, isNew: Boolean, onNu
     }
 }
 
-/** "Tell them who has their number": the people you call most who aren't on WhoHas, with real counts. */
+/** "Their number is with 7 people on WhoHas"; "No one else on WhoHas has it yet". */
+fun theirNumberLine(others: Int, lowerBound: Boolean): String =
+    if (others <= 0) "No one else on WhoHas has it yet"
+    else "Their number is with ${HolderText.count(others, lowerBound)} on WhoHas"
+
+/** "Let them know who has their number": the people you call most who aren't on WhoHas, with real counts. */
 @Composable
 private fun TellCard(graph: AppGraph, state: AppState, onSeeAll: () -> Unit) {
     val context = LocalContext.current
@@ -595,8 +613,8 @@ private fun TellCard(graph: AppGraph, state: AppState, onSeeAll: () -> Unit) {
             }
             Spacer(Modifier.width(12.dp))
             Column {
-                Text("Tell them who has their number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                Text("People you call most · not on WhoHas yet", style = MaterialTheme.typography.bodyMedium,
+                Text("Let them know who has their number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+                Text("These people you call most aren't on WhoHas yet. Share it with them.", style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -646,7 +664,7 @@ fun TellRow(person: TellCandidate, told: Boolean, onTell: () -> Unit) {
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(person.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text(if (person.others > 0) HolderText.haveThis(person.others, person.lowerBound) else "No one on WhoHas has it yet",
+            Text(theirNumberLine(person.others, person.lowerBound),
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.width(8.dp))

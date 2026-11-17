@@ -66,9 +66,9 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 | Where | Now | New |
 |---|---|---|
 | Your number (before allowing) | Your number · Found with 23 people | Your number · **23 people have it** · Allow contacts to see who they are. |
-| Allow card (Y's words, 17 Nov) | See who knows your contacts · Allow contacts, and each one shows who else has the number. · Allow | **See who has each number** · Allow contacts and call log. Then, for every number on your phone: · ✓ See how many people on WhoHas have it · ✓ After a call, see who has the caller's number · ✓ Know when more people have your number · **Allow** |
+| Allow card (Y's words, 17 Nov) | See who knows your contacts · Allow contacts, and each one shows who else has the number. · Allow | **See who has each number** · Allow contacts and call log. Then you can: · ✓ Find out who has your number · ✓ See who has each number on your phone · ✓ Know when something new happens or changes · ✓ After a call, get a notification if someone has the caller's number · **Allow** |
 | Privacy line | Stored encrypted · How it works | No one sees your contact list. If a friend checks a number you have, they see your name. · How WhoHas works |
-| Contacts-only build | (same card) | Allow contacts. Then, for every number in your contacts: · ✓ See how many people on WhoHas have it · ✓ Know when more people have your number |
+| Contacts-only build | (same card) | Allow contacts. Then you can: · ✓ Find out who has your number · ✓ See who has each number on your phone · ✓ Know when something new happens or changes |
 | Checking | Finding who you know… | Checking your contacts… This takes a few seconds. |
 | Name card | Your name on Found With · People who haven't saved your number see this name. | **Add your name** · People who don't have you in their contacts will see this name. · Save · Later |
 | Notifications card | (banner) Notifications are off. You won't hear after calls. | **Turn on notifications** · Get told who knows a caller right after a missed call. · Turn on |
@@ -105,17 +105,17 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 | Nothing changed | **No changes since this morning** · When more people get your number, or your contacts' numbers, it shows here. |
 | First day | **Your updates will show here** · We check every few hours. |
 
-### Tell them who has their number (card at the top of Updates)
+### Let them know who has their number (card on Updates; was "Tell them")
 
 The people you call most who aren't on WhoHas, with their real count, so you can tell them.
 
 | Where | New |
 |---|---|
-| Title | **Tell them who has their number** |
-| Subtitle | People you call most · not on WhoHas yet |
-| Row | Ravi Kumar · **7 people have this number** · [Tell] |
-| Row, nobody else | Suresh Bhaiya · No one on WhoHas has it yet · [Tell] |
-| After tapping Tell | Told · drops off the list for 30 days |
+| Title | **Let them know who has their number** |
+| Subtitle | These people you call most aren't on WhoHas yet. Share it with them. |
+| Row | Ravi Kumar · **Their number is with 7 people on WhoHas** · [Share] |
+| Row, nobody else | Suresh Bhaiya · No one else on WhoHas has it yet · [Share] |
+| After tapping Share | Shared · drops off the list for 30 days |
 | Footer | See all 10 · Hide (hides the card for 7 days) |
 | Who is listed | The 10 contacts you call most in the last 60 days (at least 3 calls), Indian mobiles only, not on WhoHas. Highest real count first, then most calls. |
 | Never | A notification about it. A padded count. |
@@ -171,7 +171,7 @@ Order on screen: who it is → how many have it → people you know → one main
 | Label 50+ | Highly popular number | Lots of people have this number · often a business, or someone who calls a lot of people |
 | Today | Today: 3 more people · now a Popular number | **+3 today** |
 | Main action (not a contact) | Ask (per person) | **Ask Priya who this is** (WhatsApp), small "Ask" on each person below. Picks someone in your contacts first; a call-log person only when no contact has it. |
-| Main action (contact not on WhoHas) | Ravi Kumar isn't on Found With yet · Invite | **Ravi Kumar isn't on WhoHas yet** · Let them know 7 people on WhoHas have their number. (With nobody: Let them know about WhoHas. Then you can ask each other about unknown callers.) · **Let them know on WhatsApp** (whole name, never the first word: "Dr." and "Plumber" don't stand alone) |
+| Main action (contact not on WhoHas) | Ravi Kumar isn't on Found With yet · Invite | **Ravi Kumar isn't on WhoHas yet** · Their number is with 7 people on WhoHas. Share it with them. (With nobody: Share WhoHas with them, so you can ask each other about unknown callers.) · **Share on WhatsApp** (whole name, never the first word: "Dr." and "Plumber" don't stand alone) |
 | After a missed call | Call back | Call back |
 | List title | People you know who have it | People you know who have it · contacts first, then call log |
 | Each person | Contact · In your call log | **In your contacts** · **In your call log · called you yesterday** / **you called on 12 Nov** (someone only in your call log shows their own WhoHas name, else their number; the last call helps you place them) |
@@ -249,7 +249,7 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 
 | Where | New |
 |---|---|
-| Card on Updates (under Tell) | **Share WhoHas in your groups** · The more of your people on WhoHas, the more callers you can recognise. · **Share in a group** |
+| Top bar, first line next to WhoHas (every tab) | **⤴ Share in group** (one small button; replaces the Updates card) |
 | Invite friends page | **Share in a group** (replaces "Share your link") |
 | What's shared | The Welcome screen picture with "Get WhoHas · Free on Android · link in the message", and: Hi all! I'm using WhoHas. When an unknown number calls, it shows which people you know have that number, so you can ask them who it is. The more of us on it, the more callers we can recognise for each other. Get it here: {link} |
 
@@ -259,7 +259,7 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 |---|---|---|
 | Title | Invite friends · When a friend joins, you see if they have your number. | **Invite friends** · When they join, you'll see if they have your number. |
 | Button | Share your link | Share your link |
-| List | People you call most · Invite | People you call most · 7 people have this number · **Tell** (same list and rules as the Updates card, all of them) |
+| List | People you call most · Invite | People you call most · Their number is with 7 people on WhoHas · **Share** (same list and rules as the Updates card, all of them) |
 
 ## Phone settings fix (Xiaomi, Vivo, Oppo and others)
 

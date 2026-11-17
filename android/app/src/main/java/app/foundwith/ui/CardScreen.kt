@@ -241,11 +241,10 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                             WhCard(Modifier, color = MaterialTheme.colorScheme.secondaryContainer, edge = false) {
                                 Text("$who isn't on WhoHas yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                Text(if (total > 0) "Let them know ${HolderText.count(total, lowerBound)} on WhoHas " +
-                                        (if (total == 1 && !lowerBound) "has" else "have") + " their number."
-                                    else "Let them know about WhoHas. Then you can ask each other about unknown callers.",
+                                Text(if (total > 0) "${theirNumberLine(total, lowerBound)}. Share it with them."
+                                    else "Share WhoHas with them, so you can ask each other about unknown callers.",
                                     color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                PrimaryButton(if (invited) "Sent" else "Let them know on WhatsApp", {
+                                PrimaryButton(if (invited) "Shared" else "Share on WhatsApp", {
                                     context.messagePerson(e164, Messages.invite(total, link, lowerBound))
                                     invited = true
                                     scope.launch { graph.model.recordTell(e164) }

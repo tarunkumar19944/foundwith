@@ -111,6 +111,9 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
     /** Waiting for the SMS on this phone through Android's consent prompt (up to 5 minutes). */
     var listening by mutableStateOf(false)
         private set
+    /** Goes up with every code sent, so the prompt starts listening afresh for each SMS. */
+    var listenRound by mutableIntStateOf(0)
+        private set
     /** The sheet opens by itself once, on the first screen. */
     var sheetShown = false
 
@@ -159,6 +162,11 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
         }
         step = LoginStep.CHECKING
         busy = true
+        // Listen before sending: the SMS can arrive within a second or two. Firebase's own silent
+        // read needs an app code in the SMS that India's SMS often lacks; Android's "Allow WhoHas
+        // to read this message?" prompt works with any SMS that lands on this phone.
+        listenRound += 1
+        listening = true
         graph.auth.sendCode(activity, parsed, resendToken, callbacks)
     }
 
@@ -194,14 +202,12 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
             resendToken = token
             startResendTimer()
             if (canType(e164)) {
-                // Test numbers and the review number get no SMS: the code is typed.
+                // Test builds and the review number may also type the code (test numbers get no SMS).
+                // Android's prompt keeps listening meanwhile, so a real SMS still fills it in.
                 viewModelScope.launch {
                     delay(if (BuildConfig.DEBUG) 6000 else 0)
                     if (step == LoginStep.CHECKING) step = LoginStep.CODE
                 }
-            } else {
-                // If Firebase can't read the SMS silently, Android's own prompt can.
-                listening = true
             }
         }
 
@@ -225,6 +231,7 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
     fun codeFromThisPhone(digits: String) {
         val id = verificationId ?: return
         listening = false
+        code = digits
         signIn { graph.auth.signInWithCode(id, digits) }
     }
 
@@ -325,7 +332,7 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
             Regex("""(?<!\d)(\d{6})(?!\d)""").find(message)?.groupValues?.get(1)?.let { vm.codeFromThisPhone(it) }
         }
     }
-    DisposableEffect(vm.listening, activity) {
+    DisposableEffect(vm.listening, vm.listenRound, activity) {
         val host = activity
         if (!vm.listening || host == null) return@DisposableEffect onDispose {}
         val receiver = object : BroadcastReceiver() {

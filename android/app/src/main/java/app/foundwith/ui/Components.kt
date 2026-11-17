@@ -411,7 +411,7 @@ fun LiveStatus(checkedAt: Long?, offline: Boolean) {
         Box(Modifier.size(8.dp).background(MaterialTheme.colorScheme.tertiary.copy(alpha = alpha), CircleShape))
         Spacer(Modifier.width(6.dp))
         Text("Live · checked ${agoText(checkedAt, now)}", style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.SemiBold)
+            color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -457,7 +457,7 @@ fun Chip(text: String, icon: ImageVector? = null, saffron: Boolean = true, stron
     }
 }
 
-/** "Tell": saffron, at least 44 dp tall. After a tap it reads "Told" and does nothing. */
+/** "Share" (let them know who has their number): saffron, at least 44 dp tall. After a tap it reads "Shared". */
 @Composable
 fun TellButton(told: Boolean, name: String, onClick: () -> Unit) {
     if (told) {
@@ -466,7 +466,7 @@ fun TellButton(told: Boolean, name: String, onClick: () -> Unit) {
             Row(Modifier.height(44.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Told", fontWeight = FontWeight.Bold)
+                Text("Shared", fontWeight = FontWeight.Bold)
             }
         }
         return
@@ -477,7 +477,7 @@ fun TellButton(told: Boolean, name: String, onClick: () -> Unit) {
         shape = RoundedCornerShape(22.dp),
         contentPadding = PaddingValues(horizontal = 18.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary, contentColor = MaterialTheme.colorScheme.onSecondary),
-    ) { Text("Tell", fontWeight = FontWeight.Bold, modifier = Modifier) }
+    ) { Text("Share", fontWeight = FontWeight.Bold, modifier = Modifier) }
 }
 
 /** Overlapping avatars for a few people. [people] are (seed, name). */
