@@ -2,7 +2,7 @@
 
 Approved by Y on 17 Nov 2026 (with the starting screens below). Replaces every sentence in the app, the notifications, the messages people send and the two web pages.
 
-Updated the same night after talking it through: "has" instead of "saved" (call logs count too), contacts before call-log people on a card, honest label text, the **Let them know who has their number** card (Share button), a **Share in group** button on the top line, counts that are always real, and sign-in with a SIM in this phone only. The screens for all of this are on the WhoHas screens design canvas.
+Updated the same night after talking it through: "has" instead of "saved" (call logs count too), contacts before call-log people on a card, honest label text, the **Let them know who has their number** list (Share button), a **Share in group** button on the top line, counts that are always real, sign-in with a SIM in this phone only, charcoal and gold with Atkinson Hyperlegible Next, Updates that list everything found, three tabs (Updates, Contacts, Call log) with the call log's symbols, and Indian numbers only. The screens for all of this are on the WhoHas screens design canvas.
 
 ## The rules
 
@@ -30,6 +30,14 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 **No bare numbers in one-line summaries.** Someone you know only from your call log, with no WhoHas name, still counts ("You know 1 of them") and is listed on the card with their last call, but is never named as a number in "You know …", "Known to …" or the main Ask button.
 
 **"Has" means contacts or call log.** WhoHas counts a number when it is in someone's contacts *or* their call log, so never say "saved" for that. Use "save" only for Android's own **Save to contacts** button. Names come only from contacts (a call log entry has no name), so for names say "know it as".
+
+## The look (approved by Y, 17 Nov)
+
+Charcoal and gold, everywhere: page #14151A, cards #1D1F26, text #E7E8EC, grey text #A3A6B1, gold #D9B65C for the one accent (buttons, "Known to …", the count on your number, the new dot). Red only for missed and rejected calls, green only for received calls and joins. No pure white or pure black. Every text colour is at least 5.9:1.
+
+Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never look alike), bundled in the app: Regular, SemiBold and Bold only, every digit the same width. Body text 16, small text 13, nothing under 12; sizes follow the phone's font setting. Section labels in normal case.
+
+**Indian numbers only.** WhoHas checks +91 numbers; another country's number is never sent for matching and says "WhoHas checks only Indian numbers". The first full number in a field counts ("tel:", "(home)", ",204" and a second number are ignored), and two numbers are never joined into one. Share and Let them know are offered only for mobiles (Google's India mobile ranges), never for a landline such as 080 4123 5566.
 
 ---
 
@@ -76,70 +84,56 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 
 ## Home
 
-| Where | Now | New |
-|---|---|---|
-| Top bar | Found With | **WhoHas** · *Live · checked just now* (green dot) |
-| Offline | Offline · last updated 9:40 pm | No internet · showing what we had at 9:40 pm |
-| Search box | Whose number is this? | Search a number or name |
-| Your number card (hero) | Your number · Found with Priya, Ravi and 21 others | Your number · **23 people have it** · You know Priya, Meena and 4 more · **+5 this week** |
-| Nobody yet | No one here has your number yet | No one on WhoHas has your number yet · Invite friends |
-| Before allowing | See who knows your contacts · Allow contacts, and each one shows who else has the number. | **See who has your number** · Allow contacts. WhoHas checks them against other users. · Allow |
-| Under Allow | Stored encrypted · How it works | Stored safely · How WhoHas works |
-| Finding | Finding who you know… | Checking your contacts… |
-| Failed | Couldn't finish. Trying again by itself. · Try now | Couldn't finish. We'll keep trying. · Try now |
-| Name card | Your name on Found With · People who haven't saved your number see this name. · Save · Not now | **Add your name** · People who don't have you in their contacts will see this name. · Save · Later |
-| Notifications off | Notifications are off. You won't hear after calls. · Turn on | Notifications are off. You won't know who called. · Turn on |
-| Late calls | Found With couldn't check your last 3 callers. · Fix | Your phone stopped WhoHas. Last 3 calls weren't checked. · Fix |
-| Tabs | Updates · Calls · Contacts | Updates · Calls · Contacts |
-
-### Updates (only what changed)
-
-| Change | Line |
+| Where | New |
 |---|---|
-| Your count went up | **2 more people have your number** · One is Meena |
-| A contact's count went up | **Raju Plumber** · 3 more people have this number · now 12 |
-| A contact joined | **Priya joined WhoHas** · Has your number (or nothing, if not) |
-| A number in your calls got known | **+91 98765 43210** · Called you · now known to Kiran Sir |
-| Count passes 10 or 50 | **Raju Plumber** · Many people have this number now |
-| Section titles | Today · Yesterday · This week · Earlier |
-| Nothing changed | **No changes since this morning** · When more people get your number, or your contacts' numbers, it shows here. |
-| First day | **Your updates will show here** · We check every few hours. |
+| Top bar | **WhoHas** · *Live · checked just now* (green dot) · **⤴ Share in group** · Settings |
+| Offline | No internet · showing what we had at 9:40 pm |
+| Search box | Search a number or name |
+| Your number card | Your number · **23 people have it** · You know Priya, Meena and 4 more · **1 more person · One is Arun** (when it went up this week) |
+| Nobody yet | No one on WhoHas has your number yet · Invite friends |
+| Notifications off | Notifications are off. You won't know who called. · Turn on |
+| Late calls | Your phone stopped WhoHas. Last 3 calls weren't checked. · Fix |
+| Tabs | **Updates · Contacts · Call log** (Call log only in the full build) |
 
-### Let them know who has their number (card on Updates; was "Tell them")
-
-The people you call most who aren't on WhoHas, with their real count, so you can tell them.
+### Updates: everything found, what changed on top
 
 | Where | New |
 |---|---|
-| Title | **Let them know who has their number** |
-| Subtitle | These people you call most aren't on WhoHas yet. Share it with them. |
-| Row | Ravi Kumar · **Their number is with 7 people on WhoHas** · [Share] |
-| Row, nobody else | Suresh Bhaiya · No one else on WhoHas has it yet · [Share] |
-| After tapping Share | Shared · drops off the list for 30 days |
-| Footer | See all 10 · Hide (hides the card for 7 days) |
-| Who is listed | The 10 contacts you call most in the last 60 days (at least 3 calls), Indian mobiles only, not on WhoHas. Highest real count first, then most calls. |
-| Never | A notification about it. A padded count. |
+| **New** (only what changed since you last looked, gold dot) | +91 90080 11223 · Missed call · today, 10:42 am · **Now known to Kiran Sir** |
+| | Priya Sharma · In your contacts · **Joined WhoHas · has your number** (green) |
+| | Raju Plumber · In your contacts · **2 more people have this number · now 14** |
+| **From your calls** (not in your contacts, someone on WhoHas has it; people you know first, then the latest call) | [call symbol] +91 98765 43210 · Received · yesterday, 6:15 pm · 4 min · **Known to Priya and 1 more** |
+| **Your contacts** (someone on WhoHas has it; people you know first, then the most people) | Raju Plumber · **12 people have it · You know Priya and 2 more** |
+| Each section | First 5, then **See all** (opens Contacts or Call log) |
+| Nothing found yet | **None of your numbers are with people on WhoHas yet** · When people you know join, every number in your contacts and calls that they have shows here, with who has it. · **Share in group** |
+| No counts line | Never "18 numbers are with people on WhoHas" (Y, 17 Nov) |
 
-### Calls
+### Call log
 
-| Where | Now | New |
-|---|---|---|
-| Row | Missed call · 10:42 am · Found with Priya and 2 others | Missed call · 10:42 am · **Known to Priya and 2 more** |
-| Nobody has it | Found with no one yet | No one on WhoHas has this number |
-| Hidden number | Private number · Hidden numbers can't be checked | Private number · Can't check hidden numbers |
-| Empty | No calls yet · Calls show here with who knows the number. | No calls yet · Your calls show here, with who has each number. |
-| Call log off | See who knows your callers · Allow the call log, and every recent call shows who knows the number. | **See who has your callers' numbers** · Allow the call log. · Allow |
-| Turned off in Settings | Call log is off · In Settings, tap Permissions, then Call logs, then Allow. | Call log is off · Open Settings › Permissions › Call logs › Allow. · Open Settings |
+Every call under its day (Today, Yesterday, Friday, 12 Nov), each with the phone's own call symbols.
+
+| Symbol | Words |
+|---|---|
+| Phone with ✕, red | Missed call · 10:42 am |
+| Phone with arrow in, green | Received · 9:15 am · 4 min |
+| Phone with arrow out, gold | You called · 6:10 pm · 1 min |
+| Phone with arrow out, grey | You called · not answered · 7:30 pm |
+| Phone with a slash, red | Rejected · 8:02 am |
+| Second line | Known to Priya and 2 more · 3 people have it · No one on WhoHas has this number |
+| Hidden number | Private number · Can't check hidden numbers |
+| Another country's number | +971 50 123 4567 · **WhoHas checks only Indian numbers** |
+| A short code (121) | WhoHas can't check this number |
+| Call log off | **See who has your callers' numbers** · Allow the call log. · Allow |
 
 ### Contacts
 
-| Where | Now | New |
-|---|---|---|
-| Row | Found with Ravi Kumar, Priya Sharma and 2 others | **4 people have it** · You know Ravi and Priya |
-| Only you | Only you have this number | No one else on WhoHas has it yet |
-| Section | Only you have these | No one else has these yet |
-| Empty | No contacts on this phone · Contacts you save show here with who else has the number. | No contacts on this phone · Contacts you save show here. |
-| Contacts off | Contacts are off · In Settings, tap Permissions, then Contacts, then Allow. | Contacts are off · Open Settings › Permissions › Contacts › Allow. · Open Settings |
+| Where | New |
+|---|---|
+| List | Everyone in your phone, A to Z, under letter headings |
+| Row | Raju Plumber · **12 people have it · You know Priya and 2 more** |
+| Nobody else has it | Suresh Bhaiya · No one else on WhoHas has it yet · **[Share]** (mobiles only: WhatsApp can't reach a landline) |
+| Another country's number | **WhoHas checks only Indian numbers** |
+| Contacts off | Contacts are off · Open Settings › Permissions › Contacts › Allow. · Open Settings |
 
 ### Search
 
@@ -152,6 +146,7 @@ The people you call most who aren't on WhoHas, with their real count, so you can
 | Checking | Checking +91 98450 31207… | Checking +91 98450 31207… |
 | Daily limit | Today's search limit is over · Search again tomorrow. Calls and contacts keep updating. | Today's searches are over · Search again tomorrow. |
 | No internet | No internet · Search needs the internet. Home still shows your last update. | No internet · Search needs the internet. |
+| Another country's number | (none) | WhoHas checks only Indian numbers · Like 98451 72046 |
 
 ## A number's card
 
@@ -181,6 +176,7 @@ Order on screen: who it is → how many have it → people you know → one main
 | Block dialog | Block Ravi? · You and Ravi won't see each other on Found With. Calls and messages aren't affected. | **Block Ravi?** · You won't see each other on WhoHas. Calls and messages still work. · Block · Cancel |
 | Blocked | Blocked · You and Ravi don't see each other on Found With. · Unblock | Blocked · You don't see each other on WhoHas. · Unblock |
 | Taken out | Not shown on Found With · The owner took this number out. | **Hidden by the owner** · They removed this number from WhoHas. |
+| Your calls with it | (none) | **Your calls with this number** (or "with Ravi Kumar"): every call, newest first, each with its symbol · Missed call · Today, 10:42 am · Received · Mon, 4:05 pm · 2 min · See all 9 |
 | Link | What it means (info icon) | What does this mean? |
 
 ### "What does this mean?" sheet
