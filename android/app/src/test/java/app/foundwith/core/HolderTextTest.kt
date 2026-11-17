@@ -28,6 +28,9 @@ class HolderTextTest {
         assertEquals("No one else on WhoHas has it yet", HolderText.haveItLine(emptyList(), 0, 0, onYourPhone = true))
         assertEquals("You know Priya, Meena and 4 more", HolderText.youKnowNames(listOf("Priya", "Meena", "Kiran"), 6))
         assertEquals(null, HolderText.youKnowNames(emptyList(), 0))
+        // Someone only in the call log with no name: counted, never shown as a bare number.
+        assertEquals("You know 1 of them", HolderText.youKnowNames(emptyList(), 1))
+        assertEquals("1 person has it · You know 1 of them", HolderText.haveItLine(emptyList(), 1, 1))
         assertEquals("You know 3 of them", HolderText.youKnowCount(3))
         assertEquals("You don't know any of them", HolderText.youKnowCount(0))
         assertEquals("23 people have your number", HolderText.haveYours(23))

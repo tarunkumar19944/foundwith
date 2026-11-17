@@ -27,6 +27,14 @@ class MessagesTest {
     }
 
     @Test
+    fun groupShareSaysWhatItDoesAndWhyTheGroupBenefits() {
+        val text = Messages.groupShare(link)
+        assertEquals(true, text.startsWith("Hi all! I'm using WhoHas. When an unknown number calls, it shows which people you know have that number"))
+        assertEquals(true, text.contains("The more of us on it, the more callers we can recognise for each other."))
+        assertEquals(true, text.endsWith("Get it here:\n$link"))
+    }
+
+    @Test
     fun shareGivesTheNumberAndACountButNoNames() {
         assertEquals("Mahesh Electricals\n+91 80951 22764\n\n9 other people on WhoHas have this number. See who:\n$link",
             Messages.share("Mahesh Electricals", "+918095122764", 9, link))

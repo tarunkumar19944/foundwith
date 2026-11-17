@@ -27,6 +27,8 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 | 10–49 people | **Many people have this number** · often a business, or someone who calls a lot of people | popular number, "usually a shop" |
 | 50+ people | **Lots of people have this number** · often a business, or someone who calls a lot of people | highly popular number |
 
+**No bare numbers in one-line summaries.** Someone you know only from your call log, with no WhoHas name, still counts ("You know 1 of them") and is listed on the card with their last call, but is never named as a number in "You know …", "Known to …" or the main Ask button.
+
 **"Has" means contacts or call log.** WhoHas counts a number when it is in someone's contacts *or* their call log, so never say "saved" for that. Use "save" only for Android's own **Save to contacts** button. Names come only from contacts (a call log entry has no name), so for names say "know it as".
 
 ---
@@ -64,9 +66,9 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 | Where | Now | New |
 |---|---|---|
 | Your number (before allowing) | Your number · Found with 23 people | Your number · **23 people have it** · Allow contacts to see who they are. |
-| Allow card | See who knows your contacts · Allow contacts, and each one shows who else has the number. · Allow | **See who you know** · Allow contacts and call log. WhoHas will: · Show names of people you know, not just numbers · Tell you who knows a caller, right after the call · Show when friends join, or more people get your number · **Allow** |
+| Allow card (Y's words, 17 Nov) | See who knows your contacts · Allow contacts, and each one shows who else has the number. · Allow | **See who has each number** · Allow contacts and call log. Then, for every number on your phone: · ✓ See how many people on WhoHas have it · ✓ After a call, see who has the caller's number · ✓ Know when more people have your number · **Allow** |
 | Privacy line | Stored encrypted · How it works | No one sees your contact list. If a friend checks a number you have, they see your name. · How WhoHas works |
-| Contacts-only build | (same card) | Allow contacts. WhoHas will: · Show names of people you know, not just numbers · Show when friends join, or more people get your number |
+| Contacts-only build | (same card) | Allow contacts. Then, for every number in your contacts: · ✓ See how many people on WhoHas have it · ✓ Know when more people have your number |
 | Checking | Finding who you know… | Checking your contacts… This takes a few seconds. |
 | Name card | Your name on Found With · People who haven't saved your number see this name. | **Add your name** · People who don't have you in their contacts will see this name. · Save · Later |
 | Notifications card | (banner) Notifications are off. You won't hear after calls. | **Turn on notifications** · Get told who knows a caller right after a missed call. · Turn on |
@@ -169,10 +171,10 @@ Order on screen: who it is → how many have it → people you know → one main
 | Label 50+ | Highly popular number | Lots of people have this number · often a business, or someone who calls a lot of people |
 | Today | Today: 3 more people · now a Popular number | **+3 today** |
 | Main action (not a contact) | Ask (per person) | **Ask Priya who this is** (WhatsApp), small "Ask" on each person below. Picks someone in your contacts first; a call-log person only when no contact has it. |
-| Main action (contact not on WhoHas) | Ravi Kumar isn't on Found With yet · Invite | **Ravi isn't on WhoHas yet** · Invite Ravi to find out who has this number. · **Invite Ravi on WhatsApp** |
+| Main action (contact not on WhoHas) | Ravi Kumar isn't on Found With yet · Invite | **Ravi Kumar isn't on WhoHas yet** · Let them know 7 people on WhoHas have their number. (With nobody: Let them know about WhoHas. Then you can ask each other about unknown callers.) · **Let them know on WhatsApp** (whole name, never the first word: "Dr." and "Plumber" don't stand alone) |
 | After a missed call | Call back | Call back |
 | List title | People you know who have it | People you know who have it · contacts first, then call log |
-| Each person | Contact · In your call log | **In your contacts** · **In your call log** (for someone only in your call log, their own name or their number) |
+| Each person | Contact · In your call log | **In your contacts** · **In your call log · called you yesterday** / **you called on 12 Nov** (someone only in your call log shows their own WhoHas name, else their number; the last call helps you place them) |
 | Rest | Also have it. They aren't on your phone, so you see only how many. | +9 more people you don't know |
 | See all | See all 14 | See all 14 |
 | Menu | Share this number · Save to contacts · Block Ravi | Share number · Save to contacts · Block Ravi |
@@ -242,6 +244,14 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 > **3. Others see you the same way.** If someone who knows you looks up a number you have, they see your name.
 >
 > We never message or call anyone. Everything is stored safely, and you can delete it any time in Settings › Your data.
+
+## Share in a group
+
+| Where | New |
+|---|---|
+| Card on Updates (under Tell) | **Share WhoHas in your groups** · The more of your people on WhoHas, the more callers you can recognise. · **Share in a group** |
+| Invite friends page | **Share in a group** (replaces "Share your link") |
+| What's shared | The Welcome screen picture with "Get WhoHas · Free on Android · link in the message", and: Hi all! I'm using WhoHas. When an unknown number calls, it shows which people you know have that number, so you can ask them who it is. The more of us on it, the more callers we can recognise for each other. Get it here: {link} |
 
 ## Invite friends
 

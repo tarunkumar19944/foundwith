@@ -43,8 +43,14 @@ fun AppState.personName(holder: Holder): String {
 
 fun AppState.knownNames(card: Card): List<String> = card.known.map { personName(it) }
 
-/** People the viewer knows who have the number, in Ask order: contacts first, then call log. */
-fun AppState.knownOrdered(card: Card): List<String> = AskOrder.order(knownPeople(card)).map { it.first.name }
+/**
+ * Names of people the viewer knows who have the number, in Ask order (contacts first, then call
+ * log), for one-line summaries. Someone with no name to show (only in the call log, no WhoHas
+ * name) is left out here: a bare number in "You know …" means nothing. They still count, and
+ * they are listed on the card.
+ */
+fun AppState.knownOrdered(card: Card): List<String> =
+    AskOrder.order(knownPeople(card)).map { it.first.name }.filterNot { Naming.looksLikeNumber(it) }
 
 /** A contact or search row: "5 people have it · You know Priya and Meena". */
 fun AppState.lineFor(card: Card?, onYourPhone: Boolean): String {
@@ -102,6 +108,18 @@ fun whenText(at: Long, now: Long = System.currentTimeMillis()): String {
         day == today.minusDays(1) -> "Yesterday"
         day.isAfter(today.minusDays(7)) -> time.format(DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH))
         else -> time.format(DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH))
+    }
+}
+
+/** "today", "yesterday", "on Fri", "on 12 Nov": for "called you …". */
+fun dayText(at: Long, now: Long = System.currentTimeMillis()): String {
+    val day = Instant.ofEpochMilli(at).atZone(IST).toLocalDate()
+    val today = Instant.ofEpochMilli(now).atZone(IST).toLocalDate()
+    return when {
+        day == today -> "today"
+        day == today.minusDays(1) -> "yesterday"
+        day.isAfter(today.minusDays(7)) -> "on " + day.format(DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH))
+        else -> "on " + day.format(DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH))
     }
 }
 

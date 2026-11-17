@@ -33,6 +33,15 @@ object Messages {
             "have your number. See who they are:\n$link"
     }
 
+    /**
+     * "Share in a group": sent with the WhoHas picture to a WhatsApp group. Every word is true with
+     * any number of people on WhoHas: the benefit grows with how many of the group join.
+     */
+    fun groupShare(link: String): String =
+        "Hi all! I'm using WhoHas. When an unknown number calls, it shows which people you know have that number, " +
+            "so you can ask them who it is. The more of us on it, the more callers we can recognise for each other. " +
+            "Get it here:\n$link"
+
     /** "Share your link" on the Invite friends page: to anyone, through any app. */
     fun inviteLink(link: String): String = "$PITCH Join here:\n$link"
 

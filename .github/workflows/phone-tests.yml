@@ -28,7 +28,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: phone-tests
+  # Pushes replace each other; a run started by hand (say, a few real phones) isn't cancelled by a push.
+  group: phone-tests-${{ github.event_name }}
   cancel-in-progress: true
 
 env:

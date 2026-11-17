@@ -175,7 +175,7 @@ object AfterCall {
         val names = (result.known).map { holder ->
             val label = holder.contactRef?.let { graph.store.index().byRef[it] }
             Naming.person(label?.name, holder.name, label?.e164)
-        }
+        }.filterNot { Naming.looksLikeNumber(it) }   // "Known to +91 …" tells nobody anything
         return CallerInfo(
             contactName = contactName,
             total = result.total,

@@ -50,6 +50,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.foundwith.AppGraph
 import app.foundwith.core.AskOrder
+import app.foundwith.core.CallType
+import app.foundwith.core.Naming
 import app.foundwith.core.Changes
 import app.foundwith.core.HolderText
 import app.foundwith.core.Messages
@@ -201,8 +203,9 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                                 style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (people.isNotEmpty()) {
-                                PeopleStack(people.take(3).map { it.first.id to it.first.name }, ring = MaterialTheme.colorScheme.surface)
+                            val faces = people.map { it.first }.filterNot { Naming.looksLikeNumber(it.name) }
+                            if (faces.isNotEmpty()) {
+                                PeopleStack(faces.take(3).map { it.id to it.name }, ring = MaterialTheme.colorScheme.surface)
                                 Spacer(Modifier.width(10.dp))
                             }
                             Text(HolderText.youKnowCount(knownCount), style = MaterialTheme.typography.titleMedium,
@@ -226,9 +229,10 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                     when {
                         mine -> PrimaryButton("Invite friends", onInviteFriends)
                         askMode && people.isNotEmpty() -> {
-                            val first = people.first().first
+                            // Someone with a name first: contacts, then call-log people who gave one.
+                            val first = people.map { it.first }.firstOrNull { !Naming.looksLikeNumber(it.name) } ?: people.first().first
                             // The whole name: first words like "Dr." or "Plumber" don't stand alone.
-                            PrimaryButton("Ask ${first.name} who this is", {
+                            PrimaryButton(if (Naming.looksLikeNumber(first.name)) "Ask who this is" else "Ask ${first.name} who this is", {
                                 context.messagePerson(first.e164, Messages.ask(e164, card?.name, card?.popularName))
                             }, icon = Icons.Filled.Send)
                         }
@@ -237,8 +241,11 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                             WhCard(Modifier, color = MaterialTheme.colorScheme.secondaryContainer, edge = false) {
                                 Text("$who isn't on WhoHas yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                Text("Invite them to find out who has this number.", color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                PrimaryButton(if (invited) "Invited" else "Invite on WhatsApp", {
+                                Text(if (total > 0) "Let them know ${HolderText.count(total, lowerBound)} on WhoHas " +
+                                        (if (total == 1 && !lowerBound) "has" else "have") + " their number."
+                                    else "Let them know about WhoHas. Then you can ask each other about unknown callers.",
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                PrimaryButton(if (invited) "Sent" else "Let them know on WhatsApp", {
                                     context.messagePerson(e164, Messages.invite(total, link, lowerBound))
                                     invited = true
                                     scope.launch { graph.model.recordTell(e164) }
@@ -262,10 +269,17 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                     WhCard(padding = 4.dp) {
                         val shownPeople = if (showAll) people else people.take(3)
                         for ((person, why) in shownPeople) {
+                            // Someone only in the call log: the last call helps you place them.
+                            val last = if (person.inContacts) null else person.e164?.let { state.lastCall(it) }
+                            val line = when {
+                                last == null -> why.hint
+                                last.type == CallType.OUTGOING -> "In your call log · you called ${dayText(last.at)}"
+                                else -> "In your call log · called you ${dayText(last.at)}"
+                            }
                             NumberRow(
-                                leading = { Avatar(person.id, person.name, 36.dp) },
+                                leading = { if (Naming.looksLikeNumber(person.name)) IconAvatar(Icons.Filled.Call, 36.dp) else Avatar(person.id, person.name, 36.dp) },
                                 name = ShownName(person.name, NameSource.CONTACT),
-                                line = why.hint,
+                                line = line,
                                 trailing = if (askMode) ({
                                     OutlinedButton(onClick = { context.messagePerson(person.e164, Messages.ask(e164, card?.name, card?.popularName)) },
                                         shape = RoundedCornerShape(22.dp), modifier = Modifier.height(44.dp)) { Text("Ask") }

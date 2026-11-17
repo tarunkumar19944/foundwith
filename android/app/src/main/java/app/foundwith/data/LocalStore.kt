@@ -136,6 +136,11 @@ class LocalStore(context: Context) {
         prefs.edit().putStringSet("told", (kept + (e164 to at)).map { "${it.key}@${it.value}" }.toSet()).apply()
     }
 
+    /** When the phone last rebuilt its map of the person's numbers because a card named someone it couldn't place. */
+    var indexRepairedAt: Long
+        get() = prefs.getLong("index_repaired", 0L)
+        set(value) { prefs.edit().putLong("index_repaired", value).apply() }
+
     /** When the person tapped Hide on the Tell card (it stays away for 7 days). */
     var tellHiddenAt: Long
         get() = prefs.getLong("tell_hidden", 0L)

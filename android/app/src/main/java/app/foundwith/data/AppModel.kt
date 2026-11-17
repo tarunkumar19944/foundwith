@@ -120,7 +120,18 @@ class AppModel(private val graph: AppGraph) {
         _state.update { it.copy(refreshing = true) }
         try {
             val profile = ensureProfile()
-            val cards = fetchCards()
+            var cards = fetchCards()
+            // A card can name someone the phone can't place (its map of numbers missed a sync); they'd
+            // show as "Someone on your phone". Rebuild the map with a full sync, at most every 6 hours.
+            val index = store.index()
+            val unplaced = (cards.cards + listOfNotNull(cards.mine)).asSequence().flatMap { it.known }
+                .any { holder -> holder.contactRef != null && holder.contactRef !in index.byRef }
+            val now = System.currentTimeMillis()
+            if (unplaced && now - store.indexRepairedAt > 6 * 3_600_000L &&
+                (graph.book.hasContactsPermission() || graph.book.hasCallLogPermission())) {
+                store.indexRepairedAt = now
+                if (runCatching { graph.sync.fullSync() }.isSuccess) cards = fetchCards()
+            }
             val blocks = runCatching { api.blocks().blocks }.getOrElse { _state.value.blocks }
             store.blockedRefs = blocks.mapNotNullTo(HashSet()) { it.ref }
             _state.update {

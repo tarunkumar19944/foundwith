@@ -59,10 +59,14 @@ object HolderText {
         return "$head · $names"
     }
 
-    /** "You know Priya", "You know Priya and Meena", "You know Priya, Meena and 4 more"; null when no one. */
+    /**
+     * "You know Priya", "You know Priya and Meena", "You know Priya, Meena and 4 more"; "You know 1 of
+     * them" when the people you know have no name to show (only in your call log, no WhoHas name);
+     * null when you know no one. [known] holds names only, never bare numbers.
+     */
     fun youKnowNames(known: List<String>, knownCount: Int = known.size, max: Int = 2): String? {
         val shown = known.take(max)
-        if (shown.isEmpty()) return null
+        if (shown.isEmpty()) return if (knownCount > 0) youKnowCount(knownCount) else null
         val rest = knownCount.coerceAtLeast(shown.size) - shown.size
         if (rest <= 0) return "You know " + joined(shown)
         return "You know " + shown.joinToString(", ") + " and " + grouped(rest) + " more"

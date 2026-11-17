@@ -122,6 +122,28 @@ fun Context.messagePerson(e164: String?, text: String) {
     }
 }
 
+/**
+ * Opens the share sheet with a picture from the app ([resId]) and [text], for a WhatsApp group.
+ * The picture is copied to the cache and handed over through the app's FileProvider.
+ */
+fun Context.shareImage(resId: Int, text: String, title: String) {
+    val file = runCatching {
+        val dir = java.io.File(cacheDir, "shared").apply { mkdirs() }
+        java.io.File(dir, "whohas.png").also { out ->
+            resources.openRawResource(resId).use { input -> out.outputStream().use { input.copyTo(it) } }
+        }
+    }.getOrNull() ?: return shareText(text)
+    val uri = androidx.core.content.FileProvider.getUriForFile(this, "$packageName.files", file)
+    val send = Intent(Intent.ACTION_SEND).setType("image/png")
+        .putExtra(Intent.EXTRA_STREAM, uri)
+        .putExtra(Intent.EXTRA_TEXT, text)
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    send.clipData = android.content.ClipData.newRawUri(null, uri)
+    runCatching {
+        startActivity(Intent.createChooser(send, title).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION))
+    }.onFailure { shareText(text) }
+}
+
 /** "Call back": the phone's own dialer, with the number filled in. No call permission needed. */
 fun Context.dial(e164: String) {
     runCatching { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$e164")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }

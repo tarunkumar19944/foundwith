@@ -2,6 +2,7 @@ package app.foundwith.ui
 
 import android.Manifest
 import android.os.Build
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -64,6 +65,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -78,6 +80,8 @@ import app.foundwith.core.CallType
 import app.foundwith.core.Changes
 import app.foundwith.core.HolderText
 import app.foundwith.core.Messages
+import app.foundwith.core.Naming
+import app.foundwith.R
 import app.foundwith.core.PhoneNumbers
 import app.foundwith.core.SearchInput
 import app.foundwith.core.SearchQuery
@@ -126,6 +130,16 @@ fun HomeScreen(
     var tab by rememberSaveable { mutableStateOf(Tab.UPDATES) }
     var query by rememberSaveable { mutableStateOf("") }
     var found by remember { mutableStateOf<Found>(Found.Idle) }
+    var searching by remember { mutableStateOf(false) }
+    val focus = LocalFocusManager.current
+
+    // Back closes the search first (it used to close the app), then goes back to Updates.
+    BackHandler(enabled = searching || query.isNotEmpty()) {
+        query = ""
+        focus.clearFocus()
+        searching = false
+    }
+    BackHandler(enabled = !searching && query.isEmpty() && tab != Tab.UPDATES) { tab = Tab.UPDATES }
 
     // Allow asks only for what the reward needs. Notifications are asked once names have shown.
     val allowPermissions = remember {
@@ -226,7 +240,7 @@ fun HomeScreen(
                     IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) { Icon(Icons.Filled.Settings, contentDescription = "Settings") }
                 }
             }
-            item { SearchBox(query, onChange = { query = it }) }
+            item { SearchBox(query, onChange = { query = it }, onFocus = { searching = it }) }
 
             if (query.isNotBlank()) {
                 searchResults(state, query, found, onNumber)
@@ -267,7 +281,7 @@ fun HomeScreen(
 private fun countLabel(total: Int): String = if (total == 1) "person has it" else "people have it"
 
 @Composable
-private fun SearchBox(query: String, onChange: (String) -> Unit) {
+private fun SearchBox(query: String, onChange: (String) -> Unit, onFocus: (Boolean) -> Unit) {
     val focus = LocalFocusManager.current
     OutlinedTextField(
         value = query,
@@ -279,7 +293,7 @@ private fun SearchBox(query: String, onChange: (String) -> Unit) {
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text, imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = { focus.clearFocus() }),
         shape = RoundedCornerShape(24.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp).onFocusChanged { onFocus(it.isFocused) },
     )
 }
 
@@ -367,12 +381,13 @@ private fun InvitedCard(names: List<String>, count: Int, total: Int) {
 @Composable
 private fun AllowCard(onAllow: () -> Unit, onHowItWorks: () -> Unit) {
     WhCard(padding = 20.dp) {
-        Text("See who you know", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-        Text(if (BuildConfig.CALL_LOG) "Allow contacts and call log. WhoHas will:" else "Allow contacts. WhoHas will:",
+        Text("See who has each number", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+        Text(if (BuildConfig.CALL_LOG) "Allow contacts and call log. Then, for every number on your phone:"
+            else "Allow contacts. Then, for every number in your contacts:",
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        TickLine("Show names of people you know, not just numbers")
-        if (BuildConfig.CALL_LOG) TickLine("Tell you who knows a caller, right after the call")
-        TickLine("Show when friends join, or more people get your number")
+        TickLine("See how many people on WhoHas have it")
+        if (BuildConfig.CALL_LOG) TickLine("After a call, see who has the caller's number")
+        TickLine("Know when more people have your number")
         PrimaryButton("Allow", onAllow)
         Row(Modifier.clickable(onClick = onHowItWorks).padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
             Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -436,6 +451,7 @@ private fun LazyListScope.updatesTab(graph: AppGraph, state: AppState, onNumber:
         item { NotificationsCard(onTurnOn = onTurnOnNotifications, onLater = { graph.store.notifAsked = true }) }
     }
     item { TellCard(graph, state, onInvite) }
+    item { GroupShareCard(state) }
 
     val entries = updateEntries(state)
     if (entries.isEmpty()) {
@@ -486,7 +502,7 @@ private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, o
         count = total,
         countLabel = countLabel(total),
         line = HolderText.youKnowNames(names, mine.knownTotal) ?: "None of them are in your phone yet",
-        people = mine.known.take(4).map { it.id to state.personName(it) },
+        people = mine.known.map { it.id to state.personName(it) }.filterNot { Naming.looksLikeNumber(it.second) }.take(4),
         chip = week?.let { HolderText.thisWeek(it) },
         onClick = phone?.let { { onNumber(it) } },
     )
@@ -603,6 +619,22 @@ private fun TellCard(graph: AppGraph, state: AppState, onSeeAll: () -> Unit) {
                 hiddenAt = now
             }) { Text("Hide", color = MaterialTheme.colorScheme.onSurfaceVariant) }
         }
+    }
+}
+
+/** "Share in a group": the WhoHas picture and link, for a WhatsApp group. */
+@Composable
+fun GroupShareCard(state: AppState) {
+    val context = LocalContext.current
+    val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
+    WhCard(color = MaterialTheme.colorScheme.primaryContainer, edge = false) {
+        Text("Share WhoHas in your groups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.onPrimaryContainer)
+        Text("The more of your people on WhoHas, the more callers you can recognise.",
+            color = MaterialTheme.colorScheme.onPrimaryContainer)
+        PrimaryButton("Share in a group", {
+            context.shareImage(R.drawable.share_whohas, Messages.groupShare(link), "Share WhoHas")
+        }, icon = Icons.Filled.Share)
     }
 }
 

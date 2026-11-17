@@ -42,5 +42,5 @@ object Naming {
         contactName?.trim()?.takeIf { it.isNotEmpty() && !looksLikeNumber(it) }
             ?: ownName?.trim()?.takeIf { it.isNotEmpty() }
             ?: e164?.let { PhoneNumbers.display(it) }
-            ?: "Someone you know"
+            ?: "Someone on your phone"
 }
