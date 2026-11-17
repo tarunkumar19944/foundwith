@@ -1,4 +1,4 @@
-# Found With for Android
+# WhoHas for Android
 
 Kotlin and Jetpack Compose. Runs on Android 8 and later, on phones, small phones, tablets and foldables, light and dark, with any font size. It follows the final design (90 screens, project doc `claude/found-with-design.md`).
 
@@ -6,16 +6,16 @@ Kotlin and Jetpack Compose. Runs on Android 8 and later, on phones, small phones
 |---|---|
 | Sign-in | Android's own sheet offers the phone's numbers (both SIMs). The SMS code is read by itself, and Home opens. Typing the number, a wrong number or code, a code that didn't come, too many tries and no internet each have their own screen. |
 | Home | "Whose number is this?" at the top. First time: your number's count and the Allow card. After that: **Updates**, **Calls** and **Contacts** as tabs at the bottom. Banners for offline, notifications off and the phone-settings fix. |
-| A number's card | The same everywhere: name (yours, then "name they gave", then "popular name"), "Found with Priya, Ravi and 3 others", the label, today's change, the people you know (Ask on numbers you haven't saved), Invite, Call back, and ⋮ Share this number / Save to contacts / Block. Tap the line for "What it means". |
+| A number's card | The same everywhere: who it is (your name for it, else "Their own name: …", else "5 people know it as …"), "12 people have this number · You know 3 of them", the label, "+3 today", one main action (Ask Priya who this is / Invite Ravi on WhatsApp), Call back, the people you know (contacts first), and ⋮ Share number / Save to contacts / Block. "What does this mean?" explains it. |
 | After a call | A notification: who knows the caller. Sound only for missed calls from unsaved numbers that someone has; silent for the rest; nothing for calls you made, hidden numbers, blocked people and numbers nobody has. Silent 9 pm to 9 am. |
 | Invite friends, Settings | Your link and the people you call most; permissions, notifications, your name, your data (download, blocked people, sign out, delete), Help and How it works. |
 | Phone fix | For Xiaomi, Vivo, Oppo, Realme, OnePlus, Tecno, Infinix, Huawei and Asus: a one-tap link to the brand's Autostart or battery screen, offered only after calls keep being reached late. |
 
-Found With is **never** the phone's caller ID or phone app, never draws over other apps and never asks for the Phone permission.
+WhoHas is **never** the phone's caller ID or phone app, never draws over other apps and never asks for the Phone permission.
 
 There are two builds of the same app:
 
-- **full** also reads the call log: the Calls tab, call-log numbers in "Found with", and the after-call notifications.
+- **full** also reads the call log: the Calls tab, call-log numbers in the counts, and the after-call notifications.
 - **contactsOnly** never asks for the call log: no Calls tab and no after-call notifications. Use it for Google Play until Play approves the call-log declaration (see below).
 
 ## 1. Try it on the emulator with your laptop's backend
@@ -89,7 +89,7 @@ The app targets Android 16 (API 36), which Google Play requires for new apps and
 
 ## 5. After calls
 
-Found With learns about calls from the call log, the way Truecaller does on phones where it isn't the default app, in three ways; whichever comes first handles a call, once (`call/AfterCall.kt`):
+WhoHas learns about calls from the call log, the way Truecaller does on phones where it isn't the default app, in three ways; whichever comes first handles a call, once (`call/AfterCall.kt`):
 
 1. **The call-log trigger.** WorkManager wakes the app a few seconds after the call log changes. No extra permission.
 2. **When the app opens.** Every time.
@@ -100,7 +100,7 @@ A call is notified about only within the hour. Later than that it just shows in 
 The rules (`core/AfterCall.kt`, unit-tested):
 
 - **With sound:** a missed call from a number you haven't saved, when someone has it or it has a name.
-- **Silent:** answered calls from such numbers; calls from saved contacts whose list grew since you last looked ("Now found with 12 · 3 more").
+- **Silent:** answered calls from such numbers; calls from saved contacts whose count grew since you last looked ("3 more people have Ravi's number · now 12").
 - **Nothing:** calls you made, hidden numbers, blocked people, saved contacts with no change, and unsaved numbers nobody has.
 - From 9 pm to 9 am nothing makes a sound. Repeat calls update one notification ("2 missed calls").
 
@@ -120,13 +120,13 @@ Three notification channels, so people can quieten any of them in Android's sett
 - **Full sync**: when the person taps Allow, then once a week. It sends every contact with the name it's saved under, and the call log numbers (in **full**), and replaces what the server has. The server stores names encrypted.
 - **Changes**: seconds after contacts or the call log change, and in the daily background run, only what changed is sent. Renaming a contact sends it again with the new name. More than 500 changes, or a server request, means a full sync instead.
 - The app keeps a private map from the server's references to the phone's numbers and contact names, the cards, the last counts seen (for "3 more" in Updates) and blocked people, so Home opens instantly and works offline.
-- When the server answers 429 or 503, background sync waits as long as `Retry-After` says. Every request carries `X-App-Version`; a 426 shows "Update Found With".
+- When the server answers 429 or 503, background sync waits as long as `Retry-After` says. Every request carries `X-App-Version`; a 426 shows "Update WhoHas".
 
 ## 8. What has been tested
 
 - `app/src/test/.../core` covers every rule the screens use: number parsing (3,020 numbers checked against the server's own parser), the sync diff with names, the card wording and labels, names and tags, the Ask order, every message, the after-call rules (sound, silent, none, quiet hours, repeats, catch-up), brand fixes, search input, change tracking and Updates. Run them with `./gradlew testFullDebugUnitTest`.
 - **Every push builds the app on GitHub** (`.github/workflows/android.yml`): both builds compile, the unit tests run, and lint reports no errors. The run's Summary step prints the test count and every lint warning.
-- **Phone tests** (`app/src/androidTest/PhoneJourneyTest.kt`, `.github/workflows/phone-tests.yml`) use the app end to end in Firebase Test Lab: sign in with a test number, allow, the Contacts tab, a number's card and its menu, search by name and by number, the Calls tab, a missed call from someone on Found With and its notification, every Settings page, sign out. On every app change they run on emulators for Android 8 to 16, a small phone, a tablet and the contacts-only build; weekly (and with `[phones]` in a commit message) on 14 real phones: Samsung Galaxy A10, A14, A16, Z Flip6 and Tab A9+, Xiaomi 14, OPPO A38, realme C53 and RMX3231, OnePlus Nord CE 3 Lite, Tecno Spark Go 2024, Infinix Smart 8, moto g30 and Pixel 8a. Screenshots from each device are attached to the `test-screens` release; videos are in the Firebase console.
+- **Phone tests** (`app/src/androidTest/PhoneJourneyTest.kt`, `.github/workflows/phone-tests.yml`) use the app end to end in Firebase Test Lab: sign in with a test number, allow, the Contacts tab, a number's card and its menu, search by name and by number, the Calls tab, a missed call from someone on WhoHas and its notification, every Settings page, sign out. On every app change they run on emulators for Android 8 to 16, a small phone, a tablet and the contacts-only build; weekly (and with `[phones]` in a commit message) on 14 real phones: Samsung Galaxy A10, A14, A16, Z Flip6 and Tab A9+, Xiaomi 14, OPPO A38, realme C53 and RMX3231, OnePlus Nord CE 3 Lite, Tecno Spark Go 2024, Infinix Smart 8, moto g30 and Pixel 8a. Screenshots from each device are attached to the `test-screens` release; videos are in the Firebase console.
 - **Not yet tried on real phones**: see SPEC section 9, item 4.
 
 ## 9. Where things are

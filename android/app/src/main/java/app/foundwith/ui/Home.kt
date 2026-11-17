@@ -45,6 +45,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -190,19 +191,25 @@ fun HomeScreen(
     Scaffold(
         bottomBar = {
             if (state.setup == Setup.READY && query.isBlank()) {
-                NavigationBar {
+                // Indigo for the selected tab: saffron is kept for what's new.
+                val tabColors = NavigationBarItemDefaults.colors(
+                    indicatorColor = MaterialTheme.colorScheme.primaryContainer,
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     val newCount = updateEntries(state).count { it.at > state.dotsSince }
-                    NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { tab = Tab.UPDATES }, label = { Text("Updates") },
+                    NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { tab = Tab.UPDATES }, label = { Text("Updates") }, colors = tabColors,
                         icon = {
                             BadgedBox(badge = { if (newCount > 0) Badge { Text(newCount.toString()) } }) {
                                 Icon(Icons.Filled.Notifications, contentDescription = null)
                             }
                         })
                     if (BuildConfig.CALL_LOG) {
-                        NavigationBarItem(selected = tab == Tab.CALLS, onClick = { tab = Tab.CALLS }, label = { Text("Calls") },
+                        NavigationBarItem(selected = tab == Tab.CALLS, onClick = { tab = Tab.CALLS }, label = { Text("Calls") }, colors = tabColors,
                             icon = { Icon(Icons.Filled.Call, contentDescription = null) })
                     }
-                    NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { tab = Tab.CONTACTS }, label = { Text("Contacts") },
+                    NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { tab = Tab.CONTACTS }, label = { Text("Contacts") }, colors = tabColors,
                         icon = { Icon(Icons.Filled.Person, contentDescription = null) })
                 }
             }

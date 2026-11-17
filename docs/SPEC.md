@@ -1,19 +1,19 @@
-# Found With — product and API spec (v0.4)
+# WhoHas — product and API spec (v0.4)
 
-**Found With** is a contact discovery platform. For any phone number, it shows who on Found With has it: people who have it in their contacts or their call log. People the viewer knows are named; everyone else is a count.
+**WhoHas** is a contact discovery platform. For any phone number, it shows who on WhoHas has it: people who have it in their contacts or their call log. People the viewer knows are named; everyone else is a count.
 
-v0.4 (16 Nov 2026) follows the final design (90 screens): call logs count, contact names are stored encrypted for the popular name, every number looks the same everywhere, sign-in comes before a name, Found With is never the caller ID app (it tells people after a call, from the call log), the evening note and wake-ups come by push, phone health is reported by brand, and the invite and opt-out web pages are served by the API. Section 10 lists the changes; sections below describe v0.4. **The design that the app follows is in `docs/DESIGN.md` (project doc `claude/found-with-design.md`).**
+v0.4 (16 Nov 2026) follows the final design (90 screens): call logs count, contact names are stored encrypted for the popular name, every number looks the same everywhere, sign-in comes before a name, WhoHas is never the caller ID app (it tells people after a call, from the call log), the evening note and wake-ups come by push, phone health is reported by brand, and the invite and opt-out web pages are served by the API. Section 10 lists the changes; sections below describe v0.4. **The design that the app follows is in `docs/DESIGN.md` (project doc `claude/found-with-design.md`).**
 
 ## 1. Features
 
 | Feature | What the user sees |
 |---|---|
 | **Sign-in** | One tap: Android's own sheet offers the phone's numbers, the SMS code is read by itself, and Home opens. The name comes later, once. |
-| **Your number** | First thing on Home, before anything is allowed: "Your number · Found with 23 people". |
+| **Your number** | First thing on Home, before anything is allowed: "Your number · 23 people have it" (shown only when someone has it). |
 | **Allow** | One card explains it; Android then asks for contacts, call log and notifications. Each can be refused on its own; Home works with whatever is allowed. |
 | **Updates, Calls, Contacts** | Three tabs at the bottom. Updates: your number, calls from numbers you haven't saved, and contacts whose count went up, with green dots for what's new. Calls: every call. Contacts: every contact, and "Only you have these" with Invite. |
 | **Search** | "Whose number is this?": a mobile number searches everyone; letters search your own contacts. |
-| **A number's card** | "Found with Priya, Ravi and 3 others", the label, today's change, and the people you know who have it (Ask on numbers you haven't saved), Invite (saved contacts not on Found With), Call back (after a call). ⋮: Share this number, Save to contacts, Block (people on Found With). Tap the line for "What it means". |
+| **A number's card** | Who it is, "12 people have this number · You know 3 of them", the label, "+3 today", one main action (Ask someone in your contacts first; Invite for saved contacts not on WhoHas), Call back (after a call), the people you know (contacts first, then call log), "+9 more people you don't know", "What does this mean?". ⋮: Share number, Save to contacts, Block (people on WhoHas). |
 | **After a call** | A notification: who knows the caller. Sound only for missed calls from unsaved numbers someone has. |
 | **Evening note** | Once a day, only if something changed, counts only. |
 | **Invite friends** | Share your link, or invite the people you call most. No reward. |
@@ -21,17 +21,17 @@ v0.4 (16 Nov 2026) follows the final design (90 screens): call logs count, conta
 | **Phone fix** | When calls keep being reached late, a one-tap link to the brand's Autostart or battery setting. |
 | **Opt-out page** | `/out`: anyone can take their number out after an SMS code; a number with an account loses the account too, after a warning. |
 
-**Wording.** Every card, search result, list row and notification says it in one line: "Found with Priya Sharma, Ravi Kumar and 2 others". With no names to show it is "Found with 4 people". With nobody: "Only you have this number" for a contact, "Found with no one yet" otherwise. Counts never include the viewer.
+**Wording** (all of it in [WHOHAS_COPY.md](WHOHAS_COPY.md)). The number comes first and "has" means contacts or call log, never "saved": "12 people have this number · You know 3 of them" on a card, "5 people have it · You know Priya and Meena" on a contact row, "Known to Priya, Meena and 10 more" on a call row and after a call. With nobody: "No one else on WhoHas has it yet" for a number on your phone, "No one on WhoHas has this number" otherwise. Counts never include the viewer and are never padded.
 
 ## 2. Matching rules
 
 1. A user takes part (their numbers count for others) only after they allow it and accept the current consent text. Before that they see their own number's count and can search, by count. When the consent version changes, syncing stops until they accept again.
 2. A user is a *holder* of a number when it is in their **contacts or call log** (v0.4; before, contacts only).
 3. **Only people you know are named** (`HOLDER_VISIBILITY = known`). A holder is named only if their own number is in the viewer's contacts or call log. Everyone else is a count.
-4. **Every number looks the same everywhere.** Its name, in order: the viewer's contact name (on the phone), the owner's own Found With name ("name they gave"), the popular name, the number. Left out of the owner name: blocked people, opted-out numbers, suspended people and people not taking part.
+4. **Every number looks the same everywhere.** Its name, in order: the viewer's contact name (on the phone), the owner's own WhoHas name ("name they gave"), the popular name, the number. Left out of the owner name: blocked people, opted-out numbers, suspended people and people not taking part.
 5. **Popular name**: the name at least 3 people saved for a number in their contacts, counted nightly from established accounts (7 days old, used in the last 30 days, syncing, not suspended). Names are compared loosely (case, spacing, dots). No word filter (decided 16 Nov 2026).
 6. **Hide this number** (API only) takes a number out for that user in both directions.
-7. **Opt-out** takes a number out for everybody: removed from every contact list and call log at once, never stored again, its popular name dropped, and it shows as "Not shown on Found With". A number with an account loses the account too.
+7. **Opt-out** takes a number out for everybody: removed from every contact list and call log at once, never stored again, its popular name dropped, and it shows as "Not shown on WhoHas". A number with an account loses the account too.
 8. **Blocking** works both ways: neither person is shown to the other anywhere. It never blocks calls.
 9. **Suspension** (after a complaint to the help address, or a report) removes a person from every card and stops their syncs and lookups. A moderator can also **hold** a number's popular name: it's removed at once and never worked out again for that number.
 10. **Inactive accounts** (not seen for 90 days) are deleted with everything they synced.
@@ -80,7 +80,7 @@ A phone rings for about 30 seconds, and the panel is only useful in the first tw
 
 ### What the Android app must do
 
-1. **After a call, from the call log.** Found With is never the caller ID or phone app. Android wakes it when the call log changes (a content trigger, no extra permission); it also checks when the app opens, and when the server's wake-up push arrives. Each call is handled once, and only notified about within the hour. `POST /v1/lookup` with `context: "call"`.
+1. **After a call, from the call log.** WhoHas is never the caller ID or phone app. Android wakes it when the call log changes (a content trigger, no extra permission); it also checks when the app opens, and when the server's wake-up push arrives. Each call is handled once, and only notified about within the hour. `POST /v1/lookup` with `context: "call"`.
 2. **Notify sparingly.** Sound only for a missed call from an unsaved number that someone has (or that has a name); silent for answered calls and contacts whose list grew; nothing for calls made, hidden numbers, blocked people, unchanged contacts and unsaved numbers nobody has. Silent from 9 pm to 9 am. One notification per number.
 3. **Send changes as they happen.** Watch contacts and the call log and send `POST /v1/me/numbers/changes`; contacts go with the name they're saved under. The whole address book goes on first setup and then once a week (the daily run sends only changes).
 4. **Keep everything on the phone.** Cards, the last counts seen (for "3 more" in Updates) and blocked people are cached, so Home opens instantly and works offline.
@@ -177,7 +177,7 @@ Base URL: the Cloud Run service URL. Every `/v1` call needs `Authorization: Bear
 | `GET` / `POST /v1/blocks`, `DELETE /v1/blocks/{id}` | `{"user_id": "<owner id>"}` | Blocks list `[{"id", "name", "ref"}]` / `{"id", "name"}` / 204 |
 | `GET /v1/me/circle` | | `{"members": n, "member_refs": [...], "goal": 20, "invite": {"code", "link", "joined", "joined_refs"}}`. `member_refs` lets the phone leave members out of the invite list and hide Invite on their cards. |
 | `POST /v1/me/invite/redeem` | `{"code": "ABCD2345"}` | `{"redeemed": true}`. Sent once by a new user's app after sign-in. No reward. |
-| `GET /i/{code}` | | No sign-in. A page: "Tarun invited you to Found With", a Google Play button carrying `referrer=invite%3D<code>` on Android, "on Android for now" on iPhone. |
+| `GET /i/{code}` | | No sign-in. A page: "Tarun invited you to WhoHas", a Google Play button carrying `referrer=invite%3D<code>` on Android, "on Android for now" on iPhone. |
 | `GET /out` | | No sign-in. The opt-out page: SMS sign-in (Identity Platform web SDK), then `/v1/optout`. Warns first when the number has an account. |
 | `POST /internal/push`, `/internal/push/evening`, `/internal/push/wake` | | Cloud Scheduler only (OIDC): due silent refreshes every minute, the evening note at 7:30 pm, wake-ups at 10 am, 2 pm and 6 pm IST. |
 | `GET /healthz`, `GET /readyz` | | Liveness; readiness including the database |
@@ -198,7 +198,7 @@ A **ref** is an opaque 43-character handle for a hashed number. The sync respons
 }
 ```
 
-`known` lists every holder the viewer knows (their number is in the viewer's contacts or call log); the phone shows each under its own saved name via `contact_ref`. `others` stays empty with visibility `known` (with `everyone` it is a short sample of the rest). `more` is how many are only a count. `name` is the owner's own Found With name ("name they gave"), `popular_name` what at least 3 established people saved ("popular name"); both on cards, search and calls alike. `on_found_with` and `owner_id` say whether the owner takes part (no Invite; Block possible). Labels are worked out on the phone from `total`: Popular number 10 to 49, Highly popular number 50 and up.
+`known` lists every holder the viewer knows (their number is in the viewer's contacts or call log); the phone shows each under its own saved name via `contact_ref`. `others` stays empty with visibility `known` (with `everyone` it is a short sample of the rest). `more` is how many are only a count. `name` is the owner's own WhoHas name ("name they gave"), `popular_name` what at least 3 established people saved ("popular name"); both on cards, search and calls alike. `on_found_with` and `owner_id` say whether the owner takes part (no Invite; Block possible). Labels are worked out on the phone from `total`: Popular number 10 to 49, Highly popular number 50 and up.
 
 **Errors** always look like `{"error": {"code": "...", "message": "...", "details": {...}}}`. The message can be shown to users.
 
@@ -249,7 +249,7 @@ A **ref** is an opaque 43-character handle for a hashed number. The sync respons
 
 ### v0.4 (16 Nov 2026)
 
-- Call logs count in "Found with" and in the stored counts (migration 0005 rebuilds them).
+- Call logs count in "has this number" and in the stored counts (migration 0005 rebuilds them).
 - Contact names: sent with contacts, stored encrypted with a keyed hash; popular names worked out nightly from established accounts; shown with a "popular name" tag. The owner's own name shows on search too ("name they gave").
 - Cards and lookups: `popular_name`, `on_found_with`, `owner_id`; lookups: `taken_out`. Labels move to the phone.
 - Sign-in creates the account without a name; the first name doesn't start the 14-day wait. Cards and search work before taking part (own count first).
@@ -262,9 +262,9 @@ A **ref** is an opaque 43-character handle for a hashed number. The sync respons
 
 ### v0.3 (13 Nov 2026)
 
-- Home starts with the viewer's own number (`mine` in the cards response), then circle progress until 20 people they know are on Found With.
+- Home starts with the viewer's own number (`mine` in the cards response), then circle progress until 20 people they know are on WhoHas.
 - Invite links (`/i/{code}` to the Play Store with an install referrer), redemption once per number in a new account's first 7 days, and 20 more searches a day for both sides (inviter capped at 100). Search limits include the bonus.
-- Invite screen on the phone: contacts not on Found With, ranked by calls, then favourites, then name; one tap opens WhatsApp or SMS with the invite typed in. Nothing is ever sent automatically.
+- Invite screen on the phone: contacts not on WhoHas, ranked by calls, then favourites, then name; one tap opens WhatsApp or SMS with the invite typed in. Nothing is ever sent automatically.
 - Share a number from its card: saved name, number, counts and the invite link.
 
 ### v0.2 (12 Nov 2026), from v0.1
@@ -276,3 +276,11 @@ A **ref** is an opaque 43-character handle for a hashed number. The sync respons
 - The maintenance job can now run admin commands (its command and arguments were one fixed list, so `--args` couldn't replace them).
 - Number parsing handles Indian-script digits and invisible characters.
 - Call lookups default to 100 a day (was 300).
+
+## v0.5 (17 Nov 2026): WhoHas
+
+- **Name.** Found With is now WhoHas in everything people see (app, notifications, pushes, web pages). Internal names (package `app.foundwith`, database, service names) stay.
+- **Tell.** `POST /v1/tells {"number": "+91…"}` records that the signed-in person told one of their contacts about WhoHas (mobile numbers only; your own is ignored; one row per teller and number, newest wins; kept 90 days, migration 0007). `GET /v1/me` now returns `invited_by` (up to 3 first names of people who told this number, newest first; "A friend" when none of them has a name) and `invited_by_count`. Blocked people either way are left out.
+- **Cards** carry `known_count` (everyone the viewer knows who has the number; `known` lists at most 100) and `popular_name_people` (how many people have the popular name for it).
+- **Daily summary** text: "1 more person has your number. 3 numbers on your phone got more people." Title "Today on WhoHas".
+- **Sign-in** (app side): only a SIM in this phone. The code is accepted only when this phone reads the SMS itself; typed codes only in test builds and for the Play review number (`-Pwhohas.reviewNumber=+91…`, a Firebase test number).

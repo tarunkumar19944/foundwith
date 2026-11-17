@@ -1,4 +1,4 @@
-"""Live multi-user test: seven test users use the real Found With server the way people do, and every
+"""Live multi-user test: seven test users use the real WhoHas server the way people do, and every
 answer is checked. Runs from GitHub after each deploy and every night (.github/workflows/live-test.yml).
 
 It signs in with Identity Platform's test numbers (+91 90000 00002 to 08: no SMS is sent), so it
@@ -318,6 +318,16 @@ def run(config: dict) -> Report:
         status, _ = g.call("GET", "/v1/me")
         report.check("Gita's account is gone", status in (401, 404), status)
         g.call("DELETE", "/v1/optout")
+
+        print("Tell (WhoHas)")
+        status, _ = a.call("POST", "/v1/tells", {"number": b.phone})
+        report.check("Asha taps Tell for Bala", status == 204, status)
+        status, body = b.call("GET", "/v1/me")
+        report.check("Bala's profile says Asha told him", status == 200 and body.get("invited_by_count", 0) >= 1
+                     and any(n.startswith("Asha") or n == "A friend" for n in body.get("invited_by", [])), body)
+        cards = a.call("GET", "/v1/cards")[1]
+        report.check("cards say how many of the people you know have each number",
+                     all("known_count" in c and c["known_count"] >= len(c["known"]) for c in cards.get("cards", [])), cards.get("cards", [])[:2])
 
         print("Settings and your data")
         status, body = a.call("PUT", "/v1/me/settings", {"evening_note": False})

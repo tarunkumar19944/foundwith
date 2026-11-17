@@ -1,12 +1,14 @@
-# Found With: the final design (v0.4, 16 Nov 2026)
+# WhoHas: the final design (v0.4, 16 Nov 2026)
+
+> **Renamed WhoHas on 17 Nov 2026.** The words on every screen are now in [WHOHAS_COPY.md](WHOHAS_COPY.md), which replaces the wording below ("Found with …", "popular number", "name they gave"). The screens are on the WhoHas screens design canvas.
 
 What the Android app shows and says, screen by screen. Agreed with Y over the design rounds and built as written. Rules that need numbers live in code and are unit-tested (`android/app/src/main/java/app/foundwith/core/`); the server's side is `docs/SPEC.md`.
 
 ## What it is
 
-For any phone number, Found With shows who on Found With has it in their contacts or call log. People you know are named; everyone else is a count. English only. Android only for now.
+For any phone number, WhoHas shows who on WhoHas has it in their contacts or call log. People you know are named; everyone else is a count. English only. Android only for now.
 
-Found With is **never** the phone's caller ID or phone app. It never draws over other apps and never asks for the Phone permission. It tells you about a caller **after** the call, from the call log, the way Truecaller works on phones where it isn't the default app.
+WhoHas is **never** the phone's caller ID or phone app. It never draws over other apps and never asks for the Phone permission. It tells you about a caller **after** the call, from the call log, the way Truecaller works on phones where it isn't the default app.
 
 ## One rule for every number
 
@@ -31,26 +33,26 @@ Every number looks the same wherever it appears (Home tabs, search, after a call
 - **Calls** (full build only): recent calls, each with its line.
 - **Contacts**: your contacts A–Z with their lines.
 
-Banners: offline, notifications off, and the phone fix (only after calls keep being reached late). A "Your name on Found With" card asks once, with Not now.
+Banners: offline, notifications off, and the phone fix (only after calls keep being reached late). A "Your name on WhoHas" card asks once, with Not now.
 
 **Search.** Typing a name filters contacts; a full mobile number shows its card; an incomplete or non-mobile number says so.
 
 **A number's card.** The name, line, label and today's line. Then the people you know who have it, in this order: people you talk to often (3+ calls), favourites, contacts A–Z, then call-log-only. Buttons, each only when it applies:
 
 - **Ask** next to a person: only on numbers you haven't saved. Opens WhatsApp with the message typed in.
-- **Invite**: only on saved mobiles whose owner isn't on Found With.
+- **Invite**: only on saved mobiles whose owner isn't on WhoHas.
 - **Call back**: only after a call from a number you haven't saved.
-- **⋮ menu**: Share this number; Save to contacts (if not saved); Block (only for people on Found With; blocks the person, and their number never shows them to you again).
+- **⋮ menu**: Share this number; Save to contacts (if not saved); Block (only for people on WhoHas; blocks the person, and their number never shows them to you again).
 
 Blocked and taken-out numbers have their own states.
 
-**Invite friends.** Share your link, then the people you call most who aren't on Found With, each with Invite. No reward.
+**Invite friends.** Share your link, then the people you call most who aren't on WhoHas, each with Invite. No reward.
 
 **Settings.** Permissions, Notifications (the evening note on or off, Android's channel settings), Your name, Your data (download, blocked people, sign out, delete account), Help (email), How it works, Phone fix.
 
 **Phone fix.** For Xiaomi, Vivo, Oppo, Realme, OnePlus, Tecno, Infinix, Huawei, Samsung and Asus: one tap to the brand's Autostart or battery page, then Battery settings, then Done.
 
-**Gates.** "Update Found With" when the server says the app is too old. "Your account is suspended" with sign out and delete.
+**Gates.** "Update WhoHas" when the server says the app is too old. "Your account is suspended" with sign out and delete.
 
 **Removed during design**: the visibility switch, Leave out, Take out (in the app), Report name, the incoming-call panel, the caller ID role, the invite reward, Hindi and other languages.
 
@@ -59,8 +61,8 @@ Blocked and taken-out numbers have their own states.
 They speak to the person who receives them, never greet by name (names are saved as "Dr. Anand", "Plumber Raju"), put the number on its own line, and never say who has a number.
 
 - **Ask**: "Hi, do you know whose number this is?\n+91 98450 31207" (+ "It shows as Raju Plumber." when there's a popular name). When the owner is known: "Hi, do you know Raju?\n+91 …".
-- **Invite**: "Hi, I'm using Found With. 3 other people on Found With have your number too. See which of them you know:\n<link>". The count only when someone besides the sender has the number.
-- **Share this number**: the name, the number, "N other people on Found With have this number too", the link.
+- **Invite**: "Hi, I'm using WhoHas. 3 other people on WhoHas have your number too. See which of them you know:\n<link>". The count only when someone besides the sender has the number.
+- **Share this number**: the name, the number, "N other people on WhoHas have this number too", the link.
 
 ## After a call
 
@@ -75,7 +77,7 @@ Repeat calls update one notification ("2 missed calls: …"). Calls found more t
 
 ## From the server
 
-- **Evening note** at 7:30 pm, "Today on Found With", counts only: "3 numbers on your phone are found with more people today. Your number: 1 more person." Sent only when something changed; switchable in Settings.
+- **Evening note** at 7:30 pm, "Today on WhoHas", counts only: "3 numbers on your phone are found with more people today. Your number: 1 more person." Sent only when something changed; switchable in Settings.
 - **Wake-ups** three times a day, so phones that stop apps in the background still catch up on calls.
 - **Opt-out page** (`/out`): anyone can take their number out without the app; if it has an account, it is deleted too, after a warning.
 - **Invite page** (`/i/<code>`): "X invited you", a Google Play button; on iPhone, "Android for now".

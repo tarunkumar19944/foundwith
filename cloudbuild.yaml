@@ -1,4 +1,4 @@
-# Test, build, migrate and deploy Found With. Runs as the found-with-deployer service account.
+# Test, build, migrate and deploy WhoHas. Runs as the found-with-deployer service account.
 # Triggered on every push to main (see README), or by hand:
 #   gcloud builds submit --config cloudbuild.yaml --substitutions=SHORT_SHA=$(git rev-parse --short HEAD)
 
@@ -63,8 +63,13 @@ steps:
   - id: deploy
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     entrypoint: gcloud
+    # The test numbers (fictional Firebase numbers, never their codes) skip the daily lookup limits
+    # and the per-person rate limit, so a dozen test phones on one account don't lock each other
+    # out. Same value as infra/terraform/main.tf, which sets it on the next apply.
     args: ["run", "deploy", "${_SERVICE}", "--region=${_REGION}",
-           "--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:$SHORT_SHA", "--quiet"]
+           "--image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/api:$SHORT_SHA",
+           "--update-env-vars=^@^QUOTA_EXEMPT_NUMBERS=+919000000001,+919000000002,+919000000003,+919000000004,+919000000005,+919000000006,+919000000007,+919000000008,+919000000009,+919000000010",
+           "--quiet"]
     waitFor: ["migrate"]
 
   - id: smoke-test

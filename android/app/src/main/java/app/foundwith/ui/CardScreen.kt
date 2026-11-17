@@ -119,7 +119,6 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
     val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
     val people = card?.let { AskOrder.order(state.knownPeople(it)) }.orEmpty()
     val askMode = !saved && !mine
-    val firstName = { full: String -> full.trim().split(' ').firstOrNull()?.takeIf { it.any(Char::isLetter) } ?: full }
 
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -228,17 +227,18 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                         mine -> PrimaryButton("Invite friends", onInviteFriends)
                         askMode && people.isNotEmpty() -> {
                             val first = people.first().first
-                            PrimaryButton("Ask ${firstName(first.name)} who this is", {
+                            // The whole name: first words like "Dr." or "Plumber" don't stand alone.
+                            PrimaryButton("Ask ${first.name} who this is", {
                                 context.messagePerson(first.e164, Messages.ask(e164, card?.name, card?.popularName))
                             }, icon = Icons.Filled.Send)
                         }
                         saved && PhoneNumbers.isIndianMobile(e164) && !member -> {
-                            val who = firstName(name.text)
+                            val who = name.text
                             WhCard(Modifier, color = MaterialTheme.colorScheme.secondaryContainer, edge = false) {
                                 Text("$who isn't on WhoHas yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                Text("Invite $who to find out who has this number.", color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                PrimaryButton(if (invited) "Invited" else "Invite $who on WhatsApp", {
+                                Text("Invite them to find out who has this number.", color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                PrimaryButton(if (invited) "Invited" else "Invite on WhatsApp", {
                                     context.messagePerson(e164, Messages.invite(total, link, lowerBound))
                                     invited = true
                                     scope.launch { graph.model.recordTell(e164) }

@@ -1,6 +1,6 @@
-# Found With
+# WhoHas
 
-For any phone number, see who on Found With has it in their contacts or call log: by name for people you know, as a count for the rest. On your Home tabs, when you search a number, and in a notification after a call.
+For any phone number, see who on WhoHas has it in their contacts or call log: by name for people you know, as a count for the rest. On your Home tabs, when you search a number, and in a notification after a call.
 
 | Folder | What's in it |
 |---|---|
@@ -103,7 +103,7 @@ curl -s localhost:8080/v1/cards -H "$H"
 
 Dev sign-in is refused when `APP_ENV=production`. With `PUSH_MODE=log`, pushes are written to the log instead of sent.
 
-The web pages are at `localhost:8080/i/<invite code>` (the invite page) and `localhost:8080/out` (take a number out of Found With; it needs `FIREBASE_WEB_API_KEY` for the SMS code).
+The web pages are at `localhost:8080/i/<invite code>` (the invite page) and `localhost:8080/out` (take a number out of WhoHas; it needs `FIREBASE_WEB_API_KEY` for the SMS code).
 
 ## Deploy to GCP
 
