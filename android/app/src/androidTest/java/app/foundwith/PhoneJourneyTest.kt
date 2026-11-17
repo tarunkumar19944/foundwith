@@ -1,5 +1,11 @@
 package app.foundwith
 
+import android.service.notification.StatusBarNotification
+
+import android.app.NotificationManager
+
+import android.app.Notification
+
 import android.Manifest
 import android.content.ContentProviderOperation
 import android.content.ContentValues
@@ -165,20 +171,37 @@ class PhoneJourneyTest {
         // Coming back to the app checks calls at once (the call-log trigger would too, a little later).
         compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
         compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        // Look for it in the app's own posted notifications: reading the shade's text depends on
+        // the phone (Android 8 doesn't always expose it; One UI 7 covers it with a tutorial once).
+        val manager = InstrumentationRegistry.getInstrumentation().targetContext.getSystemService(NotificationManager::class.java)
+        fun posted(): StatusBarNotification? = manager.activeNotifications.firstOrNull { sbn ->
+            val extras = sbn.notification.extras
+            val text = listOf(Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT)
+                .joinToString(" ") { extras.getCharSequence(it)?.toString().orEmpty() }
+            "Test Caller" in text || "00009" in text
+        }
+        var note: StatusBarNotification? = null
+        val until = System.currentTimeMillis() + 120_000
+        while (note == null && System.currentTimeMillis() < until) {
+            note = posted()
+            if (note == null) Thread.sleep(1_000)
+        }
         device.openNotification()
-        val note = device.wait(Until.findObject(By.textContains("Test Caller")), 120_000)
-            ?: device.wait(Until.findObject(By.textContains("00009")), 5_000)
+        device.waitForIdle(2_000)
         shotDevice("13-notification")
+        device.pressBack()   // close the shade (and One UI's one-time tutorial) for the next steps
         if (note == null) {
-            val seen = device.findObjects(By.textContains("")).mapNotNull { it.text }.filter { it.isNotBlank() }.take(40)
-            device.pressBack()   // close the shade for the next steps
             // The shared test account can use up its daily call lookups when the tests run many
             // times in a day; that's the server's limit working, not the app failing.
             assumeTrue("the test account's call lookups for today are used up",
                 !appLog().contains("after-call lookup failed: quota_exceeded"))
-            throw AssertionError("No after-call notification for the missed call. On screen: $seen")
+            throw AssertionError("No after-call notification for the missed call. Posted: " +
+                manager.activeNotifications.map { it.notification.extras.getCharSequence(Notification.EXTRA_TITLE) })
         }
-        note!!.click()
+        val text = note.notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
+        assertTrue("The note should give the caller's own name: $text", text.contains("Their own name: Test Caller"))
+        // Tapping it opens the caller's card.
+        note.notification.contentIntent.send()
         waitFor("Test Caller", 30_000)
         shot("14-caller-card")
         back()

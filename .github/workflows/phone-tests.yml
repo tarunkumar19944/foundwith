@@ -19,6 +19,9 @@ on:
       devices:
         description: "emulators, phones or both"
         default: "both"
+      phone_models:
+        description: "Only these real phones (space-separated model=…,version=… entries; empty for all)"
+        default: ""
 
 permissions:
   contents: write   # publishes screenshots and logs as the test-screens release
@@ -106,6 +109,7 @@ jobs:
       - name: Run on Test Lab
         env:
           SET: ${{ steps.which.outputs.set }}
+          ONLY_PHONES: ${{ github.event.inputs.phone_models }}
         run: |
           set -uo pipefail
           apks=android/app/build/outputs/apk
@@ -137,6 +141,7 @@ jobs:
             run emulators full $EMULATORS || failed=1
             run contacts-only contactsOnly model=MediumPhone.arm,version=34 || failed=1
           fi
+          if [ -n "${ONLY_PHONES:-}" ]; then PHONES="$ONLY_PHONES"; fi
           if [ "$SET" = phones ] || [ "$SET" = both ]; then
             # Real phones can wait hours in Test Lab's queue, so start them without waiting and
             # check on them every minute, for up to 4.5 hours.
