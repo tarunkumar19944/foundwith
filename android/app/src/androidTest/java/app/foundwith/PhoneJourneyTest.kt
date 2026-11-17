@@ -150,6 +150,11 @@ class PhoneJourneyTest {
         waitForAny(listOf("have it", "has it", "No one else on WhoHas has it yet", "No one on WhoHas has this number",
             "Today's searches are over"), 30_000)
         shot("11-search-number")
+        // Back closes the search, never the app (Y, 17 Nov): once for the keyboard, once for the search.
+        device.pressBack()
+        device.pressBack()
+        assertTrue("Back closed the app instead of the search",
+            device.wait(Until.hasObject(By.pkg(PACKAGE)), 5_000) && onHome(10_000))
         search("")
         waitFor("Contacts")
     }
@@ -217,7 +222,7 @@ class PhoneJourneyTest {
             "Notifications" to "Daily summary",
             "Your data" to "Download my data",
             "Help" to "How WhoHas works",
-            "Invite friends" to "Share your link",
+            "Invite friends" to "Share in a group",
         )) {
             tap(row)
             waitFor(inside)
