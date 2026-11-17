@@ -48,8 +48,8 @@ jobs:
   phones:
     if: github.repository == 'tarunkumar19944/foundwith'
     runs-on: ubuntu-latest
-    # Real phones can wait a long time in Test Lab's queue: 90 minutes ran out on 16 Nov.
-    timeout-minutes: 180
+    # Real phones can wait hours in Test Lab's queue (90, then 180 minutes ran out on 16-17 Nov).
+    timeout-minutes: 340
     steps:
       - uses: actions/checkout@v5
 
@@ -138,7 +138,49 @@ jobs:
             run contacts-only contactsOnly model=MediumPhone.arm,version=34 || failed=1
           fi
           if [ "$SET" = phones ] || [ "$SET" = both ]; then
-            run phones full $PHONES || failed=1
+            # Real phones can wait hours in Test Lab's queue, so start them without waiting and
+            # check on them every minute, for up to 4.5 hours.
+            args=(); for d in $PHONES; do args+=(--device "$d"); done
+            echo "::group::phones"
+            gcloud firebase test android run --async --project=$PROJECT --type=instrumentation \
+              --app "$apks/full/debug/app-full-debug.apk" \
+              --test "$apks/androidTest/full/debug/app-full-debug-androidTest.apk" \
+              "${args[@]}" \
+              --environment-variables "fwCode=$FW_CODE,fwNumber=9000000010,fwCaller=+919000000009" \
+              --results-bucket=$PROJECT-test-lab --results-dir="run-$GITHUB_RUN_ID-phones" \
+              --directories-to-pull=/sdcard/Android/data/app.foundwith/files \
+              --timeout=15m --num-flaky-test-attempts=1 2> "$RUNNER_TEMP/phones.txt"
+            cat "$RUNNER_TEMP/phones.txt"
+            matrix=$(grep -o 'matrix-[a-z0-9]*' "$RUNNER_TEMP/phones.txt" | head -1)
+            echo "::endgroup::"
+            if [ -z "$matrix" ]; then
+              echo "::error::The phone run didn't start"; failed=1
+            else
+              api="https://testing.googleapis.com/v1/projects/$PROJECT/testMatrices/$matrix"
+              deadline=$(( $(date +%s) + 270 * 60 ))
+              while :; do
+                curl -sS -H "Authorization: Bearer $(gcloud auth print-access-token)" "$api" > "$RUNNER_TEMP/matrix.json"
+                state=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("state",""))' "$RUNNER_TEMP/matrix.json")
+                case "$state" in FINISHED|ERROR|INVALID|CANCELLED) break ;; esac
+                if [ "$(date +%s)" -gt "$deadline" ]; then
+                  echo "::warning::Phones still not done after 4.5 hours: cancelling the rest"
+                  curl -sS -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)" "$api:cancel" > /dev/null
+                  break
+                fi
+                sleep 60
+              done
+              python3 - "$RUNNER_TEMP/matrix.json" <<'PY'
+          import json, sys
+          m = json.load(open(sys.argv[1]))
+          print(f"\nphones: {m.get('state')} {m.get('outcomeSummary', '')}")
+          for e in m.get("testExecutions", []):
+              d = e.get("environment", {}).get("androidDevice", {})
+              detail = e.get("testDetails", {}).get("errorMessage") or ""
+              print(f"  {e.get('state','?'):12} {d.get('androidModelId','?')}-{d.get('androidVersionId','?'):4} {detail}")
+          PY
+              summary=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("outcomeSummary",""))' "$RUNNER_TEMP/matrix.json")
+              case "$summary" in SUCCESS|FLAKY) ;; *) failed=1 ;; esac
+            fi
           fi
           echo "Results, videos and screenshots: https://console.firebase.google.com/project/$PROJECT/testlab/histories/"
           exit $failed

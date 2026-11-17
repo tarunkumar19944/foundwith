@@ -1,5 +1,5 @@
 """Gets the live server ready for the phone tests (android/app/src/androidTest): the fixed caller
-+91 90000 00009 has a Found With account named "Test Caller", so a missed call from it is one the
++91 90000 00009 has a WhoHas account named "Test Caller", taking part, so a missed call from it is one the
 app must tell the phone about; and the phones' own account, +91 90000 00010, starts afresh, so
 nothing an earlier run saved is still on the server. Safe to run any number of times.
 
@@ -32,7 +32,15 @@ def main() -> int:
         status, me = http.call("PATCH", "/v1/me", token, {"display_name": NAME})
     if status != 200:
         raise Failed(f"caller account: {status} {me}")
-    print(f"Caller ready: {me.get('name')}")
+    # Only people who accepted the current terms are named on cards and after calls, so the caller
+    # takes part like anyone would: contacts on, current consent.
+    sync = me.get("sync", {})
+    if not sync.get("enabled") or not sync.get("consent_current"):
+        status, me = http.call("PUT", "/v1/me/sync", token,
+                               {"enabled": True, "consent_version": sync.get("current_consent_version")})
+        if status != 200:
+            raise Failed(f"caller consent: {status} {me}")
+    print(f"Caller ready: {me.get('name')} (taking part: {me.get('sync', {}).get('enabled')})")
 
     token = firebase_sign_in(config["web_api_key"], PHONES, config["test_numbers"][PHONES])
     status, _ = http.call("GET", "/v1/me", token)
