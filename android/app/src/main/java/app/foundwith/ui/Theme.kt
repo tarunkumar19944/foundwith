@@ -1,9 +1,11 @@
 package app.foundwith.ui
 
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -88,7 +90,10 @@ private val AppTypography = Typography().let { b ->
 
 @Composable
 fun FoundWithTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = Colours, typography = AppTypography, content = content)
+    // Text that names no colour is light on charcoal on every screen, not only inside a Surface.
+    MaterialTheme(colorScheme = Colours, typography = AppTypography) {
+        CompositionLocalProvider(LocalContentColor provides Ink, content = content)
+    }
 }
 
 /** The tint behind names of people the viewer knows. */

@@ -517,10 +517,12 @@ private fun Benefit(icon: ImageVector, title: String, text: String, saffron: Boo
 private fun Example() {
     WhCard(Modifier.padding(horizontal = 0.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Filled.Call, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("+91 98450 77120", fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            Text("Missed call · 10:42 am", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(CallIcons.Missed, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+            Spacer(Modifier.width(10.dp))
+            Column {
+                Text("+91 98450 77120", fontWeight = FontWeight.Bold, maxLines = 1)
+                Text("Missed call · 10:42 am", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             PeopleStack(listOf("p" to "Priya S", "m" to "Meena", "a" to "Anil Kumar"), ring = MaterialTheme.colorScheme.surface)
