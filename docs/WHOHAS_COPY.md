@@ -2,7 +2,7 @@
 
 Approved by Y on 17 Nov 2026 (with the starting screens below). Replaces every sentence in the app, the notifications, the messages people send and the two web pages.
 
-Updated the same night after talking it through: "has" instead of "saved" (call logs count too), contacts before call-log people on a card, honest label text, the **Tell them who has their number** card, counts that are always real, and sign-in with a SIM in this phone only. The screens for all of this are on the WhoHas screens design canvas.
+Updated the same night after talking it through: "has" instead of "saved" (call logs count too), contacts before call-log people on a card, honest label text, the **Let them know who has their number** card (Share button), a **Share in group** button on the top line, counts that are always real, and sign-in with a SIM in this phone only. The screens for all of this are on the WhoHas screens design canvas.
 
 ## The rules
 
@@ -46,7 +46,7 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 | Buttons | Continue · Type your number | **Get started** (opens Android's number picker, which lists the SIMs in this phone) · under it: Use the number of a SIM in this phone. |
 | Number picker | (Android's own) | Android's sheet with SIM 1 and SIM 2. Picking one sends the code straight away. **None of the above** opens the number screen. |
 | Invited chip | A friend invited you | Priya invited you (name when known, else "A friend invited you") |
-| After sign-in, invited | (none) | **Priya and 2 others invited you** · 8 people on WhoHas have your number (names everyone who tapped Tell for this number) |
+| After sign-in, invited | (none) | **Priya and 2 others invited you** · 8 people on WhoHas have your number (names everyone who tapped Share for this number) |
 | After deleting | Your account is deleted. | Your account is deleted. |
 | Number screen (only after None of the above) | Your mobile number | **Your mobile number** · Use the number of a SIM in this phone. We'll send it an SMS to check. · Send code |
 | Wrong number | 10 digits, starting with 6, 7, 8 or 9. | Enter a 10-digit mobile number starting with 6, 7, 8 or 9. |
@@ -59,7 +59,7 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 | Couldn't send | We couldn't send the code. Try again. | Couldn't send the code. Try again in a minute. |
 | No internet | No internet · Connect and try again. | No internet · Connect and try again. |
 
-**Only a SIM in this phone.** The code is accepted only when this phone reads the SMS itself: first silently (Google Play services' SMS Retriever, through Firebase), else through Android's own "Allow WhoHas to read this message?" prompt. That proves the SIM is in this phone, because the SMS has to land here. A code typed by hand is not accepted, except in test builds and for the one number given to Google Play's reviewers. WhoHas keeps listening for 5 minutes, so an SMS that comes after the "didn't reach" screen still signs the person in.
+**Only a SIM in this phone.** The code is accepted only when this phone reads the SMS itself: first silently (Google Play services' SMS Retriever, through Firebase), else through Android's own "Allow WhoHas to read this message?" prompt, which starts listening before the code is sent, in every build. That proves the SIM is in this phone, because the SMS has to land here. A code typed by hand is not accepted, except in test builds and for the one number given to Google Play's reviewers. WhoHas keeps listening for 5 minutes, so an SMS that comes after the "didn't reach" screen still signs the person in.
 
 ## First time on Home
 
@@ -201,9 +201,9 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 | Ask (owner unknown) | Hi, do you know whose number this is?<br>+91 98450 77120 |
 | Ask (with a known name) | Hi, do you know whose number this is?<br>+91 98450 77120<br>Some people know it as "Raju Plumber". |
 | Ask (owner gave a name) | Hi, do you know Raju Sharma?<br>+91 98450 77120 |
-| Tell / Invite (2+ others have their number) | Hi! I'm on WhoHas, and 7 more people there have your number. See who they are:<br>{link} |
-| Tell / Invite (1 other) | Hi! I'm on WhoHas, and 1 more person there has your number. See who:<br>{link} |
-| Tell / Invite (no one else) | Hi! I'm on WhoHas. If an unknown number calls either of us, we can see if the other knows them. Join here:<br>{link} |
+| Share / Invite (2+ others have their number) | Hi! I'm on WhoHas, and 7 more people there have your number. See who they are:<br>{link} |
+| Share / Invite (1 other) | Hi! I'm on WhoHas, and 1 more person there has your number. See who:<br>{link} |
+| Share / Invite (no one else) | Hi! I'm on WhoHas. If an unknown number calls either of us, we can see if the other knows them. Join here:<br>{link} |
 | Share a number | +91 98450 77120<br>5 people on WhoHas have this number. See who:<br>{link} |
 | Share my link | Hi! I'm on WhoHas. If an unknown number calls either of us, we can see if the other knows them. Join here:<br>{link} |
 
