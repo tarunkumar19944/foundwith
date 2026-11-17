@@ -42,7 +42,7 @@ from .errors import (AccountExists, AccountSuspended, ApiError, ConsentRequired,
 from .identity import IdentityAdmin
 from .contact_names import NameCipher, tidy_contact_name
 from .names import clean_display_name
-from .numbers import NumberHasher, from_ref, is_indian_mobile, normalise, to_ref
+from .numbers import NumberHasher, from_ref, is_indian_mobile, is_mobile_shaped, normalise, to_ref
 
 log = logging.getLogger("foundwith")
 
@@ -721,12 +721,12 @@ class Service:
         s = self.settings
         e164 = normalise(raw_number, s.country_code)
         if context == "search":
-            if not is_indian_mobile(e164):
+            if not is_mobile_shaped(e164):
                 raise InvalidNumber("Enter a 10-digit Indian mobile number starting with 6, 7, 8 or 9.")
             limit, noun = s.search_daily_limit, "searches"
         else:
             if e164 is None:
-                raise InvalidNumber("That doesn't look like a phone number.")
+                raise InvalidNumber("WhoHas checks only Indian numbers.")
             limit, noun = s.call_daily_limit, "call lookups"
         digest = self.hasher.digest(e164)
         own = bytes(user["phone_hmac"])

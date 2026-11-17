@@ -162,8 +162,8 @@ class PhoneJourneyTest {
     @Test
     fun step05_callsTabShowsRecentCalls() {
         assumeTrue("contactsOnly build has no call log", BuildConfig.CALL_LOG)
-        waitFor("Calls", 60_000)
-        tap("Calls")
+        waitFor("Call log", 60_000)
+        tap("Call log")
         scrollToAny(listOf("90000 00072", "FW Test Plumber"))
         shot("12-calls")
     }

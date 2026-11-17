@@ -16,6 +16,7 @@ class SearchAndChangesTest {
         assertEquals(SearchQuery.Mobile("+919845172046"), SearchInput.classify("०९८४५१७२०४६"))
         assertEquals(SearchQuery.Incomplete, SearchInput.classify("98451"))
         assertEquals(SearchQuery.NotMobile, SearchInput.classify("044 2663 4410"))
+        assertEquals(SearchQuery.Foreign, SearchInput.classify("+971 50 123 4567"))
         assertTrue(SearchInput.matches("Ravi Kumar (Work)", "ra ku"))
         assertTrue(SearchInput.matches("Dr. Anand", "anand"))
         assertFalse(SearchInput.matches("Ravi Kumar", "kumarr"))

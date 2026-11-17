@@ -1,6 +1,6 @@
 import pytest
 
-from foundwith.numbers import NumberHasher, from_ref, is_indian_mobile, normalise, to_ref
+from foundwith.numbers import NumberHasher, from_ref, is_indian_mobile, is_mobile_shaped, normalise, to_ref
 
 
 @pytest.mark.parametrize("raw", [
@@ -17,25 +17,51 @@ def test_indian_mobile_formats_all_match(raw):
     ("1800 425 1234", "+9118004251234"),       # toll-free
     ("9198450312", "+919198450312"),           # a mobile that happens to start with 91
     ("919198450312", "+919198450312"),
-    ("+1 (415) 555-0100", "+14155550100"),     # other countries keep their code
-    ("00 44 20 7946 0958", "+442079460958"),
+    ("+91 91 98450 31207", "+919845031207"),   # country code typed twice
+    # the first full number in the field
+    ("tel:+91 98450 31207", "+919845031207"),
+    ("9845031207 (home)", "+919845031207"),
+    ("Mob: 98450 31207", "+919845031207"),
+    ("080 4123 5566,204", "+918041235566"),    # extension after a pause
+    ("080 4123 5566;204", "+918041235566"),
+    ("080 4123 5566 ext 204", "+918041235566"),
+    ("080 4123 5566 x204", "+918041235566"),
+    ("98450 31207 / 98450 31208", "+919845031207"),
+    ("98450 31207, 98450 31208", "+919845031207"),
+    ("9845031207 ext 2", "+919845031207"),
+    ("9845031207,204", "+919845031207"),
+    ("\x00" + "9845031207", "+919845031207"),
 ])
 def test_other_formats(raw, expected):
     assert normalise(raw) == expected
 
 
 @pytest.mark.parametrize("raw", ["", "   ", None, "121", "198", "41235566", "+91 12345", "+0123456789",
-                                 "98450 3120", "call me", "9845031207 ext 2", "+12345"])
+                                 "98450 3120", "call me", "+12345", "-1", "-2",
+                                 "080-4123/4124",            # two landlines written short: never joined into one
+                                 "98450/31207"])
 def test_unmatchable_numbers_are_skipped(raw):
     assert normalise(raw) is None
+
+
+@pytest.mark.parametrize("raw", ["+1 (415) 555-0100", "00 44 20 7946 0958", "+971 50 123 4567", "00971501234567",
+                                 "+44 20 7946 0958 / 98450 31207"])
+def test_only_indian_numbers(raw):
+    # WhoHas checks Indian numbers only; a foreign number first in the field isn't skipped past
+    # unless an Indian number follows it.
+    expected = "+919845031207" if raw.endswith("98450 31207") else None
+    assert normalise(raw) == expected
 
 
 def test_indian_mobile_check():
     assert is_indian_mobile("+919845031207")
     assert is_indian_mobile("+916366109284")
-    # A landline whose STD code starts with 6-9 can't be told apart from a mobile by its digits alone;
-    # search accepts it, which is harmless.
-    assert is_indian_mobile("+918041235566")
+    assert is_indian_mobile("+917012345678")
+    # Landlines whose STD code starts with 6, 7 or 8 are not mobiles (Google's ranges)
+    for landline in ["+918041235566", "+917926561234", "+916742501234", "+918212412345"]:
+        assert not is_indian_mobile(landline), landline
+        assert is_mobile_shaped(landline), landline       # but search and sign-in still accept the shape
+    assert not is_indian_mobile("+9118004251234")
     assert not is_indian_mobile("+915123456789")
     assert not is_indian_mobile("+911123456789")
     assert not is_indian_mobile("+14155550100")
@@ -80,8 +106,8 @@ def test_real_world_spellings_match(raw):
     assert normalise(raw) == "+919845031207"
 
 
-@pytest.mark.parametrize("raw", ["*121#", "9845031207,204", "9845031207;204", "98450x31207", "+91+9845031207",
-                                 "9" * 65, {"number": "9845031207"}, ["9845031207"], "\x00" + "9845031207"])
+@pytest.mark.parametrize("raw", ["*121#", "98450x31207", "+91+9845031207",
+                                 "9" * 65, {"number": "9845031207"}, ["9845031207"], True])
 def test_junk_entries_are_skipped_not_fatal(raw):
     assert normalise(raw) is None
 

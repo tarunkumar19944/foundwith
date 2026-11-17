@@ -4,6 +4,7 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
 import app.foundwith.call.AfterCall
@@ -20,7 +21,8 @@ class MainActivity : ComponentActivity() {
     private val openNumber = MutableStateFlow<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
+        // Always charcoal, so the status and navigation bars always get light icons.
+        enableEdgeToEdge(SystemBarStyle.dark(android.graphics.Color.TRANSPARENT), SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
         handle(intent)
         lifecycleScope.launch { graph.model.load() }

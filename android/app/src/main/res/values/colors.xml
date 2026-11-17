@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ink">#FF15172A</color>
-    <color name="ground">#FFF7F8FC</color>
-    <color name="launcher_background">#FF4F46E5</color>
+    <color name="ink">#FFE7E8EC</color>
+    <color name="ground">#FF14151A</color>
+    <color name="launcher_background">#FF1D1F26</color>
 </resources>

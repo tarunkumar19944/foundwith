@@ -87,16 +87,64 @@ fun AppState.lastCall(e164: String): CallEvent? = calls.firstOrNull { it.e164 ==
 
 fun AppState.isBlocked(card: Card?): Boolean = card != null && card.ref in blockedRefs
 
-/** "Missed call · 10:42 am", "Answered call · Yesterday", "Call you made · Fri". */
-fun callLine(call: CallEvent, now: Long = System.currentTimeMillis()): String {
-    val kind = when (call.type) {
-        CallType.MISSED, CallType.REJECTED -> "Missed call"
-        CallType.ANSWERED -> "Answered call"
-        CallType.OUTGOING -> "Call you made"
-        CallType.OTHER -> "Call"
-    }
-    return "$kind · ${whenText(call.at, now)}"
+/** What kind of call it was, in the words of the phone's own call log. */
+fun callKind(call: CallEvent): String = when (call.type) {
+    CallType.MISSED -> "Missed call"
+    CallType.REJECTED -> "Rejected"
+    CallType.ANSWERED -> "Received"
+    CallType.OUTGOING -> if (call.duration > 0) "You called" else "You called · not answered"
+    CallType.OTHER -> "Call"
 }
+
+/** "4 min", "45 sec", "1 hr 5 min". */
+fun durationText(seconds: Long): String = when {
+    seconds < 60 -> "$seconds sec"
+    seconds < 3600 -> "${seconds / 60} min"
+    else -> "${seconds / 3600} hr" + (seconds % 3600 / 60).let { if (it > 0) " $it min" else "" }
+}
+
+/** "today, 10:42 am", "yesterday, 6:15 pm", "Fri, 5:40 pm", "12 Nov, 5:40 pm". */
+fun callWhen(at: Long, now: Long = System.currentTimeMillis()): String {
+    val time = Instant.ofEpochMilli(at).atZone(IST)
+    val today = Instant.ofEpochMilli(now).atZone(IST).toLocalDate()
+    val day = time.toLocalDate()
+    val clock = time.format(DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)).lowercase(Locale.ENGLISH)
+    val date = when {
+        day == today -> "today"
+        day == today.minusDays(1) -> "yesterday"
+        day.isAfter(today.minusDays(7)) -> time.format(DateTimeFormatter.ofPattern("EEE", Locale.ENGLISH))
+        else -> time.format(DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH))
+    }
+    return "$date, $clock"
+}
+
+/**
+ * "Missed call · today, 10:42 am", "Received · yesterday, 6:15 pm · 4 min". With [withDay] false
+ * (under a day heading in the call log) just the time: "Received · 6:15 pm · 4 min".
+ */
+fun callLine(call: CallEvent, now: Long = System.currentTimeMillis(), withDay: Boolean = true): String {
+    val at = if (withDay) callWhen(call.at, now)
+    else Instant.ofEpochMilli(call.at).atZone(IST).format(DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)).lowercase(Locale.ENGLISH)
+    val talked = call.duration.takeIf { it > 0 && (call.type == CallType.ANSWERED || call.type == CallType.OUTGOING) }
+    return "${callKind(call)} · $at" + (talked?.let { " · ${durationText(it)}" } ?: "")
+}
+
+/** The heading over a day of calls: "Today", "Yesterday", "Fri", "12 Nov". */
+fun dayHeading(at: Long, now: Long = System.currentTimeMillis()): String {
+    val day = Instant.ofEpochMilli(at).atZone(IST).toLocalDate()
+    val today = Instant.ofEpochMilli(now).atZone(IST).toLocalDate()
+    return when {
+        day == today -> "Today"
+        day == today.minusDays(1) -> "Yesterday"
+        day.isAfter(today.minusDays(7)) -> day.format(DateTimeFormatter.ofPattern("EEEE", Locale.ENGLISH))
+        else -> day.format(DateTimeFormatter.ofPattern("d MMM", Locale.ENGLISH))
+    }
+}
+
+/** Every call with this number, newest first. */
+fun AppState.callsWith(e164: String): List<CallEvent> = calls.filter { it.e164 == e164 }
+
+const val ONLY_INDIAN = "WhoHas checks only Indian numbers"
 
 /** "10:42 am" today, "Yesterday", "Fri" this week, "3 Nov" before that. */
 fun whenText(at: Long, now: Long = System.currentTimeMillis()): String {

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Only the window before Compose draws; every screen is styled in ui/Theme.kt. -->
-    <style name="Theme.FoundWith" parent="android:Theme.Material.Light.NoActionBar">
+    <!-- Only the window before Compose draws; every screen is styled in ui/Theme.kt (always charcoal). -->
+    <style name="Theme.FoundWith" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/ground</item>
     </style>
 </resources>

@@ -13,9 +13,14 @@ data class CallEvent(
     val at: Long,
     /** The phone's cached contact name for this call, if any. */
     val cachedName: String? = null,
+    /** How long the call lasted, in seconds (0 for a missed call or one nobody answered). */
+    val duration: Long = 0,
 ) {
     val e164: String? get() = PhoneNumbers.normalise(raw)
-    val isHidden: Boolean get() = raw.isNullOrBlank() || e164 == null
+    /** A hidden ("Private") number: no number at all, or Android's -1/-2/-3 markers. */
+    val isHidden: Boolean get() = raw.isNullOrBlank() || raw.trim().startsWith("-") || raw.none { it.isDigit() }
+    /** Another country's number: WhoHas checks Indian numbers only. */
+    val isForeign: Boolean get() = !isHidden && e164 == null && PhoneNumbers.isForeign(raw)
     val isIncoming: Boolean get() = type == CallType.ANSWERED || type == CallType.MISSED || type == CallType.REJECTED
 }
 

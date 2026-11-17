@@ -1,6 +1,7 @@
 package app.foundwith.core
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -94,5 +95,19 @@ class AfterCallTest {
         val day = HealthDay("2026-11-16").seen(true).seen(false).seen(true)
         assertEquals(HealthDay("2026-11-16", callsSeen = 3, callsChecked = 2), day)
         assertTrue(HealthDay.needsFix(2) && !HealthDay.needsFix(1))
+    }
+
+    @Test
+    fun hiddenForeignAndIndianCallsAreToldApart() {
+        fun call(raw: String?) = CallEvent(1, raw, CallType.MISSED, 0)
+        assertTrue(call(null).isHidden)
+        assertTrue(call("-1").isHidden)
+        assertTrue(call("-2").isHidden)
+        assertFalse(call("+971 50 123 4567").isHidden)
+        assertTrue(call("+971 50 123 4567").isForeign)
+        assertFalse(call("98450 31207").isForeign)
+        assertEquals("+919845031207", call("098450 31207").e164)
+        assertFalse(call("121").isHidden)
+        assertFalse(call("121").isForeign)
     }
 }

@@ -87,6 +87,7 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
     var menu by remember { mutableStateOf(false) }
     var confirmBlock by remember { mutableStateOf(false) }
     var showAll by remember { mutableStateOf(false) }
+    var showAllCalls by remember { mutableStateOf(false) }
     var invited by remember { mutableStateOf(false) }
 
     val mine = state.isMine(e164)
@@ -147,16 +148,18 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
         // Who it is.
         Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (saved || mine) {
-                Text(name.text, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, maxLines = 2)
-                val sub = buildList {
-                    add(shown(e164))
-                    if (lastCall != null && !mine) add(callLine(lastCall))
-                }.joinToString(" · ")
-                Text(sub, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(name.text, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2)
+                Text(if (mine) shown(e164) else "${shown(e164)} · In your contacts", color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                val sub = if (lastCall != null && lastCall.isIncoming) "${callLine(lastCall)} · not in your contacts" else "Not in your contacts"
-                Text(sub, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(shown(e164), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                if (lastCall != null) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CallKindIcon(lastCall, 28.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text(callLine(lastCall), style = MaterialTheme.typography.labelLarge, color = callKindColour(lastCall))
+                    }
+                }
+                Text(shown(e164), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Not in your contacts", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 when (name.source) {
                     NameSource.THEIR_OWN -> Chip("Their own name: ${name.text}", saffron = false)
                     NameSource.POPULAR -> {
@@ -196,7 +199,8 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                         }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                     } else {
                         Row(verticalAlignment = Alignment.Bottom) {
-                            Text(HolderText.grouped(total) + if (lowerBound) "+" else "", fontSize = 48.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 48.sp)
+                            Text(HolderText.grouped(total) + if (lowerBound) "+" else "", fontSize = 48.sp, fontWeight = FontWeight.Bold, lineHeight = 48.sp,
+                                color = MaterialTheme.colorScheme.primary)
                             Spacer(Modifier.width(10.dp))
                             Text(if (mine) (if (total == 1) "person has your number" else "people have your number")
                                 else (if (total == 1 && !lowerBound) "person has this number" else "people have this number"),
@@ -209,7 +213,7 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                                 Spacer(Modifier.width(10.dp))
                             }
                             Text(HolderText.youKnowCount(knownCount), style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.ExtraBold, color = if (knownCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                                fontWeight = FontWeight.Bold, color = if (knownCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         if (change != null) Chip(HolderText.today(change.delta), Icons.Filled.KeyboardArrowUp)
                         if (!mine) HolderText.label(total, lowerBound)?.let { label ->
@@ -239,7 +243,7 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                         saved && PhoneNumbers.isIndianMobile(e164) && !member -> {
                             val who = name.text
                             WhCard(Modifier, color = MaterialTheme.colorScheme.secondaryContainer, edge = false) {
-                                Text("$who isn't on WhoHas yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold,
+                                Text("$who isn't on WhoHas yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer)
                                 Text(if (total > 0) "${theirNumberLine(total, lowerBound)}. Share it with them."
                                     else "Share WhoHas with them, so you can ask each other about unknown callers.",
@@ -298,6 +302,30 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                     }
                 }
 
+                // Every call with this number, with the call log's symbols.
+                val calls = if (mine) emptyList() else state.callsWith(e164)
+                if (calls.isNotEmpty()) {
+                    SectionLabel(if (saved) "Your calls with ${name.text}" else "Your calls with this number")
+                    WhCard(padding = 4.dp) {
+                        val shownCalls = if (showAllCalls) calls else calls.take(5)
+                        for (call in shownCalls) {
+                            Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                                CallKindIcon(call, 36.dp)
+                                Spacer(Modifier.width(12.dp))
+                                Text(callKind(call), fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f),
+                                    color = if (call.type == CallType.MISSED || call.type == CallType.REJECTED) MaterialTheme.colorScheme.error
+                                    else MaterialTheme.colorScheme.onSurface)
+                                Text(callWhen(call.at).replaceFirstChar { it.uppercase() } +
+                                    (call.duration.takeIf { it > 0 && call.type != CallType.MISSED }?.let { " · ${durationText(it)}" } ?: ""),
+                                    style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        if (!showAllCalls && calls.size > 5) {
+                            TextButton(onClick = { showAllCalls = true }, modifier = Modifier.padding(horizontal = 8.dp)) { Text("See all ${calls.size}") }
+                        }
+                    }
+                }
+
                 TextButton(onClick = { showMeaning = true }, modifier = Modifier.align(Alignment.CenterHorizontally).padding(vertical = 8.dp)) {
                     Icon(Icons.Filled.Info, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -332,7 +360,7 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
 @Composable
 private fun Meaning(card: Card?, name: ShownName, mine: Boolean, onDone: () -> Unit) {
     Column(Modifier.padding(horizontal = 24.dp).padding(bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text("What does this mean?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+        Text("What does this mean?", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         for ((bold, rest) in HolderText.meaning(card?.total ?: 0, card?.knownTotal ?: 0, card?.totalIsLowerBound == true, mine)) {
             MeaningRow(bold, rest)
         }

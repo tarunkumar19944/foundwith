@@ -143,7 +143,7 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
 
     fun sendCode(activity: Activity?) {
         val parsed = PhoneNumbers.normalise(number)
-        if (parsed == null || !PhoneNumbers.isIndianMobile(parsed)) {
+        if (parsed == null || !PhoneNumbers.isMobileShaped(parsed)) {
             error = "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
             step = LoginStep.TYPE_NUMBER
             return
@@ -381,7 +381,7 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
                     Example()
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Unknown number calling?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+                    Text("Unknown number calling?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
                     Text("See which of your people know it.", style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Normal)
                 }
@@ -399,7 +399,7 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
             }
             LoginStep.CHECKING -> {
-                Text("Checking your SIM", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                Text("Checking your SIM", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text("We sent an SMS to ${vm.e164?.let { shown(it) }.orEmpty()}. WhoHas reads the code on this phone by itself.",
                     style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
@@ -418,7 +418,7 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
                 ResendRow(vm, onResend = { vm.sendCode(activity) }, onChange = { openSheet() })
             }
             LoginStep.NOT_HERE -> {
-                Text("The code didn't reach this phone", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                Text("The code didn't reach this phone", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text("WhoHas works only with a SIM that's in this phone. Check that the SIM for " +
                     "${vm.e164?.let { shown(it) }.orEmpty()} is in this phone, then send the code again.",
                     style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -431,7 +431,7 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
                 }
             }
             LoginStep.TYPE_NUMBER -> {
-                Text("Your mobile number", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                Text("Your mobile number", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text("Use the number of a SIM in this phone. We'll send it an SMS to check.",
                     style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -451,7 +451,7 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
                 PrimaryButton("Send code", { vm.sendCode(activity) }, enabled = !vm.busy)
             }
             LoginStep.CODE -> {
-                Text("Enter the 6-digit code", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
+                Text("Enter the 6-digit code", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Sent to ${vm.e164?.let { shown(it) }.orEmpty()}", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     TextButton(onClick = { vm.changeNumber() }) { Text("Change number") }

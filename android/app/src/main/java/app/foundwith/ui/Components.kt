@@ -188,12 +188,13 @@ val PRIVACY_URL: String get() = BuildConfig.PRIVACY_URL
 
 // ---------------------------------------------------------------- building blocks
 
+// Muted tints on charcoal, each with light letters (at least 7:1).
 private val AvatarColours = listOf(
-    Color(0xFFDCE9FF) to Color(0xFF1C4787),
-    Color(0xFFD7F1E0) to Color(0xFF16613A),
-    Color(0xFFFFE3CF) to Color(0xFF87390C),
-    Color(0xFFECE0FA) to Color(0xFF592A88),
-    Color(0xFFFCDFE5) to Color(0xFF8A1E39),
+    Color(0xFF3A3220) to Color(0xFFE8CF8E),
+    Color(0xFF2B3140) to Color(0xFFB8C6E6),
+    Color(0xFF1E3326) to Color(0xFF9ED8B2),
+    Color(0xFF33263F) to Color(0xFFD8B9EE),
+    Color(0xFF3B2626) to Color(0xFFF0B8B0),
 )
 
 /** A circle with initials. The letters keep their size whatever the phone's font setting, so they always fit. */
@@ -266,10 +267,50 @@ fun NumberRow(
     )
 }
 
-/** The green dot for what's new since the app was last open. */
+/**
+ * One number in Updates, Contacts and the call log: who, then what kind of call or where it's from
+ * (small), then who has it (gold when you know someone, grey otherwise).
+ */
+@Composable
+fun InfoRow(
+    leading: @Composable () -> Unit,
+    name: ShownName,
+    sub: String? = null,
+    subColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    line: String? = null,
+    lineColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    isNew: Boolean = false,
+    trailing: (@Composable () -> Unit)? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    Row(
+        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        leading()
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            NameText(name)
+            if (sub != null) Text(sub, style = MaterialTheme.typography.labelMedium, color = subColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (line != null) Text(line, style = MaterialTheme.typography.bodyMedium, color = lineColor, fontWeight = FontWeight.SemiBold,
+                maxLines = 2, overflow = TextOverflow.Ellipsis)
+        }
+        if (isNew) {
+            Spacer(Modifier.width(8.dp))
+            NewDot()
+        }
+        if (trailing != null) {
+            Spacer(Modifier.width(8.dp))
+            trailing()
+        }
+    }
+}
+
+/** The gold dot for what's new since the app was last open. */
 @Composable
 fun NewDot() {
-    Box(Modifier.size(10.dp).background(MaterialTheme.colorScheme.tertiary, CircleShape))
+    Box(Modifier.size(10.dp).background(MaterialTheme.colorScheme.primary, CircleShape))
 }
 
 @Composable
@@ -366,7 +407,7 @@ fun ConfirmDialog(title: String, text: String, confirm: String, danger: Boolean 
 
 // ---------------------------------------------------------------- WhoHas pieces
 
-/** "WhoHas", with "Has" in indigo. */
+/** "WhoHas", with "Has" in gold. */
 @Composable
 fun Wordmark(size: TextUnit = 22.sp) {
     Text(
@@ -374,7 +415,7 @@ fun Wordmark(size: TextUnit = 22.sp) {
             append("Who")
             withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("Has") }
         },
-        fontSize = size, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.3).sp,
+        fontSize = size, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp,
     )
 }
 
@@ -415,7 +456,7 @@ fun LiveStatus(checkedAt: Long?, offline: Boolean) {
     }
 }
 
-/** A card on Home: white, a hairline edge, rounded. */
+/** A card on Home: charcoal, a hairline edge, rounded. */
 @Composable
 fun WhCard(
     modifier: Modifier = Modifier,
@@ -433,7 +474,7 @@ fun WhCard(
     }
 }
 
-/** A small rounded label: saffron for what's new ("+5 this week"), indigo tint otherwise. */
+/** A small rounded label in gold tint ("+5 this week"); strong = solid gold. */
 @Composable
 fun Chip(text: String, icon: ImageVector? = null, saffron: Boolean = true, strong: Boolean = false) {
     val bg = when {
@@ -457,7 +498,7 @@ fun Chip(text: String, icon: ImageVector? = null, saffron: Boolean = true, stron
     }
 }
 
-/** "Share" (let them know who has their number): saffron, at least 44 dp tall. After a tap it reads "Shared". */
+/** "Share" (let them know who has their number): gold, at least 44 dp tall. After a tap it reads "Shared". */
 @Composable
 fun TellButton(told: Boolean, name: String, onClick: () -> Unit) {
     if (told) {
@@ -490,20 +531,20 @@ fun PeopleStack(people: List<Pair<String, String>>, ring: Color, size: Dp = 30.d
     }
 }
 
-/** A line with a green tick, for "WhoHas will:" lists. */
+/** A line with a gold tick, for "Then you can:" lists. */
 @Composable
 fun TickLine(text: String) {
     Row(verticalAlignment = Alignment.Top) {
-        Box(Modifier.padding(top = 1.dp).size(22.dp).background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.14f), CircleShape),
+        Box(Modifier.padding(top = 1.dp).size(22.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
             contentAlignment = Alignment.Center) {
-            Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary, modifier = Modifier.size(14.dp))
+            Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
         }
         Spacer(Modifier.width(10.dp))
         Text(text, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
-/** The big indigo card for your own number. */
+/** Your own number: a charcoal card with a gold edge and the count in gold. */
 @Composable
 fun HeroCard(
     number: String?,
@@ -514,32 +555,34 @@ fun HeroCard(
     chip: String? = null,
     onClick: (() -> Unit)? = null,
 ) {
-    val onHero = MaterialTheme.colorScheme.onPrimary
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Surface(
-        color = MaterialTheme.colorScheme.primary, contentColor = onHero, shape = RoundedCornerShape(24.dp),
+        color = HeroColor, contentColor = MaterialTheme.colorScheme.onSurface, shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, HeroEdge),
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row {
-                Text("Your number", style = MaterialTheme.typography.labelLarge, color = onHero.copy(alpha = 0.88f), modifier = Modifier.weight(1f))
-                if (number != null) Text(number, style = MaterialTheme.typography.labelLarge, color = onHero.copy(alpha = 0.88f))
+                Text("Your number", style = MaterialTheme.typography.labelLarge, color = muted, modifier = Modifier.weight(1f))
+                if (number != null) Text(number, style = MaterialTheme.typography.labelLarge, color = muted)
             }
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(HolderText.grouped(count), fontSize = 52.sp, fontWeight = FontWeight.ExtraBold, lineHeight = 52.sp)
+                Text(HolderText.grouped(count), fontSize = 48.sp, fontWeight = FontWeight.Bold, lineHeight = 48.sp,
+                    color = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(10.dp))
                 Text(countLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
             }
             if (line != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (people.isNotEmpty()) {
-                        PeopleStack(people, ring = MaterialTheme.colorScheme.primary)
+                        PeopleStack(people, ring = HeroColor)
                         Spacer(Modifier.width(10.dp))
                     }
                     Text(line, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
                 }
             }
-            if (chip != null) Chip(chip, Icons.Filled.KeyboardArrowUp, strong = true)
+            if (chip != null) Chip(chip, Icons.Filled.KeyboardArrowUp)
         }
     }
 }

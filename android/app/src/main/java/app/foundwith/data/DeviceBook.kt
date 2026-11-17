@@ -101,7 +101,7 @@ class DeviceBook(private val context: Context) {
         if (!hasCallLogPermission()) return@withContext emptyList()
         val out = ArrayList<CallEvent>()
         val projection = arrayOf(CallLog.Calls._ID, CallLog.Calls.NUMBER, CallLog.Calls.TYPE,
-            CallLog.Calls.DATE, CallLog.Calls.CACHED_NAME)
+            CallLog.Calls.DATE, CallLog.Calls.CACHED_NAME, CallLog.Calls.DURATION)
         runCatching {
             context.contentResolver.query(
                 CallLog.Calls.CONTENT_URI, projection, "${CallLog.Calls.DATE} >= ?", arrayOf(sinceMs.toString()),
@@ -112,6 +112,7 @@ class DeviceBook(private val context: Context) {
                 val typeCol = cursor.getColumnIndexOrThrow(CallLog.Calls.TYPE)
                 val dateCol = cursor.getColumnIndexOrThrow(CallLog.Calls.DATE)
                 val nameCol = cursor.getColumnIndexOrThrow(CallLog.Calls.CACHED_NAME)
+                val durationCol = cursor.getColumnIndexOrThrow(CallLog.Calls.DURATION)
                 while (cursor.moveToNext() && out.size < limit) {
                     val type = when (cursor.getInt(typeCol)) {
                         CallLog.Calls.INCOMING_TYPE -> CallType.ANSWERED
@@ -121,7 +122,7 @@ class DeviceBook(private val context: Context) {
                         else -> CallType.OTHER
                     }
                     out += CallEvent(cursor.getLong(idCol), cursor.getString(numberCol)?.trim(), type,
-                        cursor.getLong(dateCol), cursor.getString(nameCol))
+                        cursor.getLong(dateCol), cursor.getString(nameCol), cursor.getLong(durationCol))
                 }
             }
         }

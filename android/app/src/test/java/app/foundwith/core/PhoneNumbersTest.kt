@@ -30,15 +30,30 @@ class PhoneNumbersTest {
             "011-2345-6789" to "+911123456789",
             "1800 425 1234" to "+9118004251234",
             "9198450312" to "+919198450312",
-            "+1 (415) 555-0100" to "+14155550100",
-            "00 44 20 7946 0958" to "+442079460958",
+            "+91 91 98450 31207" to "+919845031207",
+            "tel:+91 98450 31207" to "+919845031207",
+            "9845031207 (home)" to "+919845031207",
+            "080 4123 5566,204" to "+918041235566",
+            "080 4123 5566 ext 204" to "+918041235566",
+            "98450 31207 / 98450 31208" to "+919845031207",
         ).forEach { (raw, e164) -> assertEquals(raw, e164, PhoneNumbers.normalise(raw)) }
+    }
+
+    @Test
+    fun onlyIndianNumbers() {
+        listOf("+1 (415) 555-0100", "00 44 20 7946 0958", "+971 50 123 4567").forEach {
+            assertNull(it, PhoneNumbers.normalise(it))
+            assertTrue(it, PhoneNumbers.isForeign(it))
+        }
+        assertFalse(PhoneNumbers.isForeign("98450 31207"))
+        assertFalse(PhoneNumbers.isForeign("121"))
+        assertFalse(PhoneNumbers.isForeign("971501234567"))   // no + or 00: can't tell, so not called foreign
     }
 
     @Test
     fun unmatchableNumbersAreNull() {
         listOf("", "   ", null, "121", "*121#", "41235566", "+91 12345", "+0123456789", "98450 3120",
-            "call me", "9845031207 ext 2", "98450 31207,204", "+12345")
+            "call me", "+12345", "-1", "080-4123/4124", "98450/31207")
             .forEach { assertNull(it.toString(), PhoneNumbers.normalise(it)) }
     }
 
@@ -46,6 +61,8 @@ class PhoneNumbersTest {
     fun mobileCheckAndDisplay() {
         assertTrue(PhoneNumbers.isIndianMobile("+916366109284"))
         assertFalse(PhoneNumbers.isIndianMobile("+911123456789"))
+        assertFalse(PhoneNumbers.isIndianMobile("+918041235566"))   // Bengaluru landline
+        assertTrue(PhoneNumbers.isMobileShaped("+918041235566"))
         assertFalse(PhoneNumbers.isIndianMobile(null))
         assertEquals("+91 98450 31207", PhoneNumbers.display("+919845031207"))
         assertEquals("+14155550100", PhoneNumbers.display("+14155550100"))

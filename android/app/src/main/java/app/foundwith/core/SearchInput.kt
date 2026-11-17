@@ -11,6 +11,8 @@ sealed interface SearchQuery {
     data object Incomplete : SearchQuery
     /** A full number that isn't an Indian mobile (a landline, a short code). Search is for mobiles. */
     data object NotMobile : SearchQuery
+    /** Another country's number: WhoHas checks Indian numbers only. */
+    data object Foreign : SearchQuery
 }
 
 object SearchInput {
@@ -19,7 +21,8 @@ object SearchInput {
         if (text.isEmpty()) return SearchQuery.Empty
         if (text.any { it.isLetter() }) return SearchQuery.Name(text)
         val e164 = PhoneNumbers.normalise(text)
-        if (e164 != null && PhoneNumbers.isIndianMobile(e164)) return SearchQuery.Mobile(e164)
+        if (e164 != null && PhoneNumbers.isMobileShaped(e164)) return SearchQuery.Mobile(e164)
+        if (e164 == null && PhoneNumbers.isForeign(text)) return SearchQuery.Foreign
         val digits = PhoneNumbers.clean(text)?.trimStart('+')?.length ?: text.count { it.isDigit() }
         return if (digits < 10) SearchQuery.Incomplete else SearchQuery.NotMobile
     }

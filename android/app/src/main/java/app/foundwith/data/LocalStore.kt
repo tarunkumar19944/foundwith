@@ -136,6 +136,11 @@ class LocalStore(context: Context) {
         prefs.edit().putStringSet("told", (kept + (e164 to at)).map { "${it.key}@${it.value}" }.toSet()).apply()
     }
 
+    /** The number rules (PhoneNumbers.RULES) this phone last sent its numbers under. */
+    var numberRules: Int
+        get() = prefs.getInt("number_rules", 1)
+        set(value) { prefs.edit().putInt("number_rules", value).apply() }
+
     /** When the phone last rebuilt its map of the person's numbers because a card named someone it couldn't place. */
     var indexRepairedAt: Long
         get() = prefs.getLong("index_repaired", 0L)

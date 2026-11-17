@@ -76,7 +76,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.foundwith.AppGraph
 import app.foundwith.BuildConfig
 import app.foundwith.core.CallEvent
-import app.foundwith.core.CallType
 import app.foundwith.core.Changes
 import app.foundwith.core.HolderText
 import app.foundwith.core.Messages
@@ -86,7 +85,6 @@ import app.foundwith.core.PhoneNumbers
 import app.foundwith.core.SearchInput
 import app.foundwith.core.SearchQuery
 import app.foundwith.core.TellCandidate
-import app.foundwith.core.TellList
 import app.foundwith.data.ApiException
 import app.foundwith.data.AppState
 import app.foundwith.data.Card
@@ -99,7 +97,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private enum class Tab { UPDATES, CALLS, CONTACTS }
+private enum class Tab { UPDATES, CONTACTS, CALLS }
 
 /** The search box's answer. */
 private sealed interface Found {
@@ -110,8 +108,8 @@ private sealed interface Found {
 }
 
 /**
- * Home (docs/WHOHAS_COPY.md): WhoHas and "Live · checked just now" at the top, the search box,
- * then Updates, Calls and Contacts as tabs at the bottom. Before the person allows anything, Home
+ * Home (docs/WHOHAS_COPY.md): WhoHas, "Live · checked just now" and Share in group at the top, the
+ * search box, then Updates, Contacts and Call log as tabs at the bottom. Before the person allows anything, Home
  * shows their own number's count (only when someone has it) and the Allow card. The name and
  * notification cards wait until names have shown, so nothing stands before the first reward.
  */
@@ -205,7 +203,6 @@ fun HomeScreen(
     Scaffold(
         bottomBar = {
             if (state.setup == Setup.READY && query.isBlank()) {
-                // Indigo for the selected tab: saffron is kept for what's new.
                 val tabColors = NavigationBarItemDefaults.colors(
                     indicatorColor = MaterialTheme.colorScheme.primaryContainer,
                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
@@ -219,12 +216,12 @@ fun HomeScreen(
                                 Icon(Icons.Filled.Notifications, contentDescription = null)
                             }
                         })
-                    if (BuildConfig.CALL_LOG) {
-                        NavigationBarItem(selected = tab == Tab.CALLS, onClick = { tab = Tab.CALLS }, label = { Text("Calls") }, colors = tabColors,
-                            icon = { Icon(Icons.Filled.Call, contentDescription = null) })
-                    }
                     NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { tab = Tab.CONTACTS }, label = { Text("Contacts") }, colors = tabColors,
                         icon = { Icon(Icons.Filled.Person, contentDescription = null) })
+                    if (BuildConfig.CALL_LOG) {
+                        NavigationBarItem(selected = tab == Tab.CALLS, onClick = { tab = Tab.CALLS }, label = { Text("Call log") }, colors = tabColors,
+                            icon = { Icon(Icons.Filled.Call, contentDescription = null) })
+                    }
                 }
             }
         },
@@ -283,9 +280,10 @@ fun HomeScreen(
                 Setup.FINDING -> item { FindingCard(state, failed = false) {} }
                 Setup.FIND_FAILED -> item { FindingCard(state, failed = true) { scope.launch { graph.model.retryFinding() } } }
                 Setup.READY -> when (tab) {
-                    Tab.UPDATES -> updatesTab(graph, state, onNumber, onInvite, turnOnNotifications)
-                    Tab.CALLS -> callsTab(graph, state, onNumber, onAllow = { ask(Manifest.permission.READ_CALL_LOG) })
+                    Tab.UPDATES -> updatesTab(graph, state, onNumber, onInvite, turnOnNotifications,
+                        onSeeContacts = { tab = Tab.CONTACTS }, onSeeCalls = { tab = Tab.CALLS })
                     Tab.CONTACTS -> contactsTab(graph, state, onNumber, onAllow = { ask(Manifest.permission.READ_CONTACTS) })
+                    Tab.CALLS -> callsTab(graph, state, onNumber, onAllow = { ask(Manifest.permission.READ_CALL_LOG) })
                 }
             }
         }
@@ -342,6 +340,7 @@ private fun LazyListScope.searchResults(state: AppState, query: String, found: F
         }
         SearchQuery.Incomplete -> item { HintBox(Icons.Filled.Search, "Type all 10 digits", "Like 98451 72046") }
         SearchQuery.NotMobile -> item { HintBox(Icons.Filled.Search, "Only mobile numbers can be searched", "Like 98451 72046") }
+        SearchQuery.Foreign -> item { HintBox(Icons.Filled.Search, "WhoHas checks only Indian numbers", "Like 98451 72046") }
         SearchQuery.Empty -> Unit
     }
 }
@@ -383,7 +382,7 @@ private fun InvitedCard(names: List<String>, count: Int, total: Int) {
             Spacer(Modifier.width(12.dp))
             Column {
                 Text(if (others <= 0) "$first invited you" else "$first and $others ${if (others == 1) "other" else "others"} invited you",
-                    fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                    fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSecondaryContainer)
                 if (total > 0) Text("${HolderText.count(total)} on WhoHas ${if (total == 1) "has" else "have"} your number",
                     color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
@@ -395,7 +394,7 @@ private fun InvitedCard(names: List<String>, count: Int, total: Int) {
 @Composable
 private fun AllowCard(onAllow: () -> Unit, onHowItWorks: () -> Unit) {
     WhCard(padding = 20.dp) {
-        Text("See who has each number", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
+        Text("See who has each number", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text(if (BuildConfig.CALL_LOG) "Allow contacts and call log. Then you can:" else "Allow contacts. Then you can:",
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         TickLine("Find out who has your number")
@@ -427,7 +426,7 @@ private fun FindingCard(state: AppState, failed: Boolean, onTryNow: () -> Unit) 
     }
 }
 
-// ---------------------------------------------------------------- Updates: only what changed
+// ---------------------------------------------------------------- Updates: everything found, what changed on top
 
 private enum class UpdateKind { MINE_UP, COUNT_UP, JOINED, NOW_KNOWN }
 
@@ -456,43 +455,134 @@ private fun updateEntries(state: AppState): List<UpdateEntry> {
     return out.sortedByDescending { it.at }
 }
 
-private fun LazyListScope.updatesTab(graph: AppGraph, state: AppState, onNumber: (String) -> Unit, onInvite: () -> Unit,
-                                     onTurnOnNotifications: () -> Unit) {
-    val now = System.currentTimeMillis()
+/** What changed since the app was last open, one row per number (your own number's change is on its card). */
+private fun newEntries(state: AppState): List<UpdateEntry> =
+    updateEntries(state).filter { it.at > state.dotsSince && it.kind != UpdateKind.MINE_UP && it.e164 != null }.distinctBy { it.e164 }
+
+/** Numbers from your calls that aren't in your contacts and that someone on WhoHas has: people you know first, then the latest call. */
+private fun foundCallers(state: AppState, skip: Set<String>): List<Pair<String, CallEvent>> {
+    val seen = HashSet<String>()
+    val out = ArrayList<Pair<String, CallEvent>>()
+    for (call in state.calls) {
+        val e164 = call.e164 ?: continue
+        if (!seen.add(e164) || e164 in skip || state.isMine(e164) || state.isSaved(e164)) continue
+        val card = state.cardFor(e164) ?: continue
+        if (card.total <= 0 || state.isBlocked(card)) continue
+        out += e164 to call
+    }
+    return out.sortedWith(compareByDescending<Pair<String, CallEvent>> { (state.cardFor(it.first)?.knownTotal ?: 0) > 0 }.thenByDescending { it.second.at })
+}
+
+/** Contacts that someone on WhoHas has: people you know first, then the most people. */
+private fun foundContacts(state: AppState, skip: Set<String>): List<SavedNumber> =
+    state.contacts.asSequence()
+        .filter { c -> c.e164 != null && c.e164!! !in skip && !state.isMine(c.e164!!) }
+        .distinctBy { it.e164 }
+        .filter { c -> state.cardFor(c.e164!!)?.let { it.total > 0 && !state.isBlocked(it) } == true }
+        .sortedWith(compareByDescending<SavedNumber> { (state.cardFor(it.e164!!)?.knownTotal ?: 0) > 0 }
+            .thenByDescending { state.cardFor(it.e164!!)?.total ?: 0 })
+        .toList()
+
+private fun LazyListScope.updatesTab(
+    graph: AppGraph,
+    state: AppState,
+    onNumber: (String) -> Unit,
+    onInvite: () -> Unit,
+    onTurnOnNotifications: () -> Unit,
+    onSeeContacts: () -> Unit,
+    onSeeCalls: () -> Unit,
+) {
     val mine = state.cards?.mine
     item { MineHero(state, mine, onNumber, onInvite) }
     if (BuildConfig.CALL_LOG && graph.store.firstNamesSeen && !graph.store.notifAsked && !graph.notifier.canPost()) {
         item { NotificationsCard(onTurnOn = onTurnOnNotifications, onLater = { graph.store.notifAsked = true }) }
     }
-    item { TellCard(graph, state, onInvite) }
+    val news = newEntries(state)
+    val skip = news.mapNotNullTo(HashSet()) { it.e164 }
+    val callers = foundCallers(state, skip)
+    val contacts = foundContacts(state, skip)
 
-    val entries = updateEntries(state)
-    if (entries.isEmpty()) {
-        item {
-            if (graph.store.lastOpenedAt == 0L) {
-                EmptyState(Icons.Filled.CheckCircle, "Your updates will show here",
-                    "New people with your number, friends who join, and changes in your contacts. We check every few hours.")
-            } else {
-                EmptyState(Icons.Filled.CheckCircle, "No new changes",
-                    "When more people get your number, or your contacts' numbers, it shows here.")
+    if (news.isNotEmpty()) {
+        item { SectionLabel("New") }
+        item(key = "new") { WhCard(padding = 4.dp) { news.forEach { NewRow(state, it, onNumber) } } }
+    }
+    if (callers.isNotEmpty()) {
+        item { SectionLabel("From your calls") }
+        item(key = "callers") {
+            WhCard(padding = 4.dp) {
+                callers.take(5).forEach { (e164, call) -> FoundCallerRow(state, e164, call, onNumber) }
+                if (callers.size > 5) SeeAll(onSeeCalls)
             }
         }
-    } else {
-        val today = startOfToday(now)
-        val yesterday = today - 24 * 3600_000L
-        val groups = listOf(
-            "Today" to entries.filter { it.at >= today },
-            "Yesterday" to entries.filter { it.at in yesterday until today },
-            "This week" to entries.filter { it.at < yesterday },
-        )
-        for ((label, rows) in groups) {
-            if (rows.isEmpty()) continue
-            item(key = "label:$label") { SectionLabel(label) }
-            items(rows, key = { it.key }) { entry -> UpdateItem(state, entry, entry.at > state.dotsSince, onNumber) }
+    }
+    if (contacts.isNotEmpty()) {
+        item { SectionLabel("Your contacts") }
+        item(key = "contacts") {
+            WhCard(padding = 4.dp) {
+                contacts.take(5).forEach { FoundContactRow(state, it, onNumber) }
+                if (contacts.size > 5) SeeAll(onSeeContacts)
+            }
         }
     }
+    if (news.isEmpty() && callers.isEmpty() && contacts.isEmpty()) item { NothingFoundCard(state) }
     if (graph.store.firstNamesSeen && state.profile?.name == null && !graph.store.nameAsked) item { NameCard(graph) }
 }
+
+@Composable
+private fun SeeAll(onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.padding(horizontal = 4.dp)) {
+        Text("See all", fontWeight = FontWeight.Bold)
+        Icon(Icons.Filled.KeyboardArrowRight, contentDescription = null)
+    }
+}
+
+/** "None of your numbers are with people on WhoHas yet", with Share in group. */
+@Composable
+private fun NothingFoundCard(state: AppState) {
+    val context = LocalContext.current
+    WhCard(padding = 20.dp) {
+        Text("None of your numbers are with people on WhoHas yet", style = MaterialTheme.typography.titleLarge)
+        Text("When people you know join, every number in your contacts and calls that they have shows here, with who has it.",
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        PrimaryButton("Share in group", {
+            val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
+            context.shareImage(R.drawable.share_whohas, Messages.groupShare(link), "Share WhoHas")
+        }, icon = Icons.Filled.Share)
+    }
+}
+
+/** A number from your calls: the symbol of the last call, what kind and when, and who has it. */
+@Composable
+private fun FoundCallerRow(state: AppState, e164: String, call: CallEvent, onNumber: (String) -> Unit) {
+    val card = state.cardFor(e164)
+    InfoRow(
+        leading = { CallKindIcon(call) },
+        name = state.nameFor(e164, card),
+        sub = callLine(call), subColor = callKindColour(call),
+        line = state.callerLine(card, onYourPhone = false),
+        lineColor = knownColour(card),
+        onClick = { onNumber(e164) },
+    )
+}
+
+@Composable
+private fun FoundContactRow(state: AppState, contact: SavedNumber, onNumber: (String) -> Unit) {
+    val e164 = contact.e164 ?: return
+    val card = state.cardFor(e164)
+    val name = state.nameFor(e164, card)
+    InfoRow(
+        leading = { Avatar(e164, name.text) },
+        name = name,
+        line = state.lineFor(card, onYourPhone = true),
+        lineColor = knownColour(card),
+        onClick = { onNumber(e164) },
+    )
+}
+
+/** Gold when you know someone who has the number, grey when it's only a count. */
+@Composable
+private fun knownColour(card: Card?): androidx.compose.ui.graphics.Color =
+    if ((card?.knownTotal ?: 0) > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
 /** Your number, big, with who you know and this week's change. */
 @Composable
@@ -500,83 +590,59 @@ private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, o
     val total = mine?.total ?: 0
     val phone = state.profile?.phone
     if (mine == null || total <= 0) {
-        WhCard(color = MaterialTheme.colorScheme.primaryContainer, edge = false) {
-            Text("Your number", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onPrimaryContainer)
-            Text("No one on WhoHas has your number yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onPrimaryContainer)
-            OutlinedButton(onClick = onInvite, shape = RoundedCornerShape(22.dp)) { Text("Invite friends") }
+        Surface(color = HeroColor, shape = RoundedCornerShape(24.dp), border = androidx.compose.foundation.BorderStroke(1.dp, HeroEdge),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Your number", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("No one on WhoHas has your number yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                OutlinedButton(onClick = onInvite, shape = RoundedCornerShape(22.dp)) { Text("Invite friends") }
+            }
         }
         return
     }
     val names = state.knownOrdered(mine)
-    val week = state.changes.changes[mine.ref]?.delta?.takeIf { it > 0 }
+    val gained = state.changes.changes[mine.ref]?.takeIf { it.delta > 0 }
+    val newNames = state.changes.gains[mine.ref]?.ids.orEmpty()
+        .mapNotNull { id -> mine.known.firstOrNull { it.id == id }?.let { state.personName(it) } }
+        .filterNot { Naming.looksLikeNumber(it) }
     HeroCard(
         number = phone?.let(::shown),
         count = total,
         countLabel = countLabel(total),
         line = HolderText.youKnowNames(names, mine.knownTotal) ?: "None of them are in your phone yet",
         people = mine.known.map { it.id to state.personName(it) }.filterNot { Naming.looksLikeNumber(it.second) }.take(4),
-        chip = week?.let { HolderText.thisWeek(it) },
+        chip = gained?.let { HolderText.mineUp(it.delta).removeSuffix(" have your number").removeSuffix(" has your number") +
+            (newNames.firstOrNull()?.let { n -> " · One is $n" } ?: "") },
         onClick = phone?.let { { onNumber(it) } },
     )
 }
 
+/** One number under New: what changed, with the gold dot. */
 @Composable
-private fun UpdateItem(state: AppState, entry: UpdateEntry, isNew: Boolean, onNumber: (String) -> Unit) {
-    val e164 = entry.e164
-    val card = e164?.let { state.cardFor(it) }
-    val name = e164?.let { state.nameFor(it, card) }
-    val (title, line) = when (entry.kind) {
-        UpdateKind.MINE_UP -> {
-            val ch = state.changes.changes[entry.ref]
-            val gained = state.changes.gains[entry.ref]?.ids.orEmpty()
-            val mine = state.cards?.mine
-            val newNames = gained.mapNotNull { id -> mine?.known?.firstOrNull { it.id == id }?.let { state.personName(it) } }
-            HolderText.mineUp(ch?.delta ?: 1) to when (newNames.size) {
-                0 -> null
-                1 -> "One is ${newNames[0]}"
-                2 -> "${newNames[0]} and ${newNames[1]} are among them"
-                else -> "${newNames[0]}, ${newNames[1]} and ${newNames.size - 2} more are among them"
-            }
-        }
-        UpdateKind.COUNT_UP -> {
-            val ch = state.changes.changes[entry.ref]
-            (name?.text ?: "") to (ch?.let { HolderText.crossed(it.before, it.now) ?: HolderText.change(it.now, it.delta) })
-        }
-        UpdateKind.JOINED -> {
-            val hasYours = state.cards?.mine?.known?.any { it.contactRef == entry.ref } == true
-            "${name?.text ?: "A contact"} joined WhoHas" to (if (hasYours) "Has your number" else null)
-        }
-        UpdateKind.NOW_KNOWN -> {
-            val ids = state.changes.gains[entry.ref]?.ids.orEmpty()
-            val who = ids.firstNotNullOfOrNull { id -> card?.known?.firstOrNull { it.id == id }?.let { state.personName(it) } }
-            (name?.text ?: "") to (who?.let { "Called you · now known to $it" })
-        }
+private fun NewRow(state: AppState, entry: UpdateEntry, onNumber: (String) -> Unit) {
+    val e164 = entry.e164 ?: return
+    val card = state.cardFor(e164)
+    val name = state.nameFor(e164, card)
+    val saved = state.isSaved(e164)
+    val call = state.lastCall(e164)
+    val change: String? = when (entry.kind) {
+        UpdateKind.COUNT_UP -> state.changes.changes[entry.ref]?.let { HolderText.crossed(it.before, it.now) ?: HolderText.change(it.now, it.delta) }
+        UpdateKind.JOINED -> if (state.cards?.mine?.known?.any { it.contactRef == entry.ref } == true) "Joined WhoHas · has your number" else "Joined WhoHas"
+        UpdateKind.NOW_KNOWN -> state.changes.gains[entry.ref]?.ids.orEmpty()
+            .firstNotNullOfOrNull { id -> card?.known?.firstOrNull { it.id == id }?.let { state.personName(it) } }
+            ?.let { "Now known to $it" }
+        UpdateKind.MINE_UP -> null
     }
-    val lead: @Composable () -> Unit = when {
-        entry.kind == UpdateKind.MINE_UP -> ({ IconAvatar(Icons.Filled.KeyboardArrowUp, accent = true) })
-        name == null || name.isNumber -> ({ IconAvatar(Icons.Filled.Phone) })
-        else -> ({ Avatar(e164 ?: entry.ref, name.text) })
-    }
-    Row(
-        Modifier.fillMaxWidth().clickable(enabled = e164 != null) { e164?.let(onNumber) }.padding(horizontal = 16.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        lead()
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (line != null) Text(line, style = MaterialTheme.typography.bodyMedium,
-                color = if (entry.kind == UpdateKind.JOINED) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        Column(horizontalAlignment = Alignment.End) {
-            Text(whenText(entry.at), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            if (isNew) {
-                Spacer(Modifier.height(6.dp))
-                NewDot()
-            }
-        }
-    }
+    InfoRow(
+        leading = { if (!saved && call != null) CallKindIcon(call) else if (name.isNumber) IconAvatar(Icons.Filled.Phone) else Avatar(e164, name.text) },
+        name = name,
+        sub = if (saved) "In your contacts" else call?.let { callLine(it) },
+        subColor = if (!saved && call != null) callKindColour(call) else MaterialTheme.colorScheme.onSurfaceVariant,
+        line = change ?: state.callerLine(card, onYourPhone = saved),
+        lineColor = if (entry.kind == UpdateKind.JOINED) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+        isNew = true,
+        onClick = { onNumber(e164) },
+    )
 }
 
 /** "Their number is with 7 people on WhoHas"; "No one else on WhoHas has it yet". */
@@ -584,79 +650,7 @@ fun theirNumberLine(others: Int, lowerBound: Boolean): String =
     if (others <= 0) "No one else on WhoHas has it yet"
     else "Their number is with ${HolderText.count(others, lowerBound)} on WhoHas"
 
-/** "Let them know who has their number": the people you call most who aren't on WhoHas, with real counts. */
-@Composable
-private fun TellCard(graph: AppGraph, state: AppState, onSeeAll: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var hiddenAt by remember { mutableStateOf(graph.store.tellHiddenAt) }
-    var list by remember { mutableStateOf<List<TellCandidate>>(emptyList()) }
-    var told by remember { mutableStateOf(setOf<String>()) }
-    LaunchedEffect(state.contacts, state.cards) {
-        val now = System.currentTimeMillis()
-        val calls = graph.book.calls(sinceMs = now - TellList.WINDOW_DAYS * 24 * 3600_000L)
-            .mapNotNull { c -> c.raw?.takeIf { it.isNotBlank() }?.let { it to c.at } }
-        val members = state.cards?.circle?.memberRefs.orEmpty().toSet()
-        val onWhoHas = state.index.byRef.filterKeys { it in members }.values.map { it.e164 }.toSet()
-        val counts = state.contacts.mapNotNull { it.e164 }.distinct().associateWith { e ->
-            state.cardFor(e)?.let { it.total to it.totalIsLowerBound } ?: (0 to false)
-        }
-        list = TellList.pick(graph.book.contactsForInvite(), calls, onWhoHas, counts, graph.store.toldAt(), now)
-    }
-    if (list.isEmpty() || TellList.hidden(hiddenAt, System.currentTimeMillis())) return
-    val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
-    WhCard {
-        Row(verticalAlignment = Alignment.Top) {
-            Surface(color = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                shape = RoundedCornerShape(12.dp)) {
-                Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.padding(10.dp).size(20.dp))
-            }
-            Spacer(Modifier.width(12.dp))
-            Column {
-                Text("Let them know who has their number", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
-                Text("These people you call most aren't on WhoHas yet. Share it with them.", style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        for (person in list.take(3)) {
-            TellRow(person, told = person.e164 in told) {
-                context.messagePerson(person.e164, Messages.invite(person.others, link, person.lowerBound))
-                told = told + person.e164
-                scope.launch { graph.model.recordTell(person.e164) }
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = onSeeAll) {
-                Text(if (list.size > 3) "See all ${list.size}" else "Invite more", fontWeight = FontWeight.Bold)
-                Icon(Icons.Filled.KeyboardArrowRight, contentDescription = null)
-            }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = {
-                val now = System.currentTimeMillis()
-                graph.store.tellHiddenAt = now
-                hiddenAt = now
-            }) { Text("Hide", color = MaterialTheme.colorScheme.onSurfaceVariant) }
-        }
-    }
-}
-
-/** "Share in a group": the WhoHas picture and link, for a WhatsApp group. */
-@Composable
-fun GroupShareCard(state: AppState) {
-    val context = LocalContext.current
-    val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
-    WhCard(color = MaterialTheme.colorScheme.primaryContainer, edge = false) {
-        Text("Share WhoHas in your groups", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer)
-        Text("The more of your people on WhoHas, the more callers you can recognise.",
-            color = MaterialTheme.colorScheme.onPrimaryContainer)
-        PrimaryButton("Share in a group", {
-            context.shareImage(R.drawable.share_whohas, Messages.groupShare(link), "Share WhoHas")
-        }, icon = Icons.Filled.Share)
-    }
-}
-
-/** One person on the Tell card or the Invite page. */
+/** One person on the Invite page's "Let them know who has their number" list. */
 @Composable
 fun TellRow(person: TellCandidate, told: Boolean, onTell: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -677,7 +671,7 @@ private fun NotificationsCard(onTurnOn: () -> Unit, onLater: () -> Unit) {
     var dismissed by rememberSaveable { mutableStateOf(false) }
     if (dismissed) return
     WhCard {
-        Text("Turn on notifications", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+        Text("Turn on notifications", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text("Get told who knows a caller right after a missed call.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PrimaryButton("Turn on", { dismissed = true; onTurnOn() }, Modifier.weight(1f))
@@ -698,7 +692,7 @@ private fun NameCard(graph: AppGraph) {
     var saving by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { if (name.isEmpty()) graph.book.ownerName()?.let { name = it.take(40) } }
     WhCard {
-        Text("Add your name", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.ExtraBold)
+        Text("Add your name", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         Text("People who don't have you in their contacts will see this name.", style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedTextField(value = name, onValueChange = { name = it.take(40) }, singleLine = true,
@@ -719,7 +713,7 @@ private fun NameCard(graph: AppGraph) {
     }
 }
 
-// ---------------------------------------------------------------- Calls
+// ---------------------------------------------------------------- Call log
 
 private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, onNumber: (String) -> Unit, onAllow: () -> Unit) {
     if (!graph.book.hasCallLogPermission()) {
@@ -736,33 +730,47 @@ private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, onNumber: (
         item { EmptyState(Icons.Filled.Call, "No calls yet", "Your calls show here, with who has each number.") }
         return
     }
-    items(state.calls, key = { "c:" + it.id }) { call -> CallRow(state, call, onNumber) }
+    val now = System.currentTimeMillis()
+    state.calls.groupBy { dayHeading(it.at, now) }.forEach { (day, calls) ->
+        item(key = "day:$day") { SectionLabel(day) }
+        items(calls, key = { "c:" + it.id }) { call -> CallRow(state, call, onNumber) }
+    }
 }
 
 @Composable
 private fun CallRow(state: AppState, call: CallEvent, onNumber: (String) -> Unit) {
+    val sub = callLine(call, withDay = false)
     val e164 = call.e164
-    val missed = call.type == CallType.MISSED || call.type == CallType.REJECTED
-    if (e164 == null || call.isHidden) {
-        NumberRow(leading = { IconAvatar(Icons.Filled.Lock) }, name = app.foundwith.core.ShownName("Private number", app.foundwith.core.NameSource.NUMBER),
-            line = "Can't check hidden numbers", sub = callLine(call))
+    if (e164 == null) {
+        val title = when {
+            call.isHidden -> "Private number"
+            else -> call.cachedName?.takeIf { it.isNotBlank() } ?: call.raw.orEmpty()
+        }
+        InfoRow(
+            leading = { CallKindIcon(call) },
+            name = app.foundwith.core.ShownName(title, app.foundwith.core.NameSource.NUMBER),
+            sub = sub, subColor = callKindColour(call),
+            line = when {
+                call.isHidden -> "Can't check hidden numbers"
+                call.isForeign -> ONLY_INDIAN
+                else -> "WhoHas can't check this number"
+            },
+        )
         return
     }
     val card = state.cardFor(e164)
-    val name = state.nameFor(e164, card)
     val blocked = state.refFor(e164)?.let { it in state.blockedRefs } == true
-    NumberRow(
-        leading = { if (name.isNumber) IconAvatar(Icons.Filled.Phone) else Avatar(e164, name.text) },
-        name = name,
+    InfoRow(
+        leading = { CallKindIcon(call) },
+        name = state.nameFor(e164, card),
+        sub = sub, subColor = callKindColour(call),
         line = if (blocked) "Blocked" else state.callerLine(card, onYourPhone = state.isSaved(e164)),
-        sub = callLine(call),
-        trailing = if (missed) ({ Icon(Icons.Filled.Call, contentDescription = "Missed call", tint = MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(18.dp)) }) else null,
+        lineColor = if (blocked) MaterialTheme.colorScheme.onSurfaceVariant else knownColour(card),
         onClick = { onNumber(e164) },
     )
 }
 
-// ---------------------------------------------------------------- Contacts
+// ---------------------------------------------------------------- Contacts: everyone in your phone, A to Z
 
 private fun LazyListScope.contactsTab(graph: AppGraph, state: AppState, onNumber: (String) -> Unit, onAllow: () -> Unit) {
     if (!graph.book.hasContactsPermission()) {
@@ -775,36 +783,48 @@ private fun LazyListScope.contactsTab(graph: AppGraph, state: AppState, onNumber
         }
         return
     }
-    val all = state.contacts.filter { it.e164 != null && !state.isMine(it.e164!!) }.distinctBy { it.e164 }
+    val all = state.contacts.filter { c -> c.e164?.let { !state.isMine(it) } ?: true }
+        .distinctBy { it.e164 ?: ("raw:" + it.raw) }
         .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.shownName ?: it.raw })
     if (all.isEmpty()) {
         item { EmptyState(Icons.Filled.Person, "No contacts on this phone", "Contacts you save show here.") }
         return
     }
-    val (found, onlyYou) = all.partition { (state.cardFor(it.e164!!)?.total ?: 0) > 0 }
-    items(found, key = { "k:" + it.e164 }) { c -> ContactRow(state, c, onNumber) }
-    if (onlyYou.isNotEmpty()) {
-        item { SectionLabel("No one else has these yet") }
-        items(onlyYou, key = { "o:" + it.e164 }) { c -> ContactRow(state, c, onNumber, offerTell = true) }
-    }
+    all.groupBy { c -> (c.shownName ?: c.raw).trim().firstOrNull()?.takeIf { it.isLetter() }?.uppercaseChar()?.toString() ?: "#" }
+        .forEach { (letter, people) ->
+            item(key = "letter:$letter") { SectionLabel(letter) }
+            items(people, key = { "k:" + (it.e164 ?: ("raw:" + it.raw)) }) { c -> ContactRow(state, c, onNumber) }
+        }
 }
 
 @Composable
-private fun ContactRow(state: AppState, contact: SavedNumber, onNumber: (String) -> Unit, offerTell: Boolean = false) {
+private fun ContactRow(state: AppState, contact: SavedNumber, onNumber: (String) -> Unit) {
     val context = LocalContext.current
-    val e164 = contact.e164 ?: return
+    val e164 = contact.e164
+    if (e164 == null) {
+        val name = contact.shownName?.takeIf { it.isNotBlank() } ?: contact.raw
+        InfoRow(
+            leading = { Avatar(contact.raw, name) },
+            name = app.foundwith.core.ShownName(name, app.foundwith.core.NameSource.CONTACT),
+            line = if (PhoneNumbers.isForeign(contact.raw)) ONLY_INDIAN else "WhoHas can't check this number",
+        )
+        return
+    }
     val card = state.cardFor(e164)
     val name = state.nameFor(e164, card)
-    val canTell = offerTell && PhoneNumbers.isIndianMobile(e164) && !state.onWhoHas(e164, card)
+    val total = card?.total ?: 0
+    // Nobody else has it yet: let them know, right here (mobiles only; WhatsApp can't reach a landline).
+    val canTell = total <= 0 && PhoneNumbers.isIndianMobile(e164) && !state.onWhoHas(e164, card)
     var told by remember { mutableStateOf(false) }
-    NumberRow(
+    InfoRow(
         leading = { Avatar(e164, name.text) },
         name = name,
         line = state.lineFor(card, onYourPhone = true),
+        lineColor = knownColour(card),
         trailing = if (canTell) ({
             TellButton(told, name.text) {
                 val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
-                context.messagePerson(e164, Messages.invite(card?.total ?: 0, link))
+                context.messagePerson(e164, Messages.invite(0, link))
                 told = true
             }
         }) else null,

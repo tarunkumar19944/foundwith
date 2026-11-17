@@ -6,6 +6,7 @@ import app.foundwith.BuildConfig
 import app.foundwith.core.CallEvent
 import app.foundwith.core.ChangeLog
 import app.foundwith.core.Changes
+import app.foundwith.core.PhoneNumbers
 import app.foundwith.work.Scheduling
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
@@ -121,6 +122,19 @@ class AppModel(private val graph: AppGraph) {
         try {
             val profile = ensureProfile()
             var cards = fetchCards()
+            // The number rules changed (Indian numbers only; extensions, labels and two numbers in a
+            // field): send the whole book again once, so the server drops foreign numbers and picks
+            // up the ones it couldn't read before.
+            if (store.numberRules < PhoneNumbers.RULES) {
+                if (store.snapshot() == null) {
+                    store.numberRules = PhoneNumbers.RULES
+                } else if (graph.book.hasContactsPermission() || graph.book.hasCallLogPermission()) {
+                    if (runCatching { graph.sync.fullSync() }.isSuccess) {
+                        store.numberRules = PhoneNumbers.RULES
+                        cards = fetchCards()
+                    }
+                }
+            }
             // A card can name someone the phone can't place (its map of numbers missed a sync); they'd
             // show as "Someone on your phone". Rebuild the map with a full sync, at most every 6 hours.
             val index = store.index()
