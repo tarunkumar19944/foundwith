@@ -38,22 +38,50 @@ class AfterCallTest {
     }
 
     @Test
-    fun aNamedNumberIsWorthTellingEvenIfNobodyElseHasIt() {
+    fun aNameAloneIsNotEnoughWhenNobodyHasTheNumber() {
         val note = AfterCallRules.decide(call(1, "9901566420", CallType.MISSED), CallerInfo(null, total = 0, ownerName = "Deepa Rao"), noon)
-        assertEquals(Alert.SOUND, note.alert)
-        assertEquals("Their own name: Deepa Rao · No one on WhoHas has this number", note.text)
+        assertEquals(Alert.NONE, note.alert)
         val popular = AfterCallRules.decide(call(2, "8095122764", CallType.MISSED), CallerInfo(null, total = 9, popularName = "Mahesh Electricals"), noon)
         assertEquals("People know it as “Mahesh Electricals” · 9 people on WhoHas have this number", popular.text)
+        val own = AfterCallRules.decide(call(3, "9901566420", CallType.MISSED), CallerInfo(null, total = 3, ownerName = "Deepa Rao"), noon)
+        assertEquals("Their own name: Deepa Rao · 3 people on WhoHas have this number", own.text)
     }
 
     @Test
     fun nothingForCallsThatTellNothing() {
         val nobody = CallerInfo(null, total = 0)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "6362140987", CallType.MISSED), nobody, noon).alert)
-        assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "7760934418", CallType.OUTGOING), CallerInfo(null, 5), noon).alert)
+        assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "6362140987", CallType.OUTGOING), nobody, noon).alert)
+        assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "7760934418", CallType.OTHER), CallerInfo(null, 5), noon).alert)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, null, CallType.MISSED), CallerInfo(null, 5), noon).alert)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "", CallType.MISSED), CallerInfo(null, 5), noon).alert)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "7760934418", CallType.MISSED), CallerInfo(null, 5, blocked = true), noon).alert)
+    }
+
+    @Test
+    fun aDialledCallIsToldQuietlyAfterItEnds() {
+        val note = AfterCallRules.decide(call(1, "9731120456", CallType.OUTGOING), CallerInfo(null, total = 2, knownNames = listOf("Priya", "Meena")), noon)
+        assertEquals(AfterCallNote(Alert.SILENT, "You called +91 97311 20456", "Known to Priya and Meena", "+919731120456"), note)
+        val night = AfterCallRules.decide(call(1, "9731120456", CallType.OUTGOING), CallerInfo(null, total = 2), 23)
+        assertEquals(Alert.SILENT, night.alert)
+        val saved = AfterCallRules.decide(call(1, "9900148823", CallType.OUTGOING), CallerInfo("Kiran Gowda", 12, previousTotal = 9), noon)
+        assertEquals("You called Kiran Gowda", saved.title)
+    }
+
+    @Test
+    fun aRepeatCallIsToldOnlyWhenSomethingChanged() {
+        val first = CallerInfo(null, total = 4)
+        assertEquals(Alert.SOUND, AfterCallRules.decide(call(1, "7760934418", CallType.MISSED), first, noon).alert)
+        // Told at 4. The same number calls again and 4 still have it: nothing.
+        val again = CallerInfo(null, total = 4, lastNotified = 4)
+        assertEquals(Alert.NONE, AfterCallRules.decide(call(2, "7760934418", CallType.MISSED), again, noon).alert)
+        assertEquals(Alert.NONE, AfterCallRules.decide(call(3, "7760934418", CallType.OUTGOING), again, noon).alert)
+        // Now 6 have it: told again.
+        val grew = CallerInfo(null, total = 6, lastNotified = 4)
+        assertEquals(Alert.SOUND, AfterCallRules.decide(call(4, "7760934418", CallType.MISSED), grew, noon).alert)
+        // A saved contact told at 12 and no new people: nothing, even though the saved baseline is older.
+        val savedAgain = CallerInfo("Kiran Gowda", total = 12, previousTotal = 9, lastNotified = 12)
+        assertEquals(Alert.NONE, AfterCallRules.decide(call(5, "9900148823", CallType.ANSWERED), savedAgain, noon).alert)
     }
 
     @Test
@@ -82,11 +110,11 @@ class AfterCallTest {
     }
 
     @Test
-    fun handledAndOutgoingCallsAreSkipped() {
+    fun handledAndOldCallsAreSkipped() {
         val calls = listOf(call(1, "7760934418", CallType.MISSED), call(2, "9900148823", CallType.OUTGOING),
             call(3, "9900148823", CallType.ANSWERED, 60L * 24 * 8))
         val plan = CallCatchUp.plan(calls, handled = setOf(1L), now = now)
-        assertEquals(emptyList<Long>(), plan.toNotify.map { it.id })
+        assertEquals(listOf(2L), plan.toNotify.map { it.id })       // dialled calls are told too
         assertEquals(emptyList<Long>(), plan.tooLate.map { it.id })       // older than a week: ignored
     }
 

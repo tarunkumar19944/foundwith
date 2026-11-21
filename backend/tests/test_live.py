@@ -154,54 +154,7 @@ async def test_cards_carry_names_and_whether_the_owner_joined(db, identity):
     assert cards["mine"]["name"] == "Arjun Rao" and cards["taking_part"] is True
 
 
-# ---------------------------------------------------------------- the evening note
-
-def test_evening_note_text():
-    assert push.evening_text(0, 0) is None
-    assert push.evening_text(1, 0) == "1 number on your phone got more people."
-    assert push.evening_text(3, 0) == "3 numbers on your phone got more people."
-    assert push.evening_text(0, 1) == "1 more person has your number."
-    assert push.evening_text(0, 4) == "4 more people have your number."
-    assert push.evening_text(2, 2) == "2 more people have your number. 2 numbers on your phone got more people."
-    assert push.EVENING_TITLE == "Today on WhoHas"
-
-
-async def test_evening_note_counts_today_and_goes_once(db, people, service):
-    arjun, _, _ = await people.add(ARJUN, "Arjun Rao", contacts=[PLUMBER, CLINIC])
-    await service.save_device(arjun, token_for("arjun"))
-    priya, _, _ = await people.add(PRIYA, "Priya Sharma", contacts=[])           # nothing new: no note
-    await service.save_device(priya, token_for("priya"))
-    db.conn.run("UPDATE user_numbers SET first_seen_at = now() - interval '2 days'")
-    await nightly(db, service)                                                   # a new day starts
-
-    await people.add(RAVI, "Ravi Kumar", contacts=[PLUMBER, ARJUN])              # today
-    await people.add(MEENA, "Meena Iyer", contacts=[PLUMBER, CLINIC, ARJUN])
-    sender = push.LogSender()
-    evening = dt.datetime(2026, 11, 16, 19, 30, tzinfo=IST)
-    got = await push.send_evening_notes(db, sender, "Asia/Kolkata", now=evening)
-    assert got == {"people": 2, "sent": 1, "tokens_removed": 0}
-    [(token, message)] = sender.messages
-    assert token == token_for("arjun") and message["kind"] == "evening"
-    assert message["body"] == "2 more people have your number. 2 numbers on your phone got more people."
-    assert "Ravi" not in message["body"] and "Meena" not in message["body"]        # counts only
-
-    again = await push.send_evening_notes(db, push.LogSender(), "Asia/Kolkata", now=evening)
-    assert again["people"] == 0                                                  # once a day
-    await service.set_evening_note(arjun, False)
-    db.conn.run("UPDATE users SET evening_sent_on = NULL")
-    assert (await push.send_evening_notes(db, push.LogSender(), "Asia/Kolkata", now=evening))["people"] == 1
-
-
-async def test_numbers_you_added_today_dont_count_as_news(db, people, service):
-    await people.add(RAVI, "Ravi Kumar", contacts=[PLUMBER])
-    arjun, _, _ = await people.add(ARJUN, "Arjun Rao", contacts=[])
-    await service.save_device(arjun, TOKEN)
-    await nightly(db, service)
-    await service.sync_numbers(arjun, [PLUMBER], [])                             # Arjun saves the plumber today
-    sender = push.LogSender()
-    await push.send_evening_notes(db, sender, "Asia/Kolkata")
-    assert sender.messages == []
-
+# ---------------------------------------------------------------- wake-ups (the evening note was removed on 22 Nov 2026)
 
 async def test_wakeups_reach_recent_users_and_drop_dead_tokens(db, people, service):
     ravi, _, _ = await people.add(RAVI, "Ravi Kumar", contacts=[])
@@ -219,11 +172,9 @@ async def test_wakeups_reach_recent_users_and_drop_dead_tokens(db, people, servi
     assert (await push.send_wakeups(db, Gone(), active_days=60))["tokens_removed"] == 2
 
 
-def test_fcm_wakeup_and_evening_messages():
+def test_fcm_wakeup_message():
     wake = push.FcmSender.build("tok", {"kind": "wake"})["message"]
     assert wake["data"] == {"why": "wake"} and "notification" not in wake and wake["android"]["priority"] == "normal"
-    note = push.FcmSender.build("tok", {"kind": "evening", "title": "T", "body": "B"})["message"]
-    assert note["notification"] == {"title": "T", "body": "B"} and note["android"]["notification"]["channel_id"] == "evening"
 
 
 def test_scheduler_endpoints_need_the_scheduler(db, settings, identity):
@@ -232,13 +183,14 @@ def test_scheduler_endpoints_need_the_scheduler(db, settings, identity):
     app = create_app(make_settings(push_mode="log"), db=db, verifier=DevVerifier(), identity=identity, configure_logging=False,
                      push_sender=sender, push_caller=DevPushCaller())
     with TestClient(app) as client:
-        for path in ("/internal/push", "/internal/push/evening", "/internal/push/wake"):
+        for path in ("/internal/push", "/internal/push/wake"):
             assert client.post(path).status_code == 401
             assert client.post(path, headers={"Authorization": "Bearer someone"}).status_code == 401
             assert client.post(path, headers={"Authorization": "Bearer dev:push"}).status_code == 200, path
     plain = create_app(settings, db=db, verifier=DevVerifier(), identity=identity, configure_logging=False)
     with TestClient(plain) as client:
-        assert client.post("/internal/push/evening").status_code == 404     # pushes off: no such endpoint
+        assert client.post("/internal/push/wake").status_code == 404        # pushes off: no such endpoint
+        assert client.post("/internal/push/evening").status_code == 404     # the evening note no longer exists
 
 
 # ---------------------------------------------------------------- phone health, settings, app version
@@ -292,6 +244,17 @@ def test_opt_out_page_is_served_with_a_strict_policy(db, settings, identity):
     app = create_app(configured, db=db, verifier=DevVerifier(), identity=identity, configure_logging=False)
     with TestClient(app) as client:
         assert '"apiKey": "web-key"' in client.get("/out").text
+
+
+def test_delete_page_deletes_the_account_and_says_what_goes(db, settings, identity):
+    app = create_app(settings, db=db, verifier=DevVerifier(), identity=identity, configure_logging=False)
+    with TestClient(app) as client:
+        r = client.get("/delete")
+        assert r.status_code == 200 and "Delete your WhoHas account" in r.text
+        assert "Delete my account" in r.text and "Keep my account" in r.text and "privacy policy" in r.text
+        assert "30 days" not in r.text                                    # nothing promised that isn't checked
+        assert "/v1/optout" in r.text and 'method: "DELETE"' in r.text    # status check, then the account itself
+        assert "delete_account" not in r.text                             # it never adds the number to the opt-out list
 
 
 # ---------------------------------------------------------------- live updates

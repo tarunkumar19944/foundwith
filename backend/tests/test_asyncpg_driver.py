@@ -94,13 +94,10 @@ async def test_main_flows_through_asyncpg(db, pg_conninfo, identity):
         assert listed_block["id"] == block["id"] and listed_block["name"] == "Priya Sharma" and listed_block["ref"]
         await service.unblock(arjun, block["id"])
 
-        # push: devices, the queue, the evening note, wake-ups, health
+        # push: devices, the queue, wake-ups, health
         await service.save_device(arjun, "fcm-token-arjun-" + "x" * 20)
         await service.save_device(ravi, "fcm-token-ravi-" + "x" * 20)
         assert (await push.dispatch(database, push.LogSender()))["people"] >= 0
-        await service.set_evening_note(arjun, True)
-        evening = dt.datetime.now(IST).replace(hour=19, minute=30)
-        await push.send_evening_notes(database, push.LogSender(), "Asia/Kolkata", now=evening)
         assert (await push.send_wakeups(database, push.LogSender()))["sent"] == 2
         await service.record_health("xiaomi", 14, dt.date(2026, 11, 16), 10, 7)
         assert await admin.run(database, ["health", "3650"])

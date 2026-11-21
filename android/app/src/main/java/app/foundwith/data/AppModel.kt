@@ -4,6 +4,11 @@ import android.util.Log
 import app.foundwith.AppGraph
 import app.foundwith.BuildConfig
 import app.foundwith.core.CallEvent
+import app.foundwith.core.ChangeItem
+import app.foundwith.core.ChangeNotes
+import app.foundwith.core.LevelRules
+import app.foundwith.core.Levels
+import app.foundwith.core.Naming
 import app.foundwith.core.ChangeLog
 import app.foundwith.core.Changes
 import app.foundwith.core.PhoneNumbers
@@ -254,15 +259,6 @@ class AppModel(private val graph: AppGraph) {
         runCatching { fetchCards() }.getOrNull()?.let { cards -> _state.update { it.copy(cards = cards) } }
     }
 
-    suspend fun setEveningNote(on: Boolean): String? = try {
-        saveProfile(api.setEveningNote(on))
-        null
-    } catch (e: ApiException) {
-        e.message
-    } catch (e: OfflineException) {
-        e.message
-    }
-
     /** Remembered when the app goes to the background, for the green dots next time. */
     fun leftApp() {
         store.lastOpenedAt = System.currentTimeMillis()
@@ -331,17 +327,61 @@ class AppModel(private val graph: AppGraph) {
             store.saveChangeLog(updated)
             // A contact who just joined: tell the person, quietly ("Priya joined WhoHas · Has your number").
             val index = store.index()
-            for (ref in updated.joined.keys - old?.joined?.keys.orEmpty()) {
+            if (graph.store.notifyJoined) for (ref in updated.joined.keys - old?.joined?.keys.orEmpty()) {
                 val e164 = index.byRef[ref]?.e164 ?: continue
                 val name = _state.value.contactsByE164[e164]?.shownName ?: continue
                 val hasYours = mine?.known?.any { it.contactRef == ref } == true
                 graph.notifier.postJoined(e164, "$name joined WhoHas", if (hasYours) "Has your number" else null)
             }
+            if (old != null && !first) notifyChanges(old, updated, mine, unique, index)
+            notifyLevel(mine?.total, first)
         }
         return cached
     }
 
-    /** The phone's push token, so the evening note and wake-ups reach it. */
+    /**
+     * New or changed since the last refresh becomes one silent notification ("2 changes on WhoHas").
+     * Counts already told about after a call are left out.
+     */
+    private fun notifyChanges(old: ChangeLog, updated: ChangeLog, mine: Card?, cards: List<Card>, index: NumberIndex) {
+        if (!graph.store.notifyChanges) return
+        val contacts = _state.value.contactsByE164
+        fun e164(ref: String) = index.byRef[ref]?.e164
+        val items = ChangeNotes.items(old, updated, mine?.ref).filter { item ->
+            when (item) {
+                is ChangeItem.CountUp -> e164(item.ref)?.let { graph.store.lastNotified(it) ?: 0 }?.let { it < item.total } ?: true
+                else -> true
+            }
+        }
+        val holderNames = HashMap<String, String>()
+        for (card in cards + listOfNotNull(mine)) for (h in card.known) {
+            val label = h.contactRef?.let { index.byRef[it] }
+            holderNames[h.id] = Naming.person(label?.name, h.name, label?.e164)
+        }
+        val note = ChangeNotes.build(items,
+            label = { ref -> e164(ref)?.let { contacts[it]?.shownName ?: PhoneNumbers.display(it) } ?: "A number" },
+            saved = { ref -> e164(ref)?.let { contacts.containsKey(it) } == true },
+            holders = { ids -> ids.mapNotNull { holderNames[it] }.filterNot { Naming.looksLikeNumber(it) } }) ?: return
+        graph.notifier.postChanges(note.title, note.text)
+    }
+
+    /** Your own level: told when you reach a new one, and nudged at most once a week when close. */
+    private fun notifyLevel(total: Int?, first: Boolean) {
+        if (total == null) return
+        val store = graph.store
+        if (first || store.levelAnnounced < 0) {
+            store.levelAnnounced = Levels.of(total).ordinal
+            return
+        }
+        val now = System.currentTimeMillis()
+        val decision = LevelRules.decide(store.levelAnnounced, total, store.levelNudgedAt, now)
+        store.levelAnnounced = decision.announced
+        if (decision.nudged) store.levelNudgedAt = now
+        val note = decision.note ?: return
+        if (store.notifyLevel) graph.notifier.postLevel(note.title, note.text)
+    }
+
+    /** The phone's push token, so wake-ups reach it. */
     private suspend fun registerPush() {
         if (FirebaseApp.getApps(graph.context).isEmpty()) return
         val token = runCatching { FirebaseMessaging.getInstance().token.await() }.getOrNull() ?: return

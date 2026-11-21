@@ -67,8 +67,8 @@ fun InviteScreen(graph: AppGraph, onBack: () -> Unit) {
         item {
             Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Invite friends", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("When they join, you'll see if they have your number.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                PrimaryButton("Share in a group", {
+                Text("Adds the most value: the more of your group join, the more callers you can recognise.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                PrimaryButton("Share in group", {
                     context.shareImage(app.foundwith.R.drawable.share_whohas, Messages.groupShare(link), "Share WhoHas")
                 }, icon = Icons.Filled.Share)
             }

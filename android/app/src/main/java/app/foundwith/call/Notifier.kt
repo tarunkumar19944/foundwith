@@ -17,12 +17,14 @@ import app.foundwith.core.AfterCallNote
 import app.foundwith.core.Alert
 
 /**
- * WhoHas's notifications. Three channels, so people can quieten any of them in Android's own
- * settings too:
+ * WhoHas's notifications (22 Nov 2026). One Android channel per kind, so people can also quieten
+ * any of them in Android's own settings:
  *  - "Calls from unknown numbers" (with sound): a missed call from a number not in your contacts, when someone has it.
- *  - "Other calls (silent)": everything else after a call. No sound, no vibration.
- *  - "Daily summary": once a day; the server sends it on this channel.
- * One notification per number: a second call from the same number updates it.
+ *  - "Other calls (silent)": every other call WhoHas tells about, received or dialled. No sound.
+ *  - "Changes to your numbers": a new person has your number, a count went up. Merged into one.
+ *  - "Friends who join": someone in your contacts joined WhoHas. No sound.
+ *  - "Your level": you reached Popular or Highly popular, or you are close. At most one nudge a week.
+ * One notification per number: a second call from the same number updates it. There is no daily summary.
  */
 class Notifier(private val context: Context) {
 
@@ -35,15 +37,19 @@ class Notifier(private val context: Context) {
             NotificationChannel(CALLS_QUIET, "Other calls (silent)", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "After other calls, without sound."
             },
-            NotificationChannel(EVENING, "Daily summary", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Once a day, only when something changed."
+            NotificationChannel(CHANGES, "Changes to your numbers", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "When someone new has your number or a number you have. No sound."
             },
             NotificationChannel(JOINED, "Friends who join", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "When someone in your contacts joins WhoHas. No sound."
             },
+            NotificationChannel(LEVEL, "Your level", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "When you reach a new level, or are close. No sound."
+            },
         ))
-        // The caller-ID panel's channel from earlier versions.
+        // Channels from earlier versions.
         runCatching { manager.deleteNotificationChannel("incoming_calls") }
+        runCatching { manager.deleteNotificationChannel("evening") }
     }
 
     fun canPost(): Boolean =
@@ -73,28 +79,54 @@ class Notifier(private val context: Context) {
             .setAutoCancel(true)
             .setContentIntent(pending)
             .setGroup(GROUP_CALLS)
+            .addAction(0, "Copy number", action(ACTION_COPY, note.number))
+            .addAction(0, "Truecaller", action(ACTION_TRUECALLER, note.number))
             .build()
         @Suppress("MissingPermission")
         runCatching { NotificationManagerCompat.from(context).notify(TAG_CALL, note.number.hashCode(), notification) }
     }
 
-    /** The evening note when it arrives while the app is open (otherwise Android shows the server's copy). */
-    fun postEvening(title: String, body: String) {
+    /** A button on a call notification: opens WhoHas's invisible [NumberActionActivity] with the number. */
+    private fun action(name: String, e164: String): PendingIntent {
+        val intent = Intent(context, NumberActionActivity::class.java).setAction(name).putExtra(EXTRA_NUMBER, e164)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
+        return PendingIntent.getActivity(context, (name + e164).hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    }
+
+    /** "2 changes on WhoHas": silent, opens Updates. One notification that is replaced by the next. */
+    fun postChanges(title: String, text: String) {
         if (!canPost()) return
         val open = Intent(context, MainActivity::class.java).setAction(ACTION_OPEN_UPDATES)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pending = PendingIntent.getActivity(context, 1, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val notification = NotificationCompat.Builder(context, EVENING)
+        val builder = NotificationCompat.Builder(context, CHANGES)
             .setSmallIcon(R.drawable.ic_stat_found_with)
             .setContentTitle(title)
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+            .setSilent(true)
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+            .addAction(0, "Open Updates", pending)
+        if (text.isNotEmpty()) builder.setContentText(text).setStyle(NotificationCompat.BigTextStyle().bigText(text))
+        @Suppress("MissingPermission")
+        runCatching { NotificationManagerCompat.from(context).notify(TAG_CHANGES, 1, builder.build()) }
+    }
+
+    /** "You're Popular now" or "2 more people and you're Highly popular". Silent; opens Home. */
+    fun postLevel(title: String, text: String) {
+        if (!canPost()) return
+        val open = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val pending = PendingIntent.getActivity(context, 2, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val notification = NotificationCompat.Builder(context, LEVEL)
+            .setSmallIcon(R.drawable.ic_stat_found_with)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setSilent(true)
             .setAutoCancel(true)
             .setContentIntent(pending)
             .build()
         @Suppress("MissingPermission")
-        runCatching { NotificationManagerCompat.from(context).notify(TAG_EVENING, 1, notification) }
+        runCatching { NotificationManagerCompat.from(context).notify(TAG_LEVEL, 2, notification) }
     }
 
     /** "Priya joined WhoHas · Has your number". Silent; tapping opens their card. */
@@ -122,14 +154,18 @@ class Notifier(private val context: Context) {
     companion object {
         const val CALLS_SOUND = "callers"
         const val CALLS_QUIET = "calls_quiet"
-        const val EVENING = "evening"
+        const val CHANGES = "changes"
+        const val LEVEL = "level"
         const val JOINED = "joined"
         private const val TAG_JOINED = "joined"
         const val ACTION_OPEN_NUMBER = "app.foundwith.OPEN_NUMBER"
         const val ACTION_OPEN_UPDATES = "app.foundwith.OPEN_UPDATES"
+        const val ACTION_COPY = "app.foundwith.COPY_NUMBER"
+        const val ACTION_TRUECALLER = "app.foundwith.TRUECALLER"
         const val EXTRA_NUMBER = "number"
         private const val TAG_CALL = "call"
-        private const val TAG_EVENING = "evening"
+        private const val TAG_CHANGES = "changes"
+        private const val TAG_LEVEL = "level"
         private const val GROUP_CALLS = "calls"
     }
 }

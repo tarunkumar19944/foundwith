@@ -861,49 +861,6 @@ async def start_new_day(conn: Conn) -> int:
         "UPDATE number_stats SET holders_day_start = holders WHERE holders_day_start <> holders"))
 
 
-async def evening_candidates(conn: Conn, after_id: int, limit: int, today: Any) -> list[tuple[int, bytes, list[str]]]:
-    """People to send the evening note to: the app installed, the note switched on, not sent today."""
-    rows = await conn.fetch(
-        """SELECT u.id, u.phone_hmac FROM users u
-           WHERE u.id > $1 AND u.evening_note AND u.suspended_at IS NULL
-             AND (u.evening_sent_on IS NULL OR u.evening_sent_on < $3::date)
-             AND EXISTS (SELECT 1 FROM push_tokens t WHERE t.user_id = u.id)
-           ORDER BY u.id LIMIT $2""",
-        after_id, limit, today)
-    if not rows:
-        return []
-    ids = [r["id"] for r in rows]
-    tokens: dict[int, list[str]] = {}
-    for r in await conn.fetch("SELECT user_id, token FROM push_tokens WHERE user_id = ANY($1::bigint[])", ids):
-        tokens.setdefault(r["user_id"], []).append(r["token"])
-    return [(r["id"], bytes(r["phone_hmac"]), tokens.get(r["id"], [])) for r in rows]
-
-
-async def changes_today(conn: Conn, user_ids: Sequence[int], phone_hmacs: Sequence[bytes]) -> dict[int, tuple[int, int]]:
-    """For each person: how many numbers on their phone have more people today (not counting
-    numbers they added themselves today), and how many more people have their own number."""
-    if not user_ids:
-        return {}
-    numbers = {r["user_id"]: int(r["n"]) for r in await conn.fetch(
-        """SELECT un.user_id, count(*)::int AS n
-           FROM user_numbers un
-           JOIN number_stats s ON s.number_hmac = un.number_hmac
-           WHERE un.user_id = ANY($1::bigint[]) AND (un.in_contacts OR un.in_call_log) AND NOT un.hidden
-             AND s.holders > s.holders_day_start
-             AND un.first_seen_at < now() - interval '12 hours'
-           GROUP BY un.user_id""", list(user_ids))}
-    own = {bytes(r["number_hmac"]): int(r["d"]) for r in await conn.fetch(
-        """SELECT number_hmac, holders - holders_day_start AS d FROM number_stats
-           WHERE number_hmac = ANY($1::bytea[]) AND holders > holders_day_start""", list(phone_hmacs))}
-    return {uid: (numbers.get(uid, 0), own.get(phone, 0)) for uid, phone in zip(user_ids, phone_hmacs)}
-
-
-async def mark_evening_sent(conn: Conn, user_ids: Sequence[int], today: Any) -> None:
-    if user_ids:
-        await conn.execute("UPDATE users SET evening_sent_on = $2::date WHERE id = ANY($1::bigint[])",
-                           list(user_ids), today)
-
-
 async def wake_tokens(conn: Conn, after: str, limit: int, active_days: int) -> list[str]:
     """Push tokens of people who used Found With recently, for the check-for-missed-calls wake-up."""
     rows = await conn.fetch(

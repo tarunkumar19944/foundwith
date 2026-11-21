@@ -39,6 +39,11 @@ android {
     namespace = "app.foundwith"
     compileSdk = 36
 
+    // The app is in English only: leave out the translations that libraries bring along.
+    androidResources {
+        localeFilters += listOf("en")
+    }
+
     defaultConfig {
         applicationId = "app.foundwith"
         // Runs on Android 8+.

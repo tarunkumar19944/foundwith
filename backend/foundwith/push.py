@@ -1,14 +1,11 @@
-"""Push messages through Firebase Cloud Messaging (FCM). Three kinds, none with a name in it:
+"""Push messages through Firebase Cloud Messaging (FCM). Two kinds, none with a name in it:
 
   * Silent refreshes ("cards", "joined", "invite"): the app fetches its cards again. Queued in
     push_queue, one row per person; Cloud Scheduler calls /internal/push every minute. Card
     changes wait at least cards_push_gap_s after the person's last push.
   * Wake-ups ("wake"), a few times a day: the app checks the call log for calls it didn't get to
     check (some phones stop apps in the background). /internal/push/wake.
-  * The daily summary (the evening note), once a day at 7:30 pm IST: a notification Android shows by itself, with
-    counts only ("1 more person has your number. 3 numbers on your phone got more people."). Sent from here
-    rather than built on the phone because on many phones a timer inside an app never fires.
-    /internal/push/evening.
+  There is no daily summary (removed 22 Nov 2026): the app tells about changes itself, when it refreshes.
 """
 
 from __future__ import annotations
@@ -16,8 +13,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-from datetime import date, datetime
-from zoneinfo import ZoneInfo
 import urllib.error
 import urllib.request
 from collections.abc import Awaitable, Callable, Sequence
@@ -40,23 +35,6 @@ def reasons(why: int) -> str:
     names = [name for bit, name in ((repo.PUSH_CARDS, "cards"), (repo.PUSH_JOINED, "joined"),
                                     (repo.PUSH_INVITE, "invite")) if why & bit]
     return ",".join(names) or "cards"
-
-
-def evening_text(numbers_changed: int, own_more: int) -> str | None:
-    """The daily summary, counts only: "1 more person has your number. 3 numbers on your phone got
-    more people." None when nothing changed today."""
-    parts = []
-    if own_more:
-        parts.append("1 more person has your number." if own_more == 1 else f"{own_more:,} more people have your number.")
-    if numbers_changed == 1:
-        parts.append("1 number on your phone got more people.")
-    elif numbers_changed > 1:
-        parts.append(f"{numbers_changed:,} numbers on your phone got more people.")
-    return " ".join(parts) or None
-
-
-EVENING_TITLE = "Today on WhoHas"
-
 
 class Sender(Protocol):
     async def send_all(self, items: Sequence[tuple[str, int]]) -> list[tuple[str, str]]: ...
@@ -149,16 +127,7 @@ class FcmSender:
 
     @staticmethod
     def build(token: str, message: dict[str, Any]) -> dict[str, Any]:
-        """A wake-up or the evening note, from the neutral form used by LogSender."""
-        if message["kind"] == "evening":
-            return {"message": {
-                "token": token,
-                "notification": {"title": message["title"], "body": message["body"]},
-                "data": {"why": "evening"},
-                "android": {"priority": "normal", "ttl": "10800s", "collapse_key": "evening",
-                            "notification": {"channel_id": "evening", "tag": "evening",
-                                             "click_action": "app.foundwith.OPEN_UPDATES"}},
-            }}
+        """A wake-up, from the neutral form used by LogSender."""
         return {"message": {
             "token": token,
             "data": {"why": "wake"},
@@ -230,35 +199,6 @@ async def dispatch(db: Database, sender: Sender, batch: int = 500) -> dict[str, 
     sent = sum(1 for _, outcome in results if outcome == OK)
     log.info("pushes sent", extra={"event": "push_dispatch", "people": len(due), "sent": sent})
     return {"people": len(due), "sent": sent, "tokens_removed": removed, "retrying": len(retry)}
-
-
-async def send_evening_notes(db: Database, sender: Sender, tz: str, batch: int = 500,
-                             now: datetime | None = None) -> dict[str, int]:
-    """The evening note for everyone who has it switched on, once a day. People with nothing new
-    today get nothing (and are marked done, so a second run doesn't look at them again)."""
-    today: date = (now or datetime.now(ZoneInfo(tz))).astimezone(ZoneInfo(tz)).date()
-    after, people, sent, gone_total = 0, 0, 0, 0
-    while True:
-        async with db.acquire() as conn:
-            batch_rows = await repo.evening_candidates(conn, after, batch, today)
-            if not batch_rows:
-                break
-            changes = await repo.changes_today(conn, [r[0] for r in batch_rows], [r[1] for r in batch_rows])
-        after = batch_rows[-1][0]
-        items: list[tuple[str, dict[str, Any]]] = []
-        for user_id, _, tokens in batch_rows:
-            people += 1
-            text = evening_text(*changes.get(user_id, (0, 0)))
-            if text:
-                items += [(t, {"kind": "evening", "title": EVENING_TITLE, "body": text}) for t in tokens]
-        results = await sender.send_messages(items) if items else []
-        gone = [token for token, outcome in results if outcome == UNREGISTERED]
-        sent += sum(1 for _, outcome in results if outcome == OK)
-        async with db.acquire() as conn:
-            gone_total += await repo.delete_push_tokens(conn, gone)
-            await repo.mark_evening_sent(conn, [r[0] for r in batch_rows], today)
-    log.info("evening notes sent", extra={"event": "evening_notes", "people": people, "sent": sent})
-    return {"people": people, "sent": sent, "tokens_removed": gone_total}
 
 
 async def send_wakeups(db: Database, sender: Sender, active_days: int = 30, batch: int = 1000) -> dict[str, int]:

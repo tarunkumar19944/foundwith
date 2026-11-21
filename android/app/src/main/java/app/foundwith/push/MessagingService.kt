@@ -16,8 +16,7 @@ import com.google.firebase.messaging.RemoteMessage
  * Push messages from the WhoHas server. None carries a name or a number:
  *  - "wake": check the call log for calls not yet checked (some phones stop apps in the background).
  *  - "cards", "joined", "invite": fetch the cards again, so Updates is fresh when the app opens.
- *  - "evening": the evening note. Android shows it by itself when the app isn't open; when it is,
- *    it arrives here and is shown the same way.
+ *  There is no daily summary any more; an old server's "evening" push is just a refresh.
  */
 class MessagingService : FirebaseMessagingService() {
 
@@ -30,7 +29,6 @@ class MessagingService : FirebaseMessagingService() {
         if (!graph.auth.isSignedIn) return
         when (message.data["why"]) {
             "wake" -> AfterCall.runNow(this)
-            "evening" -> message.notification?.let { graph.notifier.postEvening(it.title.orEmpty(), it.body.orEmpty()) }
             else -> RefreshWorker.enqueue(this)
         }
     }

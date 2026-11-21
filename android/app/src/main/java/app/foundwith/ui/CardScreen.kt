@@ -54,6 +54,8 @@ import app.foundwith.core.CallType
 import app.foundwith.core.Naming
 import app.foundwith.core.Changes
 import app.foundwith.core.HolderText
+import app.foundwith.core.Level
+import app.foundwith.core.Levels
 import app.foundwith.core.Messages
 import app.foundwith.core.NameSource
 import app.foundwith.core.PhoneNumbers
@@ -149,7 +151,8 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
         Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (saved || mine) {
                 Text(name.text, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2)
-                Text(if (mine) shown(e164) else "${shown(e164)} · In your contacts", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (mine) shown(e164) else "${shown(e164)} · In your contacts", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.clickable { context.copyNumber(e164) })
             } else {
                 if (lastCall != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -158,7 +161,8 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                         Text(callLine(lastCall), style = MaterialTheme.typography.labelLarge, color = callKindColour(lastCall))
                     }
                 }
-                Text(shown(e164), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text(shown(e164), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.clickable { context.copyNumber(e164) })
                 Text("Not in your contacts", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 when (name.source) {
                     NameSource.THEIR_OWN -> Chip("Their own name: ${name.text}", saffron = false)
@@ -216,14 +220,9 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                                 fontWeight = FontWeight.Bold, color = if (knownCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         if (change != null) Chip(HolderText.today(change.delta), Icons.Filled.KeyboardArrowUp)
-                        if (!mine) HolderText.label(total, lowerBound)?.let { label ->
-                            Surface(color = MaterialTheme.colorScheme.background, shape = RoundedCornerShape(14.dp)) {
-                                Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) {
-                                    Text(label, fontWeight = FontWeight.Bold)
-                                    Text(HolderText.LABEL_HINT, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                            }
-                        }
+                        val ownTotal = state.cards?.mine?.total ?: 0
+                        if (mine) LevelBlock(total)
+                        else CompareBox(Levels.of(total, lowerBound), ownTotal)
                     }
                 }
 
@@ -245,16 +244,22 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                             WhCard(Modifier, color = MaterialTheme.colorScheme.secondaryContainer, edge = false) {
                                 Text("$who isn't on WhoHas yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                Text(if (total > 0) "${theirNumberLine(total, lowerBound)}. Share it with them."
-                                    else "Share WhoHas with them, so you can ask each other about unknown callers.",
+                                Text(if (total > 0) "${theirNumberLine(total, lowerBound)}. Let them know."
+                                    else "Tell them about WhoHas, so you can ask each other about unknown callers.",
                                     color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                PrimaryButton(if (invited) "Shared" else "Share on WhatsApp", {
+                                PrimaryButton(if (invited) "Told" else "Tell $who on WhatsApp", {
                                     context.messagePerson(e164, Messages.invite(total, link, lowerBound))
                                     invited = true
                                     scope.launch { graph.model.recordTell(e164) }
                                 }, saffron = true, icon = Icons.Filled.Send)
                             }
                         }
+                    }
+                    if (!mine) Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(onClick = { context.copyNumber(e164) }, modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(24.dp)) { Text("Copy number", maxLines = 1) }
+                        OutlinedButton(onClick = { context.searchInTruecaller(e164) }, modifier = Modifier.weight(1f).height(48.dp),
+                            shape = RoundedCornerShape(24.dp)) { Text("Truecaller", maxLines = 1) }
                     }
                     if (!saved && !mine && lastCall != null && lastCall.isIncoming) {
                         OutlinedButton(onClick = { context.dial(e164) }, modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -364,6 +369,7 @@ private fun Meaning(card: Card?, name: ShownName, mine: Boolean, onDone: () -> U
         for ((bold, rest) in HolderText.meaning(card?.total ?: 0, card?.knownTotal ?: 0, card?.totalIsLowerBound == true, mine)) {
             MeaningRow(bold, rest)
         }
+        for (level in Level.values()) MeaningRow(level.label, level.why)
         when (name.source) {
             NameSource.POPULAR -> MeaningRow("“${name.text}”", "The name 3 or more people have for this number in their contacts.")
             NameSource.THEIR_OWN -> MeaningRow("Their own name: ${name.text}", "The name they typed into WhoHas. Anyone can type any name.")

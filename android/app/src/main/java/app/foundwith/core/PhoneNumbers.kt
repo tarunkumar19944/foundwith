@@ -143,6 +143,9 @@ object PhoneNumbers {
     fun isMobileShaped(e164: String?): Boolean = e164 != null && MOBILE_SHAPE.matches(e164)
 
     /** "+91 98450 31207" for Indian numbers, the E.164 string otherwise. */
+    /** What to copy: the ten digits of an Indian number, no +91 and no spaces. Truecaller and the dialler take it as is. */
+    fun copyText(e164: String): String = if (e164.startsWith("+91") && e164.length == 13) e164.substring(3) else e164
+
     fun display(e164: String): String =
         if (e164.startsWith("+91") && e164.length == 13) {
             "+91 ${e164.substring(3, 8)} ${e164.substring(8)}"

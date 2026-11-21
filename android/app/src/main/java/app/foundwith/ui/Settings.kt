@@ -136,14 +136,15 @@ fun SettingsScreen(graph: AppGraph, onBack: () -> Unit, onPage: (String) -> Unit
     }
 }
 
-/** Notifications (74): after calls, and the evening note. Quiet hours can't be switched off. */
+/** Notifications (22 Nov 2026): five switches. The first two are about calls, so the contacts-only version hides them. */
 @Composable
 fun NotificationsScreen(graph: AppGraph, onBack: () -> Unit, onFix: () -> Unit) {
-    val state by graph.model.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var afterCalls by remember { mutableStateOf(graph.store.afterCalls) }
-    var error by remember { mutableStateOf<String?>(null) }
+    var unknown by remember { mutableStateOf(graph.store.notifyUnknownCalls) }
+    var other by remember { mutableStateOf(graph.store.notifyOtherCalls) }
+    var changes by remember { mutableStateOf(graph.store.notifyChanges) }
+    var joined by remember { mutableStateOf(graph.store.notifyJoined) }
+    var level by remember { mutableStateOf(graph.store.notifyLevel) }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (!granted) graph.store.addDenial(Manifest.permission.POST_NOTIFICATIONS)
     }
@@ -156,15 +157,22 @@ fun NotificationsScreen(graph: AppGraph, onBack: () -> Unit, onFix: () -> Unit) 
             }
         }
         if (BuildConfig.CALL_LOG) {
-            ToggleRow("After calls", "Tells you who has the number of anyone who calls.", afterCalls) {
-                afterCalls = it
-                graph.store.afterCalls = it
+            ToggleRow("Calls from unknown numbers", "A missed call from a number not in your contacts, when someone has it.", unknown) {
+                unknown = it; graph.store.notifyUnknownCalls = it
+            }
+            ToggleRow("Other calls", "Received and dialled calls, quietly, when something is new.", other) {
+                other = it; graph.store.notifyOtherCalls = it
             }
         }
-        ToggleRow("Daily summary", "Once a day, only when something changed.", state.profile?.eveningNote ?: true) { on ->
-            scope.launch { error = graph.model.setEveningNote(on) }
+        ToggleRow("Changes to your numbers", "Someone new has your number, or a count went up.", changes) {
+            changes = it; graph.store.notifyChanges = it
         }
-        ErrorText(error, Modifier.padding(horizontal = 20.dp))
+        ToggleRow("Friends who join", "Someone in your contacts joins WhoHas.", joined) {
+            joined = it; graph.store.notifyJoined = it
+        }
+        ToggleRow("Your level", "When you reach Popular or Highly popular, or are close.", level) {
+            level = it; graph.store.notifyLevel = it
+        }
         Text("No sound from 9 pm to 9 am.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
         if (BuildConfig.CALL_LOG) {
@@ -260,7 +268,7 @@ fun DataScreen(graph: AppGraph, onBack: () -> Unit, onBlocked: () -> Unit, onSig
             }
         }
         SettingRow(Icons.AutoMirrored.Filled.ExitToApp, "Sign out") { confirm = "signout" }
-        SettingRow(null, "Delete account", danger = true) { confirm = "delete" }
+        SettingRow(null, "Delete my account", danger = true) { confirm = "delete" }
     }
     when (confirm) {
         "signout" -> ConfirmDialog("Sign out?", "Your account stays. Sign in again any time with your number.", "Sign out",
@@ -275,7 +283,9 @@ fun DataScreen(graph: AppGraph, onBack: () -> Unit, onBlocked: () -> Unit, onSig
                 }
             }, onDismiss = { confirm = null })
         "delete" -> ConfirmDialog("Delete your account?",
-            "Your name, contacts and call log numbers will be deleted from WhoHas. You can't undo this.", "Delete", danger = true,
+            "This removes your number and name, the contacts and call log numbers you shared, your blocked list and your settings. " +
+                "Other people's counts go down by one. Your phone's own contacts and call log are not touched. You can't undo this.",
+            "Delete my account", danger = true, cancel = "Keep my account",
             onConfirm = {
                 confirm = null
                 scope.launch {
@@ -327,6 +337,7 @@ fun HelpScreen(onBack: () -> Unit, onHowItWorks: () -> Unit) {
     Page(onBack, "Help") {
         SettingRow(Icons.Filled.Info, "How WhoHas works", onClick = onHowItWorks)
         SettingRow(Icons.Filled.Email, "Write to us", HELP_EMAIL) { context.email(HELP_EMAIL) }
+        if (DELETE_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Delete my account without the app") { context.openUrl(DELETE_URL) }
         if (PRIVACY_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Privacy policy") { context.openUrl(PRIVACY_URL) }
         if (PRIVACY_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Terms") { context.openUrl(PRIVACY_URL.replace("privacy", "terms")) }
         Text("Version ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodySmall,

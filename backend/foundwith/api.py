@@ -269,14 +269,6 @@ async def dispatch_pushes(request: Request) -> Response:
     return JSONResponse(await push.dispatch(request.app.state.db, request.app.state.push_sender))
 
 
-async def evening_notes(request: Request) -> Response:
-    """Once a day at 7:30 pm IST."""
-    if not await _scheduler_only(request):
-        return _not_found()
-    state = request.app.state
-    return JSONResponse(await push.send_evening_notes(state.db, state.push_sender, state.settings.quota_timezone))
-
-
 async def wake_ups(request: Request) -> Response:
     """A few times a day: apps check their call log for calls they didn't get to check."""
     if not await _scheduler_only(request):
@@ -477,12 +469,12 @@ def create_app(settings: Settings | None = None, *, db: Database | None = None, 
         Route("/v1/tells", signed_in(post_tell), methods=["POST"]),
         Route("/i/{code}", web.invite_page, methods=["GET"]),
         Route("/out", web.opt_out_page, methods=["GET"]),
+        Route("/delete", web.delete_page, methods=["GET"]),
         Route("/v1/me/device", signed_in(put_device), methods=["PUT"]),
         Route("/v1/me/device", signed_in(delete_device, allow_suspended=True), methods=["DELETE"]),
         Route("/v1/me/data", signed_in(get_my_data, allow_suspended=True), methods=["GET"]),
         Route("/v1/me/export", signed_in(get_export, heavy=True, allow_suspended=True), methods=["GET"]),
         Route("/internal/push", dispatch_pushes, methods=["POST"]),
-        Route("/internal/push/evening", evening_notes, methods=["POST"]),
         Route("/internal/push/wake", wake_ups, methods=["POST"]),
         Route("/v1/hidden", signed_in(list_hidden), methods=["GET"]),
         Route("/v1/hidden/{ref}", signed_in(hide_number), methods=["PUT"]),

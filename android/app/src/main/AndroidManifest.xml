@@ -39,14 +39,23 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Tapping the evening note (shown by Android from the server's message). -->
+            <!-- Tapping a changes notification. -->
             <intent-filter>
                 <action android:name="app.foundwith.OPEN_UPDATES" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
-        <!-- Push messages: the evening note, wake-ups to catch up on calls, silent refreshes. -->
+        <!-- The "Copy number" and "Truecaller" buttons on call notifications. No screen. -->
+        <activity
+            android:name=".call.NumberActionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:theme="@style/Theme.FoundWith.Invisible" />
+
+        <!-- Push messages: wake-ups to catch up on calls, silent refreshes. -->
         <service
             android:name=".push.MessagingService"
             android:exported="false">
@@ -57,7 +66,7 @@
 
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="evening" />
+            android:value="changes" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_stat_found_with" />

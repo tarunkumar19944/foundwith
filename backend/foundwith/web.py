@@ -222,3 +222,59 @@ async def opt_out_page(request: Request) -> HTMLResponse:
         "img-src": "'self' data: https://www.gstatic.com https://www.google.com",
     }
     return _page("Remove your number · WhoHas", _OUT_BODY, nonce=nonce, extra_script=script, csp_extra=csp)
+
+
+# ---------------------------------------------------------------- delete my account (the web page Play asks for)
+# Same sign-in as the opt-out page. It deletes the account only: it does not add the number to the
+# "remove my number" list, so the person can sign up again later.
+
+_DELETE_BODY = _OUT_BODY.replace("Remove your number from WhoHas", "Delete your WhoHas account").replace(
+    "Works even if you don't use the app. People on WhoHas won't see who has your number.",
+    "Works even if the app is not on your phone. You get an SMS code to prove the number is yours.").replace(
+    "This number has a WhoHas account", "Delete this account?").replace(
+    "Removing it also deletes the account and everything in it.",
+    "This removes your number and name, the contacts and call log numbers you shared, your blocked list and your settings. "
+    "Other people's counts go down by one. Your phone's own contacts and call log are not touched. "
+    "What we keep, and for how long, is in the privacy policy.").replace(
+    "Remove and delete", "Delete my account").replace(
+    "Cancel</button>", "Keep my account</button>").replace(
+    "Done. Your number is removed.", "Your account is deleted.").replace(
+    "People on WhoHas won't see who has it, now or later.", "Your number and name are removed from WhoHas.").replace(
+    "Write to help@found-with.app to remove your number.", "Write to help@found-with.app to delete your account.")
+
+_DELETE_SCRIPT = _OUT_SCRIPT.replace(
+    '''  function takeOut(withAccount) {{
+    return api("PUT", {{ delete_account: !!withAccount }}).then(function (r) {{
+      if (r.status === 200) {{ auth.signOut(); show("s-done"); return; }}
+      if (r.body && r.body.error && r.body.error.code === "account_exists") {{ show("s-account"); return; }}
+      throw new Error("failed");
+    }});
+  }}''',
+    '''  function takeOut() {{
+    return fetch("/v1/me", {{ method: "DELETE", headers: {{ "Authorization": "Bearer " + token }} }}).then(function (r) {{
+      if (r.status === 200 || r.status === 404) {{ auth.signOut(); show("s-done"); return; }}
+      throw new Error("failed");
+    }});
+  }}''').replace(
+    '''        if (r.body.opted_out) {{ auth.signOut(); show("s-done"); return; }}
+        if (r.body.has_account) {{ show("s-account"); return; }}
+        return takeOut(false);''',
+    '''        if (r.body.has_account) {{ show("s-account"); return; }}
+        auth.signOut(); show("s-done");''').replace("takeOut(true)", "takeOut()")
+
+
+async def delete_page(request: Request) -> HTMLResponse:
+    settings = request.app.state.settings
+    nonce = secrets.token_urlsafe(16)
+    config = {"apiKey": settings.firebase_web_api_key, "authDomain": settings.firebase_auth_domain,
+              "projectId": settings.firebase_project_id}
+    if not settings.firebase_web_api_key:
+        config = {}
+    script = _DELETE_SCRIPT.format(nonce=nonce, fb=FIREBASE_JS, config=json.dumps(config))
+    csp = {
+        "script-src": f"'nonce-{nonce}' https://www.gstatic.com https://www.google.com https://apis.google.com",
+        "connect-src": "'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.google.com",
+        "frame-src": "https://www.google.com https://*.firebaseapp.com https://recaptcha.google.com",
+        "img-src": "'self' data: https://www.gstatic.com https://www.google.com",
+    }
+    return _page("Delete your account · WhoHas", _DELETE_BODY, nonce=nonce, extra_script=script, csp_extra=csp)

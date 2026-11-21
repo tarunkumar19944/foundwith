@@ -17,6 +17,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -144,6 +145,24 @@ fun Context.shareImage(resId: Int, text: String, title: String) {
     }.onFailure { shareText(text) }
 }
 
+/** Copies the plain ten digits. Android 13 and later show their own "Copied" box; older phones get a short toast. */
+fun Context.copyNumber(e164: String) {
+    val clipboard = getSystemService(android.content.ClipboardManager::class.java) ?: return
+    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Number", app.foundwith.core.PhoneNumbers.copyText(e164)))
+    if (android.os.Build.VERSION.SDK_INT < 33) android.widget.Toast.makeText(this, "Number copied", android.widget.Toast.LENGTH_SHORT).show()
+}
+
+/**
+ * Copies the number, then opens Truecaller when it is installed, else Truecaller's web search.
+ * Truecaller has no link that takes a number, so the person pastes it into its search.
+ */
+fun Context.searchInTruecaller(e164: String) {
+    copyNumber(e164)
+    val intent = packageManager.getLaunchIntentForPackage("com.truecaller")
+        ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://www.truecaller.com/search/in/" + app.foundwith.core.PhoneNumbers.copyText(e164)))
+    runCatching { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+}
+
 /** "Call back": the phone's own dialer, with the number filled in. No call permission needed. */
 fun Context.dial(e164: String) {
     runCatching { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$e164")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
@@ -185,6 +204,9 @@ fun Context.email(address: String) {
 
 const val HELP_EMAIL = "help@found-with.app"
 val PRIVACY_URL: String get() = BuildConfig.PRIVACY_URL
+
+/** The web page that deletes an account without the app: the privacy address with /delete (Play's account deletion rule). */
+val DELETE_URL: String get() = if (PRIVACY_URL.isBlank()) "" else PRIVACY_URL.substringBeforeLast("/privacy", PRIVACY_URL).trimEnd('/') + "/delete"
 
 // ---------------------------------------------------------------- building blocks
 
@@ -239,6 +261,19 @@ fun NameText(name: ShownName, big: Boolean = false, maxLines: Int = 1) {
     }
 }
 
+/** Opens the press-and-hold menu for a number (Copy number, Truecaller, Call back, Open card). Provided by Home. */
+val LocalNumberMenu = androidx.compose.runtime.compositionLocalOf<((String) -> Unit)?> { null }
+
+/** Tap opens the card; press and hold opens the number menu when [e164] is known. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun rowClick(e164: String?, onClick: (() -> Unit)?): Modifier {
+    val menu = LocalNumberMenu.current
+    if (onClick == null) return Modifier
+    val hold = if (e164 != null && menu != null) ({ menu(e164) }) else null
+    return Modifier.combinedClickable(onClick = onClick, onLongClick = hold)
+}
+
 /**
  * One row in every list: who, the one line, and an optional small line under it. The line wraps
  * to two lines rather than cutting off the count.
@@ -251,9 +286,10 @@ fun NumberRow(
     sub: String? = null,
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    e164: String? = null,
 ) {
     ListItem(
-        modifier = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
+        modifier = rowClick(e164, onClick),
         leadingContent = leading,
         headlineContent = { NameText(name) },
         supportingContent = {
@@ -282,9 +318,10 @@ fun InfoRow(
     isNew: Boolean = false,
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
+    e164: String? = null,
 ) {
     Row(
-        Modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+        Modifier.fillMaxWidth().then(rowClick(e164, onClick))
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -391,7 +428,8 @@ fun EmptyState(icon: ImageVector, title: String, text: String, button: String? =
 
 /** "Block Vikram?" and the like: a short question with Cancel and one action. */
 @Composable
-fun ConfirmDialog(title: String, text: String, confirm: String, danger: Boolean = false, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+fun ConfirmDialog(title: String, text: String, confirm: String, danger: Boolean = false, onConfirm: () -> Unit, onDismiss: () -> Unit,
+                  cancel: String = "Cancel") {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -401,7 +439,7 @@ fun ConfirmDialog(title: String, text: String, confirm: String, danger: Boolean 
                 Text(confirm, color = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(cancel) } },
     )
 }
 
@@ -431,7 +469,7 @@ fun agoText(at: Long?, now: Long = System.currentTimeMillis()): String {
     }
 }
 
-/** "Live · checked just now" with a slow green pulse, or what's shown while offline. */
+/** "Live · just now" with a slow green pulse, or what's shown while offline. */
 @Composable
 fun LiveStatus(checkedAt: Long?, offline: Boolean) {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -451,7 +489,7 @@ fun LiveStatus(checkedAt: Long?, offline: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(8.dp).background(MaterialTheme.colorScheme.tertiary.copy(alpha = alpha), CircleShape))
         Spacer(Modifier.width(6.dp))
-        Text("Live · checked ${agoText(checkedAt, now)}", style = MaterialTheme.typography.labelMedium,
+        Text("Live · ${agoText(checkedAt, now)}", style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.tertiary, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
@@ -507,7 +545,7 @@ fun TellButton(told: Boolean, name: String, onClick: () -> Unit) {
             Row(Modifier.height(44.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Shared", fontWeight = FontWeight.Bold)
+                Text("Told", fontWeight = FontWeight.Bold)
             }
         }
         return
@@ -518,7 +556,7 @@ fun TellButton(told: Boolean, name: String, onClick: () -> Unit) {
         shape = RoundedCornerShape(22.dp),
         contentPadding = PaddingValues(horizontal = 18.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary, contentColor = MaterialTheme.colorScheme.onSecondary),
-    ) { Text("Share", fontWeight = FontWeight.Bold, modifier = Modifier) }
+    ) { Text("Tell", fontWeight = FontWeight.Bold) }
 }
 
 /** Overlapping avatars for a few people. [people] are (seed, name). */
@@ -583,6 +621,102 @@ fun HeroCard(
                 }
             }
             if (chip != null) Chip(chip, Icons.Filled.KeyboardArrowUp)
+        }
+    }
+}
+
+/**
+ * Press and hold a number in Updates, Contacts or Call log: Copy number, Truecaller, Call back, Open card.
+ * Most unknown callers have no name, so copying the number to search elsewhere is the common need.
+ */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+fun NumberMenuSheet(e164: String, name: String, onOpen: () -> Unit, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.padding(bottom = 24.dp)) {
+            Text(if (name == shown(e164)) shown(e164) else "$name · ${shown(e164)}", style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            MenuRow("Copy number") { context.copyNumber(e164); onDismiss() }
+            MenuRow("Search in Truecaller") { context.searchInTruecaller(e164); onDismiss() }
+            MenuRow("Call back") { context.dial(e164); onDismiss() }
+            MenuRow("Open card") { onDismiss(); onOpen() }
+        }
+    }
+}
+
+@Composable
+private fun MenuRow(text: String, onClick: () -> Unit) {
+    Text(text, style = MaterialTheme.typography.bodyLarge,
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 24.dp, vertical = 16.dp))
+}
+
+// ---------------------------------------------------------------- levels
+
+/** A level as a small tag. Highly popular is outlined gold, Popular is filled, Not popular is grey. */
+@Composable
+fun LevelTag(level: app.foundwith.core.Level, modifier: Modifier = Modifier) {
+    val gold = MaterialTheme.colorScheme.primary
+    val (bg, fg, edge) = when (level) {
+        app.foundwith.core.Level.HIGHLY_POPULAR -> Triple(Color.Transparent, gold, gold)
+        app.foundwith.core.Level.POPULAR -> Triple(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, Color.Transparent)
+        app.foundwith.core.Level.NOT_POPULAR -> Triple(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant, Color.Transparent)
+    }
+    Surface(color = bg, contentColor = fg, shape = RoundedCornerShape(50), border = if (edge == Color.Transparent) null else BorderStroke(1.dp, edge), modifier = modifier) {
+        Text(level.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, maxLines = 1,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
+    }
+}
+
+/** The tag on a list row: only Popular and Highly popular. */
+fun rowTag(total: Int?, lowerBound: Boolean = false): (@Composable () -> Unit)? =
+    total?.let { app.foundwith.core.Levels.rowTag(it, lowerBound) }?.let { level -> { LevelTag(level) } }
+
+/**
+ * Your own level: the tag, a bar toward the next level and the line "27 more people and you're
+ * Highly popular". Real counts only. [onShare] adds the gold "Share in group" link.
+ */
+@Composable
+fun LevelBlock(total: Int, modifier: Modifier = Modifier, onShare: (() -> Unit)? = null) {
+    val level = app.foundwith.core.Levels.of(total)
+    val target = app.foundwith.core.Levels.target(level)
+    val from = if (level == app.foundwith.core.Level.POPULAR) app.foundwith.core.Levels.POPULAR_FROM else 0
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            LevelTag(level)
+            Spacer(Modifier.width(10.dp))
+            Text(if (target == null) "Top level" else app.foundwith.core.Levels.progress(total).orEmpty(),
+                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+        }
+        if (target != null) {
+            androidx.compose.material3.LinearProgressIndicator(
+                progress = { ((total - from).toFloat() / (target - from)).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth().height(6.dp), color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant)
+        }
+        if (onShare != null && target != null) {
+            Text("Share in group", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold,
+                modifier = Modifier.clickable(onClick = onShare).padding(vertical = 4.dp))
+        }
+    }
+}
+
+/** On a card: this number's level beside yours, with where it stands. */
+@Composable
+fun CompareBox(theirs: app.foundwith.core.Level, mineTotal: Int) {
+    val mine = app.foundwith.core.Levels.of(mineTotal)
+    val result = app.foundwith.core.Levels.compare(theirs, mineTotal)
+    Surface(color = MaterialTheme.colorScheme.background, shape = RoundedCornerShape(14.dp)) {
+        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("This number", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(88.dp))
+                LevelTag(theirs)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("You", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(88.dp))
+                LevelTag(mine)
+            }
+            Text(result.text, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
         }
     }
 }

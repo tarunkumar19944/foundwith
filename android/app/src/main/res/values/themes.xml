@@ -4,4 +4,11 @@
     <style name="Theme.FoundWith" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/ground</item>
     </style>
+    <!-- For the screenless activity behind notification buttons. -->
+    <style name="Theme.FoundWith.Invisible" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
 </resources>

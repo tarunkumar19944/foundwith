@@ -74,9 +74,6 @@ class ApiClient(private val baseUrl: String, private val auth: AuthManager) {
 
     suspend fun deleteAccount(): DeleteResult = decode(send("DELETE", "/v1/me"))
 
-    suspend fun setEveningNote(on: Boolean): Profile =
-        decode(send("PUT", "/v1/me/settings", buildJsonObject { put("evening_note", on) }))
-
     suspend fun myData(): MyData = decode(send("GET", "/v1/me/data"))
 
     /** Everything stored about the person, as the JSON file they can save. */

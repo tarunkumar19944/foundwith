@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Badge
+import androidx.compose.material3.Button
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -200,6 +201,12 @@ fun HomeScreen(
     // Names are on screen: from now on the name and notification cards may ask.
     LaunchedEffect(state.setup) { if (state.setup == Setup.READY) graph.store.firstNamesSeen = true }
 
+    val shareGroup = {
+        val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
+        context.shareImage(R.drawable.share_whohas, Messages.groupShare(link), "Share WhoHas")
+    }
+    var menuFor by remember { mutableStateOf<String?>(null) }
+    androidx.compose.runtime.CompositionLocalProvider(LocalNumberMenu provides { e164: String -> menuFor = e164 }) {
     Scaffold(
         bottomBar = {
             if (state.setup == Setup.READY && query.isBlank()) {
@@ -234,14 +241,11 @@ fun HomeScreen(
                         Wordmark()
                         if (state.setup != Setup.NOT_ALLOWED || state.cards != null) LiveStatus(state.cards?.savedAt, state.offline)
                     }
-                    // Share in a group: one button on the first line, next to WhoHas (Y, 17 Nov).
-                    OutlinedButton(
-                        onClick = {
-                            val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
-                            context.shareImage(R.drawable.share_whohas, Messages.groupShare(link), "Share WhoHas")
-                        },
+                    // Share in group: solid gold, on every Home screen (22 Nov 2026).
+                    Button(
+                        onClick = shareGroup,
                         shape = RoundedCornerShape(22.dp),
-                        contentPadding = PaddingValues(horizontal = 12.dp),
+                        contentPadding = PaddingValues(horizontal = 14.dp),
                         modifier = Modifier.height(44.dp),
                     ) {
                         Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
@@ -270,6 +274,7 @@ fun HomeScreen(
                     if (total > 0) item {
                         HeroCard(state.profile?.phone?.let(::shown), total, countLabel(total), "Allow contacts to see who they are.")
                     }
+                    if (total > 0) item { LevelCard(total, null) }
                     item {
                         AllowCard(onAllow = {
                             graph.store.allowTapped = true
@@ -280,13 +285,17 @@ fun HomeScreen(
                 Setup.FINDING -> item { FindingCard(state, failed = false) {} }
                 Setup.FIND_FAILED -> item { FindingCard(state, failed = true) { scope.launch { graph.model.retryFinding() } } }
                 Setup.READY -> when (tab) {
-                    Tab.UPDATES -> updatesTab(graph, state, onNumber, onInvite, turnOnNotifications,
+                    Tab.UPDATES -> updatesTab(graph, state, onNumber, onInvite, shareGroup, turnOnNotifications,
                         onSeeContacts = { tab = Tab.CONTACTS }, onSeeCalls = { tab = Tab.CALLS })
                     Tab.CONTACTS -> contactsTab(graph, state, onNumber, onAllow = { ask(Manifest.permission.READ_CONTACTS) })
                     Tab.CALLS -> callsTab(graph, state, onNumber, onAllow = { ask(Manifest.permission.READ_CALL_LOG) })
                 }
             }
         }
+    }
+    }
+    menuFor?.let { e164 ->
+        NumberMenuSheet(e164, state.nameFor(e164, state.cardFor(e164)).text, onOpen = { onNumber(e164) }, onDismiss = { menuFor = null })
     }
 }
 
@@ -363,7 +372,7 @@ private fun HintBox(icon: ImageVector, title: String, text: String) {
 private fun Banners(graph: AppGraph, state: AppState, onFix: () -> Unit, onTurnOnNotifications: () -> Unit) {
     val now = System.currentTimeMillis()
     when {
-        state.setup == Setup.READY && BuildConfig.CALL_LOG && graph.book.hasCallLogPermission() && graph.store.afterCalls &&
+        state.setup == Setup.READY && BuildConfig.CALL_LOG && graph.book.hasCallLogPermission() && (graph.store.notifyUnknownCalls || graph.store.notifyOtherCalls) &&
             graph.store.notifAsked && !graph.notifier.canPost() ->
             Banner(Icons.Filled.Notifications, "Notifications are off. You won't know who called.", "Turn on", warning = true, onAction = onTurnOnNotifications)
         state.lateCalls >= 2 && now - graph.store.fixDismissedAt > Changes.KEEP_MS ->
@@ -414,7 +423,10 @@ private fun AllowCard(onAllow: () -> Unit, onHowItWorks: () -> Unit) {
 @Composable
 private fun FindingCard(state: AppState, failed: Boolean, onTryNow: () -> Unit) {
     val total = state.cards?.mine?.total ?: 0
-    if (total > 0) HeroCard(state.profile?.phone?.let(::shown), total, countLabel(total), null)
+    if (total > 0) {
+        HeroCard(state.profile?.phone?.let(::shown), total, countLabel(total), null)
+        LevelCard(total, null)
+    }
     WhCard {
         if (failed) {
             Text("Couldn't finish. We'll keep trying.")
@@ -488,12 +500,13 @@ private fun LazyListScope.updatesTab(
     state: AppState,
     onNumber: (String) -> Unit,
     onInvite: () -> Unit,
+    onShareGroup: () -> Unit,
     onTurnOnNotifications: () -> Unit,
     onSeeContacts: () -> Unit,
     onSeeCalls: () -> Unit,
 ) {
     val mine = state.cards?.mine
-    item { MineHero(state, mine, onNumber, onInvite) }
+    item { MineHero(state, mine, onNumber, onInvite, onShareGroup) }
     if (BuildConfig.CALL_LOG && graph.store.firstNamesSeen && !graph.store.notifAsked && !graph.notifier.canPost()) {
         item { NotificationsCard(onTurnOn = onTurnOnNotifications, onLater = { graph.store.notifAsked = true }) }
     }
@@ -562,6 +575,8 @@ private fun FoundCallerRow(state: AppState, e164: String, call: CallEvent, onNum
         line = state.callerLine(card, onYourPhone = false),
         lineColor = knownColour(card),
         onClick = { onNumber(e164) },
+        e164 = e164,
+        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
     )
 }
 
@@ -576,6 +591,8 @@ private fun FoundContactRow(state: AppState, contact: SavedNumber, onNumber: (St
         line = state.lineFor(card, onYourPhone = true),
         lineColor = knownColour(card),
         onClick = { onNumber(e164) },
+        e164 = e164,
+        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
     )
 }
 
@@ -586,7 +603,7 @@ private fun knownColour(card: Card?): androidx.compose.ui.graphics.Color =
 
 /** Your number, big, with who you know and this week's change. */
 @Composable
-private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, onInvite: () -> Unit) {
+private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, onInvite: () -> Unit, onShareGroup: () -> Unit) {
     val total = mine?.total ?: 0
     val phone = state.profile?.phone
     if (mine == null || total <= 0) {
@@ -595,6 +612,7 @@ private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, o
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Your number", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("No one on WhoHas has your number yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                LevelBlock(0)
                 OutlinedButton(onClick = onInvite, shape = RoundedCornerShape(22.dp)) { Text("Invite friends") }
             }
         }
@@ -605,6 +623,7 @@ private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, o
     val newNames = state.changes.gains[mine.ref]?.ids.orEmpty()
         .mapNotNull { id -> mine.known.firstOrNull { it.id == id }?.let { state.personName(it) } }
         .filterNot { Naming.looksLikeNumber(it) }
+    Column {
     HeroCard(
         number = phone?.let(::shown),
         count = total,
@@ -615,6 +634,17 @@ private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, o
             (newNames.firstOrNull()?.let { n -> " · One is $n" } ?: "") },
         onClick = phone?.let { { onNumber(it) } },
     )
+    LevelCard(total, onShareGroup)
+    }
+}
+
+/** Your level under your number: the tag, the bar and what is left (docs/WHOHAS_COPY.md). */
+@Composable
+private fun LevelCard(total: Int, onShare: (() -> Unit)?) {
+    Surface(color = HeroColor, shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, HeroEdge),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+        LevelBlock(total, Modifier.padding(16.dp), onShare = onShare)
+    }
 }
 
 /** One number under New: what changed, with the gold dot. */
@@ -642,6 +672,8 @@ private fun NewRow(state: AppState, entry: UpdateEntry, onNumber: (String) -> Un
         lineColor = if (entry.kind == UpdateKind.JOINED) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
         isNew = true,
         onClick = { onNumber(e164) },
+        e164 = e164,
+        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
     )
 }
 
@@ -767,6 +799,8 @@ private fun CallRow(state: AppState, call: CallEvent, onNumber: (String) -> Unit
         line = if (blocked) "Blocked" else state.callerLine(card, onYourPhone = state.isSaved(e164)),
         lineColor = if (blocked) MaterialTheme.colorScheme.onSurfaceVariant else knownColour(card),
         onClick = { onNumber(e164) },
+        e164 = e164,
+        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
     )
 }
 
@@ -829,5 +863,7 @@ private fun ContactRow(state: AppState, contact: SavedNumber, onNumber: (String)
             }
         }) else null,
         onClick = { onNumber(e164) },
+        e164 = e164,
+        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
     )
 }

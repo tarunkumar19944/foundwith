@@ -150,10 +150,18 @@ object AfterCall {
             }
             handled += call.id
             health = health.seen(checkedInTime = true)
-            if (info == null || !graph.store.afterCalls) continue
+            if (info == null) continue
             val note = AfterCallRules.decide(call, info, hour, CallCatchUp.repeats(call, calls))
             Log.i(TAG, "call ${call.id} ${call.type}: ${note.alert} (has ${info.total}, name ${info.ownerName != null})")
-            if (note.alert != Alert.NONE) graph.notifier.postCall(note)
+            val wanted = when (note.alert) {
+                Alert.SOUND -> graph.store.notifyUnknownCalls
+                Alert.SILENT -> graph.store.notifyOtherCalls
+                Alert.NONE -> false
+            }
+            if (wanted) {
+                graph.notifier.postCall(note)
+                graph.store.setLastNotified(e164, info.total)
+            }
         }
         // Older calls from the same number were folded into the newest one's notification.
         for (call in calls) if (call.id !in handled && now - call.at <= CallCatchUp.NOTIFY_WITHIN_MS &&
@@ -185,6 +193,7 @@ object AfterCall {
             popularName = result.popularName,
             previousTotal = (ref ?: result.ref).let { baseline[it] },
             blocked = result.ref in blocked || result.hidden || result.takenOut,
+            lastNotified = context.graph.store.lastNotified(e164),
         )
     }
 

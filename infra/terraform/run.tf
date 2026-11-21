@@ -311,8 +311,6 @@ locals {
   push_jobs = var.push_mode == "fcm" ? {
     # Silent refreshes that are due (card changes, someone you know joined).
     "found-with-push-every-minute" = { path = "/internal/push", schedule = "* * * * *", about = "Sends due silent refreshes" }
-    # The evening note, counts only.
-    "found-with-evening-note" = { path = "/internal/push/evening", schedule = "30 19 * * *", about = "Sends the evening note" }
     # Apps check their call log for calls they didn't get to check (some phones stop apps in the background).
     "found-with-wake-ups" = { path = "/internal/push/wake", schedule = "0 10,14,18 * * *", about = "Wakes apps to catch up on missed calls" }
   } : {}

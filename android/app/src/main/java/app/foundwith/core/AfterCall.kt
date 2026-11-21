@@ -22,6 +22,9 @@ data class CallEvent(
     /** Another country's number: WhoHas checks Indian numbers only. */
     val isForeign: Boolean get() = !isHidden && e164 == null && PhoneNumbers.isForeign(raw)
     val isIncoming: Boolean get() = type == CallType.ANSWERED || type == CallType.MISSED || type == CallType.REJECTED
+    val isDialled: Boolean get() = type == CallType.OUTGOING
+    /** Calls WhoHas may tell about: received, missed, rejected and dialled. */
+    val isEligible: Boolean get() = isIncoming || isDialled
 }
 
 /** What WhoHas knows about the caller's number when deciding. */
@@ -37,6 +40,8 @@ data class CallerInfo(
     /** The total the viewer last saw for this number (saved contacts only), for "3 more". */
     val previousTotal: Int? = null,
     val blocked: Boolean = false,
+    /** The total WhoHas last told about for this number, or null if it never has. A repeat call notifies only when it grew. */
+    val lastNotified: Int? = null,
 )
 
 enum class Alert { NONE, SILENT, SOUND }
@@ -48,14 +53,13 @@ data class AfterCallNote(val alert: Alert, val title: String, val text: String, 
 }
 
 /**
- * When to tell the person something after a call, and what (decided 15 Nov 2026):
- *  - With sound: only a missed call from a number they haven't saved, when someone has that number
- *    or it has a name. Most unsaved calls in India are deliveries, cabs and sales calls; a sound for
- *    every one of them would get the app uninstalled.
- *  - Silent: answered calls from unsaved numbers that someone has, and calls from saved contacts
- *    whose list grew since they last looked.
- *  - Nothing: calls they made, hidden numbers, blocked people, saved contacts with no change, and
- *    unsaved numbers nobody has and that have no name (the call is still in the Calls tab).
+ * When to tell the person something after a call, and what (updated 22 Nov 2026):
+ *  - Calls: received, missed, rejected and dialled. A dialled call is told quietly, after it ends.
+ *  - Only when someone on WhoHas has the number. Numbers nobody has stay silent (the call is in Call log).
+ *  - Only when it is new or changed: the first time for a number, or when more people have it than
+ *    when WhoHas last told. A repeat call from the same number with the same people is not told again.
+ *  - Saved contacts: only when their list grew since the person last looked.
+ *  - With sound: only a missed call from a number not in the contacts, by day. Everything else is silent.
  *  - From 9 pm to 9 am, nothing makes a sound.
  */
 object AfterCallRules {
@@ -66,40 +70,44 @@ object AfterCallRules {
 
     /** [repeats]: missed calls from this number in the last hour, this one included. */
     fun decide(call: CallEvent, info: CallerInfo, hourOfDay: Int, repeats: Int = 1): AfterCallNote {
-        if (!call.isIncoming || call.isHidden || info.blocked) return AfterCallNote.NONE
+        if (!call.isEligible || call.isHidden || info.blocked) return AfterCallNote.NONE
         val e164 = call.e164 ?: return AfterCallNote.NONE
-        val missed = call.type != CallType.ANSWERED
+        val dialled = call.isDialled
+        val missed = !dialled && call.type != CallType.ANSWERED
         val saved = !info.contactName.isNullOrBlank() && !Naming.looksLikeNumber(info.contactName)
         val line = HolderText.knownTo(info.knownNames, info.total, info.lowerBound)
+        if (info.lastNotified != null && info.total <= info.lastNotified) return AfterCallNote.NONE
 
         if (saved) {
             val before = info.previousTotal ?: return AfterCallNote.NONE
             if (info.total <= before) return AfterCallNote.NONE
-            val title = (if (missed) "Missed call: " else "Call from ") + info.contactName!!.trim()
-            return AfterCallNote(Alert.SILENT, title, HolderText.changeFor(info.contactName.trim(), info.total, info.total - before), e164)
+            val who = info.contactName!!.trim()
+            val title = when {
+                dialled -> "You called $who"
+                missed -> "Missed call: $who"
+                else -> "Call from $who"
+            }
+            return AfterCallNote(Alert.SILENT, title, HolderText.changeFor(who, info.total, info.total - before), e164)
         }
 
+        if (info.total <= 0) return AfterCallNote.NONE
         val name = Naming.of(null, info.ownerName, info.popularName, e164)
-        if (info.total <= 0 && name.isNumber) return AfterCallNote.NONE
         val number = PhoneNumbers.display(e164)
         val title = when {
+            dialled -> "You called $number"
             !missed -> "Call from $number"
             repeats >= 2 -> "$repeats missed calls: $number"
             else -> "Missed call: $number"
         }
         // With no one known, say it plainly with "on WhoHas": the notification has no other context.
-        val who = if (info.knownNames.isEmpty() && info.total > 0) "${HolderText.count(info.total, info.lowerBound)} on WhoHas " +
+        val who = if (info.knownNames.isEmpty()) "${HolderText.count(info.total, info.lowerBound)} on WhoHas " +
             (if (info.total == 1 && !info.lowerBound) "has" else "have") + " this number" else line
         val text = when (name.source) {
             NameSource.THEIR_OWN -> "Their own name: ${name.text} · $who"
             NameSource.POPULAR -> "People know it as “${name.text}” · $who"
             else -> who
         }
-        val alert = when {
-            !missed -> Alert.SILENT
-            isQuiet(hourOfDay) -> Alert.SILENT
-            else -> Alert.SOUND
-        }
+        val alert = if (missed && !isQuiet(hourOfDay)) Alert.SOUND else Alert.SILENT
         return AfterCallNote(alert, title, text, e164)
     }
 }
@@ -117,7 +125,7 @@ object CallCatchUp {
     data class Plan(val toNotify: List<CallEvent>, val tooLate: List<CallEvent>)
 
     /**
-     * [calls]: recent call log rows, any order. [handled]: ids already dealt with. Only incoming
+     * [calls]: recent call log rows, any order. [handled]: ids already dealt with. Received, missed, rejected and dialled
      * calls are considered. The newest call per number is notified; older ones from the same
      * number are folded into its "2 missed calls".
      */
@@ -125,7 +133,7 @@ object CallCatchUp {
         val fresh = ArrayList<CallEvent>()
         val late = ArrayList<CallEvent>()
         for (call in calls.sortedByDescending { it.at }) {
-            if (call.id in handled || !call.isIncoming || now - call.at > LOOK_BACK_MS) continue
+            if (call.id in handled || !call.isEligible || now - call.at > LOOK_BACK_MS) continue
             if (now - call.at <= NOTIFY_WITHIN_MS) fresh += call else late += call
         }
         val newestPerNumber = fresh.groupBy { it.e164 ?: "hidden:${it.id}" }.values.map { it.first() }

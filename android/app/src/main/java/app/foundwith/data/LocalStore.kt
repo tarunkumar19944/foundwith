@@ -176,10 +176,42 @@ class LocalStore(context: Context) {
     fun addDenial(permission: String) = prefs.edit().putInt("denied_$permission", denials(permission) + 1).apply()
     fun clearDenials(permission: String) = prefs.edit().remove("denied_$permission").apply()
 
-    /** "After calls" notifications, switched in the app's Notifications page. */
-    var afterCalls: Boolean
-        get() = prefs.getBoolean("after_calls", true)
-        set(value) { prefs.edit().putBoolean("after_calls", value).apply() }
+    /** Notification switches (22 Nov 2026), all on by default. */
+    var notifyUnknownCalls: Boolean
+        get() = prefs.getBoolean("n_unknown_calls", true)
+        set(value) { prefs.edit().putBoolean("n_unknown_calls", value).apply() }
+    var notifyOtherCalls: Boolean
+        get() = prefs.getBoolean("n_other_calls", true)
+        set(value) { prefs.edit().putBoolean("n_other_calls", value).apply() }
+    var notifyChanges: Boolean
+        get() = prefs.getBoolean("n_changes", true)
+        set(value) { prefs.edit().putBoolean("n_changes", value).apply() }
+    var notifyJoined: Boolean
+        get() = prefs.getBoolean("n_joined", true)
+        set(value) { prefs.edit().putBoolean("n_joined", value).apply() }
+    var notifyLevel: Boolean
+        get() = prefs.getBoolean("n_level", true)
+        set(value) { prefs.edit().putBoolean("n_level", value).apply() }
+
+    /** The highest level already told about (0 not popular, 1 popular, 2 highly popular); -1 until first seen. */
+    var levelAnnounced: Int
+        get() = prefs.getInt("level_announced", -1)
+        set(value) { prefs.edit().putInt("level_announced", value).apply() }
+    var levelNudgedAt: Long
+        get() = prefs.getLong("level_nudged_at", 0L)
+        set(value) { prefs.edit().putLong("level_nudged_at", value).apply() }
+
+    /** The count WhoHas last told about per caller, so a repeat call is told only when more people have it. */
+    fun lastNotified(e164: String): Int? = prefs.getInt("told_$e164", -1).takeIf { it >= 0 }
+    fun setLastNotified(e164: String, total: Int) {
+        val keys = prefs.getString("told_keys", "").orEmpty().split(',').filter { it.isNotEmpty() && it != e164 } + e164
+        val drop = keys.dropLast(MAX_TOLD)
+        prefs.edit().apply {
+            putInt("told_$e164", total)
+            drop.forEach { remove("told_$it") }
+            putString("told_keys", keys.takeLast(MAX_TOLD).joinToString(","))
+        }.apply()
+    }
 
     /** When Found With started watching calls (the person allowed it): calls before are history. */
     var callsWatchedSince: Long
@@ -288,6 +320,7 @@ class LocalStore(context: Context) {
     suspend fun clearSnapshot() = lock.withLock { withContext(Dispatchers.IO) { File(dir, "snapshot.json").delete() } }
 
     private companion object {
+        private const val MAX_TOLD = 200
         const val MAX_HANDLED = 1000
     }
 
