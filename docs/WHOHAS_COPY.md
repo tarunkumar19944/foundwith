@@ -2,6 +2,8 @@
 
 Approved by Y on 17 Nov 2026 (with the starting screens below). Replaces every sentence in the app, the notifications, the messages people send and the two web pages.
 
+**Updated 22 Nov 2026 to the final design (49 screens, as built):** copy any number, press and hold for Copy number / Search in Truecaller / Call back / Open card, levels for your own number (Not popular, Popular, Highly popular) with tags on other numbers, Tell (one person) vs Share in group (a group), notifications for every new or changed thing (no evening summary), and Delete my account in the app and on the web.
+
 Updated the same night after talking it through: "has" instead of "saved" (call logs count too), contacts before call-log people on a card, honest label text, the **Let them know who has their number** list (Share button), a **Share in group** button on the top line, counts that are always real, sign-in with a SIM in this phone only, charcoal and gold with Atkinson Hyperlegible Next, Updates that list everything found, three tabs (Updates, Contacts, Call log) with the call log's symbols, and Indian numbers only. The screens for all of this are on the WhoHas screens design canvas.
 
 ## The rules
@@ -50,12 +52,13 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Benefit 1 | (example card) | **Know your callers** · After a call, see which people you know have that number. |
 | Benefit 2 | | **Check any number** · See how many people have it, and ask someone you know. |
 | Benefit 3 | | **See who has your number** · Find out how many people have your number, and when it goes up. |
+| Contacts-only build | | Example: +91 98450 77120 · You searched this number · Known to Priya, Meena and 10 more · Headline line: **Search it. See which of your people know it.** · **Check any number** · Search a number that called you. See which people you know have it. · **See who has your contacts** · Each contact shows how many people on WhoHas have their number. · (Benefit 3 as above) |
 | Trust line | Never messages or calls your contacts. | WhoHas never messages or calls anyone. |
 | Buttons | Continue · Type your number | **Get started** (opens Android's number picker, which lists the SIMs in this phone) · under it: Use the number of a SIM in this phone. |
 | Number picker | (Android's own) | Android's sheet with SIM 1 and SIM 2. Picking one sends the code straight away. **None of the above** opens the number screen. |
 | Invited chip | A friend invited you | Priya invited you (name when known, else "A friend invited you") |
 | After sign-in, invited | (none) | **Priya and 2 others invited you** · 8 people on WhoHas have your number (names everyone who tapped Share for this number) |
-| After deleting | Your account is deleted. | Your account is deleted. |
+| After deleting | Your account is deleted. | A screen of its own: ✓ **Your account is deleted** · Your number, name, contacts and call log numbers are gone from WhoHas. · **Done** (contacts-only: Your number, name and contact numbers are gone from WhoHas.) |
 | Number screen (only after None of the above) | Your mobile number | **Your mobile number** · Use the number of a SIM in this phone. We'll send it an SMS to check. · Send code |
 | Wrong number | 10 digits, starting with 6, 7, 8 or 9. | Enter a 10-digit mobile number starting with 6, 7, 8 or 9. |
 | Sending | Checking +91 98450 31207 · Reading the code from the SMS… | Sending a code to +91 98450 31207… |
@@ -73,24 +76,31 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 
 | Where | Now | New |
 |---|---|---|
-| Your number (before allowing) | Your number · Found with 23 people | Your number · **23 people have it** · Allow contacts to see who they are. |
+| Your number (before allowing) | Your number · Found with 23 people | Your number · **23 people have it** · Allow contacts to see who they are. · then your level (tag, bar, "2 more people and you're Popular"), no link. At 0: No one on WhoHas has your number yet · Not popular · 10 more people and you're Popular |
 | Allow card (Y's words, 17 Nov) | See who knows your contacts · Allow contacts, and each one shows who else has the number. · Allow | **See who has each number** · Allow contacts and call log. Then you can: · ✓ Find out who has your number · ✓ See who has each number on your phone · ✓ Know when something new happens or changes · ✓ After a call, get a notification if someone has the caller's number · **Allow** |
 | Privacy line | Stored encrypted · How it works | No one sees your contact list. If a friend checks a number you have, they see your name. · How WhoHas works |
 | Contacts-only build | (same card) | Allow contacts. Then you can: · ✓ Find out who has your number · ✓ See who has each number on your phone · ✓ Know when something new happens or changes |
 | Checking | Finding who you know… | Checking your contacts… This takes a few seconds. |
 | Name card | Your name on Found With · People who haven't saved your number see this name. | **Add your name** · People who don't have you in their contacts will see this name. · Save · Later |
 | Notifications card | (banner) Notifications are off. You won't hear after calls. | **Turn on notifications** · Get told who knows a caller right after a missed call. · Turn on |
-| First empty Updates | You're all caught up | **None of your numbers are with people on WhoHas yet** · When people you know join, every number in your contacts and calls that they have shows here, with who has it. · Share in group |
+| First empty Updates | You're all caught up | **None of your numbers are with people on WhoHas yet** · When people you know join, every number in your contacts and calls that they have shows here, with who has it. · Share in group (contacts-only: "every number in your contacts") |
 
 ## Home
 
 | Where | New |
 |---|---|
-| Top bar | **WhoHas** · *Live · checked just now* (green dot) · **⤴ Share in group** · Settings |
+| Top bar | **WhoHas** · *Live · just now* (green dot) · **⤴ Share in group** (solid gold, on every Home screen) · Settings |
 | Offline | No internet · showing what we had at 9:40 pm |
 | Search box | Search a number or name |
 | Your number card | Your number · **23 people have it** · You know Priya, Meena and 4 more · **1 more person · One is Arun** (when it went up this week) |
-| Nobody yet | No one on WhoHas has your number yet · Invite friends |
+| Your level (inside the number card) | **[Not popular]** Share WhoHas so people you know can find you. · bar · **2 more people and you're Popular** · Share in group › · Share in a group so everyone pools their numbers. Then you can find who has any number that calls you. |
+| | **[Popular]** More people means more callers you can recognise. · bar · 27 more people and you're Highly popular · Share in group › · (the same pooling line) |
+| | **[Highly popular]** · Top level. 52 people have your number |
+| Levels | Not popular: under 10 people · Popular: 10 to 49 · Highly popular: 50 and up. Your own number only; counts are real; never compared with named people. |
+| The day you reach a level (top of Updates, one day) | **You're Popular now** · 10 people have your number. 40 more and you're Highly popular. · Share in group |
+| Nobody yet | No one on WhoHas has your number yet · your level (Not popular · 10 more people and you're Popular) · Share in group › |
+| Press and hold any number (Updates, Contacts, Call log, search) | **+91 90080 11223** · Copy number · Search in Truecaller · Call back · Open card. A tap opens the card. |
+| Copied | Android 13 and later show their own "Copied" box; older phones: Number copied. Always the plain 10 digits. |
 | Notifications off | Notifications are off. You won't know who called. · Turn on |
 | Late calls | Your phone stopped WhoHas. Last 3 calls weren't checked. · Fix |
 | Tabs | **Updates · Contacts · Call log** (Call log only in the full build) |
@@ -131,7 +141,8 @@ Every call under its day (Today, Yesterday, Friday, 12 Nov), each with the phone
 |---|---|
 | List | Everyone in your phone, A to Z, under letter headings |
 | Row | Raju Plumber · **12 people have it · You know Priya and 2 more** |
-| Nobody else has it | Suresh Bhaiya · No one else on WhoHas has it yet · **[Share]** (mobiles only: WhatsApp can't reach a landline) |
+| Nobody else has it | Suresh Bhaiya · No one else on WhoHas has it yet (no button on the row; the card has **Tell Suresh Bhaiya on WhatsApp**) |
+| Tags on rows | **Popular** or **Highly popular** at the end of the row. No tag under 10 people ("Not popular" shows only on cards and on your own number). |
 | Another country's number | **WhoHas checks only Indian numbers** |
 | Contacts off | Contacts are off · Open Settings › Permissions › Contacts › Allow. · Open Settings |
 
@@ -155,6 +166,8 @@ Order on screen: who it is → how many have it → people you know → one main
 | Where | Now | New |
 |---|---|---|
 | Not-a-contact subtitle | (none) | Missed call · 10:42 am · not in your contacts |
+| The number | | Tap the number to copy it (the plain 10 digits) |
+| Two buttons under the main action | | **Copy number** · **Truecaller** (copies the number, then opens Truecaller if installed, else Truecaller's web search; Truecaller has no link that takes a number) |
 | Owner's own name | Raju Sharma (name they gave) | **Their own name: Raju Sharma** (chip) |
 | Name 3+ people have for it | Raju Plumber (popular name) | **5 people know it as "Raju Plumber"** |
 | Main line | Found with Priya, Ravi and 21 others | **12 people** have this number · **You know 3 of them** |
@@ -162,17 +175,16 @@ Order on screen: who it is → how many have it → people you know → one main
 | Only you | Only you have this number | No one else on WhoHas has this number yet |
 | No one | Found with no one yet | No one on WhoHas has this number yet |
 | Your own number | Found with … | **23 people have your number** · You know 6 of them |
-| Label 10–49 | Popular number | Many people have this number · often a business, or someone who calls a lot of people |
-| Label 50+ | Highly popular number | Lots of people have this number · often a business, or someone who calls a lot of people |
+| Beside your level | Many people have this number | A box: This number **[Highly popular]** · You **[Not popular]** · **More popular than your number. 2 more people and you catch up.** / **Same level as your number.** / **Your number is ahead of this one.** |
 | Today | Today: 3 more people · now a Popular number | **+3 today** |
 | Main action (not a contact) | Ask (per person) | **Ask Priya who this is** (WhatsApp), small "Ask" on each person below. Picks someone in your contacts first; a call-log person only when no contact has it. |
-| Main action (contact not on WhoHas) | Ravi Kumar isn't on Found With yet · Invite | **Ravi Kumar isn't on WhoHas yet** · Their number is with 7 people on WhoHas. Share it with them. (With nobody: Share WhoHas with them, so you can ask each other about unknown callers.) · **Share on WhatsApp** (whole name, never the first word: "Dr." and "Plumber" don't stand alone) |
+| Main action (contact not on WhoHas) | Ravi Kumar isn't on Found With yet · Invite | **Ravi Kumar isn't on WhoHas yet** · Their number is with 7 people on WhoHas. Let them know. (With nobody: Tell them about WhoHas, so you can ask each other about unknown callers.) · **Tell Ravi Kumar on WhatsApp** → Told (whole name, never the first word: "Dr." and "Plumber" don't stand alone) |
 | After a missed call | Call back | Call back |
 | List title | People you know who have it | People you know who have it · contacts first, then call log |
 | Each person | Contact · In your call log | **In your contacts** · **In your call log · called you yesterday** / **you called on 12 Nov** (someone only in your call log shows their own WhoHas name, else their number; the last call helps you place them) |
 | Rest | Also have it. They aren't on your phone, so you see only how many. | +9 more people you don't know |
 | See all | See all 14 | See all 14 |
-| Menu | Share this number · Save to contacts · Block Ravi | Share number · Save to contacts · Block Ravi |
+| Menu | Share this number · Save to contacts · Block Ravi | A contact on WhoHas: Share number · Block Ravi. A caller not in contacts: Share number · Save to contacts. |
 | Block dialog | Block Ravi? · You and Ravi won't see each other on Found With. Calls and messages aren't affected. | **Block Ravi?** · You won't see each other on WhoHas. Calls and messages still work. · Block · Cancel |
 | Blocked | Blocked · You and Ravi don't see each other on Found With. · Unblock | Blocked · You don't see each other on WhoHas. · Unblock |
 | Taken out | Not shown on Found With · The owner took this number out. | **Hidden by the owner** · They removed this number from WhoHas. |
@@ -184,7 +196,9 @@ Order on screen: who it is → how many have it → people you know → one main
 > **12 people have this number.** It's in their contacts or call log.
 > **You know 3 of them.** They're in your contacts or call log, so you see their names.
 > **9 you don't know.** You only see how many.
-> **Many people have it.** It's often a business, or someone who calls a lot of people.
+> **Not popular.** Fewer than 10 people have it.
+> **Popular.** 10 to 49 people have it. Often a business, or someone who calls a lot of people.
+> **Highly popular.** 50 or more people have it. Often a business, or someone who calls a lot of people.
 >
 > [OK]
 
@@ -205,15 +219,21 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 
 ## Notifications
 
-| Kind | Now | New |
-|---|---|---|
-| Missed call, not a contact, with a name | Missed call: +91 98450 77120 · Raju Sharma (name they gave) · Found with Priya and 2 others | **Missed call: +91 98450 77120** · Their own name: Raju Sharma · Known to Priya and 2 more |
-| Missed call, not a contact, no name | Missed call: +91 … · Found with 4 people | **Missed call: +91 98450 77120** · 4 people on WhoHas have this number |
-| Contact, count went up | Missed call: Ravi · Now found with 12 · 3 more | **Missed call: Ravi** · 3 more people have Ravi's number · now 12 |
-| Repeat calls | 2 missed calls: +91 … | 2 missed calls: +91 98450 77120 |
-| Evening note | Today on Found With · 3 numbers on your phone are found with more people today. Your number: 1 more person. | **Today on WhoHas** · 1 more person has your number. 3 of your contacts got more people. |
-| Friend joined | (none) | **Priya joined WhoHas** · Has your number |
-| Channel names (Android settings) | Callers you haven't saved · Calls, quietly · Evening note | Calls from unknown numbers · Other calls (silent) · Daily summary |
+Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when someone on WhoHas has the number and something is new or changed. A number nobody has stays silent. A repeat call from the same number is told again only when more people have it. Only a missed call from a number not in your contacts makes a sound, and never from 9 pm to 9 am. A dialled call is told quietly after it ends. Changes with no call are merged into one notification. Nothing is shown while WhoHas is open; Updates shows it. There is no evening summary.
+
+| Kind | Title · text · buttons |
+|---|---|
+| Missed call, not a contact | **Missed call: +91 98450 77120** · Known to Priya and 2 more (or: 4 people on WhoHas have this number; Their own name: Raju Sharma · …; People know it as "Raju Plumber" · …) · Copy number · Truecaller |
+| Received | **Call from +91 80950 66231** · 4 people on WhoHas have this number · Copy number · Truecaller |
+| Dialled | **You called +91 97311 20456** · Known to Priya and Meena · Copy number · Truecaller |
+| Repeat missed calls | **2 missed calls: +91 98450 77120** |
+| A contact whose count went up | **Missed call: Raju Plumber** (or Call from / You called) · 3 more people have Raju Plumber's number · now 12 |
+| Friend joined | **Priya joined WhoHas** · Has your number |
+| Changes with no call (one) | the change itself, e.g. **1 more person has your number** |
+| Changes with no call (several) | **2 changes on WhoHas** · 1 more person has your number. +91 98450 77120 is now known to Meena. · Open Updates |
+| Reached a level | **You're Popular now** · 10 people have your number. 40 more and you're Highly popular. · Share in group |
+| Close to a level (at most once a week) | **2 more people and you're Popular** · 8 people have your number. Share WhoHas in a group. · Share in group |
+| Channels (Android settings) | Calls from unknown numbers · Other calls (silent) · Changes to your numbers · Friends who join · Your level |
 
 ## Settings
 
@@ -221,17 +241,20 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 |---|---|---|
 | Rows | Contacts On · Call log On · Notifications On · Your name · Invite friends · Your data and account · Help | Contacts On · Call log On · Notifications On · Your name · Invite friends · Your data · Help |
 | Footnote | Turning Contacts or Call log off in Android settings also takes those numbers out of Found With at the next sync. | If you turn off Contacts or Call log in phone settings, WhoHas removes those numbers at the next sync. |
-| Notifications page | After calls · Callers you haven't saved, and contacts whose list changed | **After calls** · Tells you who has the number of anyone who calls. |
-| | Evening note · Once a day, only if something changed | **Daily summary** · Once a day, only when something changed. |
+| Notifications page | After calls · Callers you haven't saved, and contacts whose list changed | **Calls from unknown numbers** · A missed call from a number not in your contacts, when someone has it. |
+| | | **Other calls** · Received and dialled calls, quietly, when something is new. (These two are hidden in the contacts-only build.) |
+| | | **Changes to your numbers** · Someone new has your number, or a count went up. |
+| | | **Friends who join** · Someone in your contacts joins WhoHas. |
+| | | **Your level** · When you reach Popular or Highly popular, or are close. |
 | | Silent from 9 pm to 9 am. | No sound from 9 pm to 9 am. |
 | | Not getting them after calls? | Not getting notifications after calls? |
 | Name page | Your name on Found With · People who haven't saved your number see this name when they look it up. · Saved. | **Your name on WhoHas** · People who don't have you in their contacts see this name. · Name updated |
 | Data page title | Your data and account · Found With stores these, encrypted | **Your data** · Stored safely on WhoHas |
 | Data rows | Your number · Your name · Contacts · Call log numbers · Blocked people · Download my data | Your number · Your name · Contacts · Call log numbers · Blocked people · Download my data |
 | Sign out | Sign out? · Your account stays. Sign in again with your number any time. | **Sign out?** · Your account stays. Sign in again any time with your number. · Sign out · Cancel |
-| Delete | Delete your account? · Your name, contacts and call log numbers are deleted from Found With. This can't be undone. | **Delete your account?** · Your name, contacts and call log numbers will be deleted from WhoHas. You can't undo this. · Delete · Cancel |
+| Delete | Delete your account? · … | Row: **Delete my account** (red). Dialog: **Delete your account?** · This removes, from WhoHas: • Your number and name • Your contacts and call log numbers • Your blocked list and settings · Other people's counts go down by one. Your phone's own contacts and call log are not touched. You can't undo this. · **Delete my account** · Keep my account (contacts-only: "Your contact numbers", "Your phone's own contacts are not touched") |
 | Blocked page | No one is blocked. | You haven't blocked anyone. |
-| Help | How it works · Contact us · Privacy policy | How WhoHas works · Write to us · Privacy policy |
+| Help | How it works · Contact us · Privacy policy | How WhoHas works · Write to us · **Delete my account without the app** (opens the web page) · Privacy policy |
 
 ### How WhoHas works
 
@@ -246,16 +269,18 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 | Where | New |
 |---|---|
 | Top bar, first line next to WhoHas (every tab) | **⤴ Share in group** (one small button; replaces the Updates card) |
-| Invite friends page | **Share in a group** (replaces "Share your link") |
+| Invite friends page | **Share in group** · Adds the most value: the more of your group join, the more callers you can recognise. |
+| Why a group (the value, never a count) | Share in a group so everyone pools their numbers. Then you can find who has any number that calls you. |
+| Share in group vs Tell | **Share in group** is for a group. For one person it is **Tell Ravi on WhatsApp**, and the Invite list buttons read **Tell** and **Told**. |
 | What's shared | A picture of WhoHas in charcoal and gold (a missed call known to Priya, Meena and 10 more; "Unknown number calling?"; a gold band "Get WhoHas · Free on Android · link in the message"), and: Hi all! I'm using WhoHas. When an unknown number calls, it shows which people you know have that number, so you can ask them who it is. The more of us on it, the more callers we can recognise for each other. Get it here: {link} |
 
 ## Invite friends
 
 | Where | Now | New |
 |---|---|---|
-| Title | Invite friends · When a friend joins, you see if they have your number. | **Invite friends** · When they join, you'll see if they have your number. |
+| Title | Invite friends · When a friend joins, you see if they have your number. | **Invite friends** · Adds the most value: the more of your group join, the more callers you can recognise. · **Share in group** |
 | Button | Share your link | Share your link |
-| List | People you call most · Invite | **Let them know who has their number** · These people you call most aren't on WhoHas yet. Share it with them. · Their number is with 7 people on WhoHas · **Share** (the people you call most in the last 60 days, at least 3 calls, mobiles only, not on WhoHas; Shared leaves the list for 30 days) |
+| List | People you call most · Invite | **Let them know who has their number** · These people you call most aren't on WhoHas yet. Share it with them. · Their number is with 7 people on WhoHas · **Tell** (the people you call most in the last 60 days, at least 3 calls, mobiles only, not on WhoHas; **Told** leaves the list for 30 days) |
 
 ## Phone settings fix (Xiaomi, Vivo, Oppo and others)
 
@@ -279,9 +304,12 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 | Page | New |
 |---|---|
 | Invite page | **Priya invited you to WhoHas** · See who has any number, even when someone unknown calls. · Get it on Google Play · (iPhone) WhoHas is on Android for now. · WhoHas never messages or calls anyone. |
+| Delete my account (whohas.app/delete; served by the API at /delete) | **Delete your WhoHas account** · You don't need the app. Enter the mobile number you signed up with. We send a code to confirm it is yours. · Send code · **What is deleted:** your number, name, the contact and call log numbers WhoHas holds for you, blocked list and settings. Counts on other people's cards go down by one. What is kept after that, and for how long, is in the privacy policy. → **Enter the code** · **Delete my account** · This can't be undone. You can sign up again later with a fresh start. → **Your account is deleted** (or: No WhoHas account uses this number · use Remove your number). It deletes the account only; the number is not put on the remove list. |
 | Remove-my-number page | **Remove your number from WhoHas** · Works even if you don't use the app. People on WhoHas won't see who has your number. · Send code · … · **Done. Your number is removed.** · People on WhoHas won't see who has it. |
 
 ## Still to decide
+
+0. **Open from 22 Nov:** "Not popular" or the softer "Not popular yet"; whether to keep the progress line under the tag; the real retention to state in the privacy policy before the delete page is published. The design drew the "Why a group" box inside Android's share sheet; Android doesn't allow that, so the same words are on Home and Invite friends instead.
 
 1. **The help email and web address.** found-with.app needs a WhoHas replacement (e.g. whohas.app or whohas.in); I'll check what's free.
 2. **No he/she anywhere.** WhoHas doesn't know anyone's gender, so the words use names instead ("Invite Ravi", "Their own name: Raju Sharma"). The mockup's "Calls himself" and "Invite him" are replaced by these.

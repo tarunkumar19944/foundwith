@@ -412,7 +412,6 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
                 Text("Use the number of a SIM in this phone.", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
             }
-            }
             LoginStep.CHECKING -> {
                 Text("Checking your SIM", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Text("We sent an SMS to ${vm.e164?.let { shown(it) }.orEmpty()}. WhoHas reads the code on this phone by itself.",
