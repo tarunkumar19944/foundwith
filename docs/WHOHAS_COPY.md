@@ -26,8 +26,10 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 | Using the app | **on WhoHas** | taking part, registered |
 | Name the owner typed in | **Their own name: Raju Sharma** | name they gave |
 | Name 3+ people have for a number | **5 people know it as "Raju Plumber"** | popular name, saved as |
-| 10–49 people | **Many people have this number** · often a business, or someone who calls a lot of people | popular number, "usually a shop" |
-| 50+ people | **Lots of people have this number** · often a business, or someone who calls a lot of people | highly popular number |
+| Fewer than 10 people | **Not popular** (only on cards and on your own number) | unpopular, low |
+| 10–49 people | **Popular** · often a business, or someone who calls a lot of people | "usually a shop" |
+| 50+ people | **Highly popular** · often a business, or someone who calls a lot of people | viral, famous |
+| Telling one person | **Tell Ravi on WhatsApp** → Told | Share (that's for a group) |
 
 **No bare numbers in one-line summaries.** Someone you know only from your call log, with no WhoHas name, still counts ("You know 1 of them") and is listed on the card with their last call, but is never named as a number in "You know …", "Known to …" or the main Ask button.
 
@@ -142,7 +144,7 @@ Every call under its day (Today, Yesterday, Friday, 12 Nov), each with the phone
 | List | Everyone in your phone, A to Z, under letter headings |
 | Row | Raju Plumber · **12 people have it · You know Priya and 2 more** |
 | Nobody else has it | Suresh Bhaiya · No one else on WhoHas has it yet (no button on the row; the card has **Tell Suresh Bhaiya on WhatsApp**) |
-| Tags on rows | **Popular** or **Highly popular** at the end of the row. No tag under 10 people ("Not popular" shows only on cards and on your own number). |
+| Tags on rows | **Popular** or **Highly popular** under the name, after "In your contacts" (so a long name is never cut short). No tag under 10 people ("Not popular" shows only on cards and on your own number). |
 | Another country's number | **WhoHas checks only Indian numbers** |
 | Contacts off | Contacts are off · Open Settings › Permissions › Contacts › Allow. · Open Settings |
 
@@ -268,7 +270,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 
 | Where | New |
 |---|---|
-| Top bar, first line next to WhoHas (every tab) | **⤴ Share in group** (one small button; replaces the Updates card) |
+| Top bar, first line next to WhoHas (every tab) | **⤴ Share in group** (solid gold) |
 | Invite friends page | **Share in group** · Adds the most value: the more of your group join, the more callers you can recognise. |
 | Why a group (the value, never a count) | Share in a group so everyone pools their numbers. Then you can find who has any number that calls you. |
 | Share in group vs Tell | **Share in group** is for a group. For one person it is **Tell Ravi on WhatsApp**, and the Invite list buttons read **Tell** and **Told**. |
@@ -279,8 +281,8 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 | Where | Now | New |
 |---|---|---|
 | Title | Invite friends · When a friend joins, you see if they have your number. | **Invite friends** · Adds the most value: the more of your group join, the more callers you can recognise. · **Share in group** |
-| Button | Share your link | Share your link |
-| List | People you call most · Invite | **Let them know who has their number** · These people you call most aren't on WhoHas yet. Share it with them. · Their number is with 7 people on WhoHas · **Tell** (the people you call most in the last 60 days, at least 3 calls, mobiles only, not on WhoHas; **Told** leaves the list for 30 days) |
+| Button | Share your link | **Share in group** |
+| List | People you call most · Invite | **Let them know who has their number** · These people you call most aren't on WhoHas yet. Let them know. · Their number is with 7 people on WhoHas · **Tell** (the people you call most in the last 60 days, at least 3 calls, mobiles only, not on WhoHas; **Told** leaves the list for 30 days) |
 
 ## Phone settings fix (Xiaomi, Vivo, Oppo and others)
 
