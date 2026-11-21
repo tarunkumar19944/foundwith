@@ -38,9 +38,9 @@ class LevelsTest {
     fun aCardComparesThisNumberWithYours() {
         assertEquals(Comparison(Standing.BEHIND, "Your number is ahead of this one."), Levels.compare(Level.NOT_POPULAR, 23))
         assertEquals(Comparison(Standing.SAME, "Same level as your number."), Levels.compare(Level.POPULAR, 23))
-        assertEquals(Comparison(Standing.AHEAD, "More popular than your number. 27 more people and you catch up (Highly popular)."),
+        assertEquals(Comparison(Standing.AHEAD, "More popular than your number. 27 more people and you catch up."),
             Levels.compare(Level.HIGHLY_POPULAR, 23))
-        assertEquals(Comparison(Standing.AHEAD, "More popular than your number. 2 more people and you catch up (Popular)."),
+        assertEquals(Comparison(Standing.AHEAD, "More popular than your number. 2 more people and you catch up."),
             Levels.compare(Level.HIGHLY_POPULAR, 8))
     }
 

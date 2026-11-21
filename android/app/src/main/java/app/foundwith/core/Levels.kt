@@ -58,8 +58,7 @@ object Levels {
         return when {
             theirs.ordinal > mine.ordinal -> {
                 val left = target(mine)!! - mineTotal
-                val next = next(mine)!!.label
-                Comparison(Standing.AHEAD, "More popular than your number. ${HolderText.more(left)} and you catch up ($next).")
+                Comparison(Standing.AHEAD, "More popular than your number. ${HolderText.more(left)} and you catch up.")
             }
             theirs == mine -> Comparison(Standing.SAME, "Same level as your number.")
             else -> Comparison(Standing.BEHIND, "Your number is ahead of this one.")
