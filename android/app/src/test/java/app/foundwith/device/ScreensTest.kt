@@ -24,6 +24,7 @@ import app.foundwith.core.NameSource
 import app.foundwith.core.ShownName
 import app.foundwith.ui.Avatar
 import app.foundwith.ui.CompareBox
+import app.foundwith.ui.DeletedView
 import app.foundwith.ui.EmptyHero
 import app.foundwith.ui.FoundWithTheme
 import app.foundwith.ui.HeroCard
@@ -117,12 +118,12 @@ class ScreensTest {
     fun rowsTagOnlyPopularNumbers() {
         shot("05-rows-and-tags") {
             WhCard(padding = 4.dp) {
-                InfoRow(leading = { Avatar("+919845011223", "Meena") }, name = ShownName("Meena", NameSource.CONTACT),
-                    line = "11 people have it · You know Priya, Deepa and 3 more", trailing = rowTag(11), onClick = {}, e164 = "+919845011223")
+                InfoRow(leading = { Avatar("+919845011223", "Meena") }, name = ShownName("Meena", NameSource.CONTACT), sub = "In your contacts",
+                    line = "11 people have it · You know Priya, Deepa and 3 more", tag = rowTag(11), onClick = {}, e164 = "+919845011223")
                 InfoRow(leading = { Avatar("+918095066231", "Mahesh Electricals") }, name = ShownName("Mahesh Electricals", NameSource.POPULAR),
-                    line = "64 people have it", trailing = rowTag(64), onClick = {}, e164 = "+918095066231")
+                    line = "64 people have it", tag = rowTag(64), onClick = {}, e164 = "+918095066231")
                 InfoRow(leading = { Avatar("+919731120456", "Arun") }, name = ShownName("Arun", NameSource.CONTACT),
-                    line = "No one else on WhoHas has it yet", trailing = rowTag(0), onClick = {}, e164 = "+919731120456")
+                    line = "No one else on WhoHas has it yet", tag = rowTag(0), onClick = {}, e164 = "+919731120456")
             }
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("All three levels", color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -130,6 +131,7 @@ class ScreensTest {
             }
         }
         compose.onAllNodesWithText("Highly popular").assertCountEquals(2)
+        compose.onNodeWithText("Mahesh Electricals").assertExists()       // the name is never squeezed out by a tag
     }
 
     @Test
@@ -141,5 +143,12 @@ class ScreensTest {
         compose.onNodeWithText("Search in Truecaller").assertExists()
         compose.onNodeWithText("Call back").assertExists()
         compose.onNodeWithText("Open card").assertExists()
+    }
+
+    @Test
+    fun accountDeleted() {
+        shot("07-account-deleted") { Column(Modifier.padding(horizontal = 24.dp)) { DeletedView {} } }
+        compose.onNodeWithText("Your account is deleted").assertExists()
+        compose.onNodeWithText("Your number, name, contacts and call log numbers are gone from WhoHas.").assertExists()
     }
 }

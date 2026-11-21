@@ -332,7 +332,7 @@ private fun LazyListScope.searchResults(state: AppState, query: String, found: F
                         leading = { Avatar(r.ref, state.nameFor(r.number, card).text) },
                         name = state.nameFor(r.number, card),
                         line = if (r.takenOut) "Hidden by the owner" else state.lineFor(card, onYourPhone = state.isSaved(r.number)),
-                        trailing = if (r.takenOut) null else rowTag(r.total, r.totalIsLowerBound),
+                        tag = if (r.takenOut) null else rowTag(r.total, r.totalIsLowerBound),
                         onClick = { onNumber(r.number) },
                         e164 = r.number,
                     )
@@ -574,7 +574,7 @@ private fun FoundCallerRow(state: AppState, e164: String, call: CallEvent, onNum
         lineColor = knownColour(card),
         onClick = { onNumber(e164) },
         e164 = e164,
-        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+        tag = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
     )
 }
 
@@ -590,7 +590,7 @@ private fun FoundContactRow(state: AppState, contact: SavedNumber, onNumber: (St
         lineColor = knownColour(card),
         onClick = { onNumber(e164) },
         e164 = e164,
-        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+        tag = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
     )
 }
 
@@ -661,7 +661,7 @@ private fun NewRow(state: AppState, entry: UpdateEntry, onNumber: (String) -> Un
         isNew = true,
         onClick = { onNumber(e164) },
         e164 = e164,
-        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+        tag = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
     )
 }
 
@@ -788,7 +788,7 @@ private fun CallRow(state: AppState, call: CallEvent, onNumber: (String) -> Unit
         lineColor = if (blocked) MaterialTheme.colorScheme.onSurfaceVariant else knownColour(card),
         onClick = { onNumber(e164) },
         e164 = e164,
-        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+        tag = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
     )
 }
 
@@ -843,6 +843,6 @@ private fun ContactRow(state: AppState, contact: SavedNumber, onNumber: (String)
         lineColor = knownColour(card),
         onClick = { onNumber(e164) },
         e164 = e164,
-        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+        tag = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
     )
 }

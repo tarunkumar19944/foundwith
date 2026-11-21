@@ -368,19 +368,7 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
     ) {
         when (vm.step) {
             LoginStep.WELCOME -> if (deletedShown) {
-                // "Your account is deleted", once, after deleting in Settings (docs/WHOHAS_COPY.md).
-                Spacer(Modifier.height(120.dp))
-                Box(Modifier.align(Alignment.CenterHorizontally).size(72.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                    contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
-                }
-                Text("Your account is deleted", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.align(Alignment.CenterHorizontally))
-                Text(app.foundwith.core.AccountText.deleted(BuildConfig.CALL_LOG), style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(48.dp))
-                PrimaryButton("Done", { deletedShown = false })
+                DeletedView { deletedShown = false }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) { Wordmark(30.sp) }
@@ -558,4 +546,23 @@ private fun withDetail(message: String, e: Exception): String {
     val code = (e as? FirebaseAuthException)?.errorCode
     val detail = listOfNotNull(code, e.message?.takeIf { it.isNotBlank() }).joinToString(": ")
     return if (detail.isEmpty()) message else "$message\n\n${detail.take(300)}"
+}
+
+/** "Your account is deleted", once, after deleting in Settings (docs/WHOHAS_COPY.md). */
+@Composable
+fun DeletedView(onDone: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Spacer(Modifier.height(120.dp))
+        Box(Modifier.align(Alignment.CenterHorizontally).size(72.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+            contentAlignment = Alignment.Center) {
+            Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
+        }
+        Text("Your account is deleted", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+            modifier = Modifier.align(Alignment.CenterHorizontally))
+        Text(app.foundwith.core.AccountText.deleted(BuildConfig.CALL_LOG), style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier.fillMaxWidth())
+        Spacer(Modifier.height(48.dp))
+        PrimaryButton("Done", onDone)
+    }
 }

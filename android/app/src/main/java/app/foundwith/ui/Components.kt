@@ -250,17 +250,18 @@ fun MeAvatar(size: Dp = 40.dp) = IconAvatar(Icons.Filled.Person, size, accent = 
 @Composable
 fun NameText(name: ShownName, big: Boolean = false, maxLines: Int = 1) {
     Row(verticalAlignment = Alignment.CenterVertically) {
+        // The name comes first; the small "what others call it" note gets what width is left.
         Text(
             name.text,
             style = if (big) MaterialTheme.typography.titleLarge else MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
             maxLines = maxLines,
             overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
         )
         name.tag?.let {
             Spacer(Modifier.width(6.dp))
-            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1,
+                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
         }
     }
 }
@@ -291,6 +292,7 @@ fun NumberRow(
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     e164: String? = null,
+    tag: (@Composable () -> Unit)? = null,
 ) {
     ListItem(
         modifier = rowClick(e164, onClick),
@@ -300,6 +302,7 @@ fun NumberRow(
             Column {
                 Text(line, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 if (sub != null) Text(sub, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (tag != null) Box(Modifier.padding(top = 4.dp)) { tag() }
             }
         },
         trailingContent = trailing,
@@ -323,6 +326,7 @@ fun InfoRow(
     trailing: (@Composable () -> Unit)? = null,
     onClick: (() -> Unit)? = null,
     e164: String? = null,
+    tag: (@Composable () -> Unit)? = null,
 ) {
     Row(
         Modifier.fillMaxWidth().then(rowClick(e164, onClick))
@@ -333,7 +337,13 @@ fun InfoRow(
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             NameText(name)
-            if (sub != null) Text(sub, style = MaterialTheme.typography.labelMedium, color = subColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            // The small line under the name, with the Popular / Highly popular tag after it (as designed).
+            if (sub != null || tag != null) Row(verticalAlignment = Alignment.CenterVertically) {
+                if (sub != null) Text(sub, style = MaterialTheme.typography.labelMedium, color = subColor, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false))
+                if (sub != null && tag != null) Spacer(Modifier.width(8.dp))
+                tag?.invoke()
+            }
             if (line != null) Text(line, style = MaterialTheme.typography.bodyMedium, color = lineColor, fontWeight = FontWeight.SemiBold,
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
