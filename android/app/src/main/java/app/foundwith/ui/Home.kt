@@ -847,9 +847,286 @@ private fun ContactRow(state: AppState, contact: SavedNumber, onNumber: (String)
     val card = state.cardFor(e164)
     val name = state.nameFor(e164, card)
     val total = card?.total ?: 0
-    // Nobody else has it yet: let them know, right here (mobiles only; WhatsApp can't reach a landline).
-    val canTell = total <= 0 && PhoneNumbers.isIndianMobile(e164) && !state.onWhoHas(e164, card)
-    var told by remember { mutableStateOf(false) }
+    // No Share or Tell pill on these rows (22 Nov 2026): tapping opens the card, which has "Tell … on WhatsApp".
+    InfoRow(
+        leading = { Avatar(e164, name.text) },
+        name = name,
+        line = state.lineFor(card, onYourPhone = true),
+        lineColor = knownColour(card),
+        onClick = { onNumber(e164) },
+        e164 = e164,
+        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+    )
+}
+
+@Composable
+private fun FoundContactRow(state: AppState, contact: SavedNumber, onNumber: (String) -> Unit) {
+    val e164 = contact.e164 ?: return
+    val card = state.cardFor(e164)
+    val name = state.nameFor(e164, card)
+    InfoRow(
+        leading = { Avatar(e164, name.text) },
+        name = name,
+        line = state.lineFor(card, onYourPhone = true),
+        lineColor = knownColour(card),
+        onClick = { onNumber(e164) },
+        e164 = e164,
+        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+    )
+}
+
+/** Gold when you know someone who has the number, grey when it's only a count. */
+@Composable
+private fun knownColour(card: Card?): androidx.compose.ui.graphics.Color =
+    if ((card?.knownTotal ?: 0) > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+
+/** Your number, big, with who you know and this week's change. */
+@Composable
+private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, onInvite: () -> Unit, onShareGroup: () -> Unit) {
+    val total = mine?.total ?: 0
+    val phone = state.profile?.phone
+    if (mine == null || total <= 0) {
+        Surface(color = HeroColor, shape = RoundedCornerShape(24.dp), border = androidx.compose.foundation.BorderStroke(1.dp, HeroEdge),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Your number", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("No one on WhoHas has your number yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                LevelBlock(0)
+                OutlinedButton(onClick = onInvite, shape = RoundedCornerShape(22.dp)) { Text("Invite friends") }
+            }
+        }
+        return
+    }
+    val names = state.knownOrdered(mine)
+    val gained = state.changes.changes[mine.ref]?.takeIf { it.delta > 0 }
+    val newNames = state.changes.gains[mine.ref]?.ids.orEmpty()
+        .mapNotNull { id -> mine.known.firstOrNull { it.id == id }?.let { state.personName(it) } }
+        .filterNot { Naming.looksLikeNumber(it) }
+    Column {
+    HeroCard(
+        number = phone?.let(::shown),
+        count = total,
+        countLabel = countLabel(total),
+        line = HolderText.youKnowNames(names, mine.knownTotal) ?: "None of them are in your phone yet",
+        people = mine.known.map { it.id to state.personName(it) }.filterNot { Naming.looksLikeNumber(it.second) }.take(4),
+        chip = gained?.let { HolderText.mineUp(it.delta).removeSuffix(" have your number").removeSuffix(" has your number") +
+            (newNames.firstOrNull()?.let { n -> " · One is $n" } ?: "") },
+        onClick = phone?.let { { onNumber(it) } },
+    )
+    LevelCard(total, onShareGroup)
+    }
+}
+
+/** Your level under your number: the tag, the bar and what is left (docs/WHOHAS_COPY.md). */
+@Composable
+private fun LevelCard(total: Int, onShare: (() -> Unit)?) {
+    Surface(color = HeroColor, shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, HeroEdge),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+        LevelBlock(total, Modifier.padding(16.dp), onShare = onShare)
+    }
+}
+
+/** One number under New: what changed, with the gold dot. */
+@Composable
+private fun NewRow(state: AppState, entry: UpdateEntry, onNumber: (String) -> Unit) {
+    val e164 = entry.e164 ?: return
+    val card = state.cardFor(e164)
+    val name = state.nameFor(e164, card)
+    val saved = state.isSaved(e164)
+    val call = state.lastCall(e164)
+    val change: String? = when (entry.kind) {
+        UpdateKind.COUNT_UP -> state.changes.changes[entry.ref]?.let { HolderText.crossed(it.before, it.now) ?: HolderText.change(it.now, it.delta) }
+        UpdateKind.JOINED -> if (state.cards?.mine?.known?.any { it.contactRef == entry.ref } == true) "Joined WhoHas · has your number" else "Joined WhoHas"
+        UpdateKind.NOW_KNOWN -> state.changes.gains[entry.ref]?.ids.orEmpty()
+            .firstNotNullOfOrNull { id -> card?.known?.firstOrNull { it.id == id }?.let { state.personName(it) } }
+            ?.let { "Now known to $it" }
+        UpdateKind.MINE_UP -> null
+    }
+    InfoRow(
+        leading = { if (!saved && call != null) CallKindIcon(call) else if (name.isNumber) IconAvatar(Icons.Filled.Phone) else Avatar(e164, name.text) },
+        name = name,
+        sub = if (saved) "In your contacts" else call?.let { callLine(it) },
+        subColor = if (!saved && call != null) callKindColour(call) else MaterialTheme.colorScheme.onSurfaceVariant,
+        line = change ?: state.callerLine(card, onYourPhone = saved),
+        lineColor = if (entry.kind == UpdateKind.JOINED) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+        isNew = true,
+        onClick = { onNumber(e164) },
+        e164 = e164,
+        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+    )
+}
+
+/** "Their number is with 7 people on WhoHas"; "No one else on WhoHas has it yet". */
+fun theirNumberLine(others: Int, lowerBound: Boolean): String =
+    if (others <= 0) "No one else on WhoHas has it yet"
+    else "Their number is with ${HolderText.count(others, lowerBound)} on WhoHas"
+
+/** One person on the Invite page's "Let them know who has their number" list. */
+@Composable
+fun TellRow(person: TellCandidate, told: Boolean, onTell: () -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Avatar(person.e164, person.name)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(person.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(theirNumberLine(person.others, person.lowerBound),
+                style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(Modifier.width(8.dp))
+        TellButton(told, person.name, onTell)
+    }
+}
+
+@Composable
+private fun NotificationsCard(onTurnOn: () -> Unit, onLater: () -> Unit) {
+    var dismissed by rememberSaveable { mutableStateOf(false) }
+    if (dismissed) return
+    WhCard {
+        Text("Turn on notifications", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("Get told who knows a caller right after a missed call.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PrimaryButton("Turn on", { dismissed = true; onTurnOn() }, Modifier.weight(1f))
+            OutlinedButton(onClick = { dismissed = true; onLater() }, modifier = Modifier.weight(1f).height(52.dp),
+                shape = RoundedCornerShape(26.dp)) { Text("Later") }
+        }
+    }
+}
+
+/** Shown once, after names: "Add your name", filled in from the phone's own Me card when it has one. */
+@Composable
+private fun NameCard(graph: AppGraph) {
+    val scope = rememberCoroutineScope()
+    var dismissed by rememberSaveable { mutableStateOf(false) }
+    if (dismissed) return
+    var name by rememberSaveable { mutableStateOf("") }
+    var error by remember { mutableStateOf<String?>(null) }
+    var saving by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { if (name.isEmpty()) graph.book.ownerName()?.let { name = it.take(40) } }
+    WhCard {
+        Text("Add your name", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        Text("People who don't have you in their contacts will see this name.", style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        OutlinedTextField(value = name, onValueChange = { name = it.take(40) }, singleLine = true,
+            placeholder = { Text("Like Raju Sharma") }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp))
+        ErrorText(error)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            PrimaryButton("Save", {
+                saving = true
+                scope.launch {
+                    error = graph.model.setName(name)
+                    saving = false
+                    if (error == null) graph.store.nameAsked = true
+                }
+            }, Modifier.weight(1f), enabled = name.isNotBlank() && !saving)
+            OutlinedButton(onClick = { graph.store.nameAsked = true; dismissed = true }, modifier = Modifier.weight(1f).height(52.dp),
+                shape = RoundedCornerShape(26.dp)) { Text("Later") }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- Call log
+
+private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, onNumber: (String) -> Unit, onAllow: () -> Unit) {
+    if (!graph.book.hasCallLogPermission()) {
+        item {
+            if (graph.store.denials(Manifest.permission.READ_CALL_LOG) >= 2) {
+                EmptyState(Icons.Filled.Lock, "Call log is off", "Open Settings › Permissions › Call logs › Allow.", "Open Settings", onAllow)
+            } else {
+                EmptyState(Icons.Filled.Call, "See who has your callers' numbers", "Allow the call log.", "Allow", onAllow)
+            }
+        }
+        return
+    }
+    if (state.calls.isEmpty()) {
+        item { EmptyState(Icons.Filled.Call, "No calls yet", "Your calls show here, with who has each number.") }
+        return
+    }
+    val now = System.currentTimeMillis()
+    state.calls.groupBy { dayHeading(it.at, now) }.forEach { (day, calls) ->
+        item(key = "day:$day") { SectionLabel(day) }
+        items(calls, key = { "c:" + it.id }) { call -> CallRow(state, call, onNumber) }
+    }
+}
+
+@Composable
+private fun CallRow(state: AppState, call: CallEvent, onNumber: (String) -> Unit) {
+    val sub = callLine(call, withDay = false)
+    val e164 = call.e164
+    if (e164 == null) {
+        val title = when {
+            call.isHidden -> "Private number"
+            else -> call.cachedName?.takeIf { it.isNotBlank() } ?: call.raw.orEmpty()
+        }
+        InfoRow(
+            leading = { CallKindIcon(call) },
+            name = app.foundwith.core.ShownName(title, app.foundwith.core.NameSource.NUMBER),
+            sub = sub, subColor = callKindColour(call),
+            line = when {
+                call.isHidden -> "Can't check hidden numbers"
+                call.isForeign -> ONLY_INDIAN
+                else -> "WhoHas can't check this number"
+            },
+        )
+        return
+    }
+    val card = state.cardFor(e164)
+    val blocked = state.refFor(e164)?.let { it in state.blockedRefs } == true
+    InfoRow(
+        leading = { CallKindIcon(call) },
+        name = state.nameFor(e164, card),
+        sub = sub, subColor = callKindColour(call),
+        line = if (blocked) "Blocked" else state.callerLine(card, onYourPhone = state.isSaved(e164)),
+        lineColor = if (blocked) MaterialTheme.colorScheme.onSurfaceVariant else knownColour(card),
+        onClick = { onNumber(e164) },
+        e164 = e164,
+        trailing = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+    )
+}
+
+// ---------------------------------------------------------------- Contacts: everyone in your phone, A to Z
+
+private fun LazyListScope.contactsTab(graph: AppGraph, state: AppState, onNumber: (String) -> Unit, onAllow: () -> Unit) {
+    if (!graph.book.hasContactsPermission()) {
+        item {
+            if (graph.store.denials(Manifest.permission.READ_CONTACTS) >= 2) {
+                EmptyState(Icons.Filled.Lock, "Contacts are off", "Open Settings › Permissions › Contacts › Allow.", "Open Settings", onAllow)
+            } else {
+                EmptyState(Icons.Filled.Person, "See who has your contacts' numbers", "Allow contacts.", "Allow", onAllow)
+            }
+        }
+        return
+    }
+    val all = state.contacts.filter { c -> c.e164?.let { !state.isMine(it) } ?: true }
+        .distinctBy { it.e164 ?: ("raw:" + it.raw) }
+        .sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.shownName ?: it.raw })
+    if (all.isEmpty()) {
+        item { EmptyState(Icons.Filled.Person, "No contacts on this phone", "Contacts you save show here.") }
+        return
+    }
+    all.groupBy { c -> (c.shownName ?: c.raw).trim().firstOrNull()?.takeIf { it.isLetter() }?.uppercaseChar()?.toString() ?: "#" }
+        .forEach { (letter, people) ->
+            item(key = "letter:$letter") { SectionLabel(letter) }
+            items(people, key = { "k:" + (it.e164 ?: ("raw:" + it.raw)) }) { c -> ContactRow(state, c, onNumber) }
+        }
+}
+
+@Composable
+private fun ContactRow(state: AppState, contact: SavedNumber, onNumber: (String) -> Unit) {
+    val context = LocalContext.current
+    val e164 = contact.e164
+    if (e164 == null) {
+        val name = contact.shownName?.takeIf { it.isNotBlank() } ?: contact.raw
+        InfoRow(
+            leading = { Avatar(contact.raw, name) },
+            name = app.foundwith.core.ShownName(name, app.foundwith.core.NameSource.CONTACT),
+            line = if (PhoneNumbers.isForeign(contact.raw)) ONLY_INDIAN else "WhoHas can't check this number",
+        )
+        return
+    }
+    val card = state.cardFor(e164)
+    val name = state.nameFor(e164, card)
+    val total = card?.total ?: 0
+    // No Share or Tell pill on these rows (22 Nov 2026): tapping opens the card, which has "Tell … on WhatsApp".
     InfoRow(
         leading = { Avatar(e164, name.text) },
         name = name,
