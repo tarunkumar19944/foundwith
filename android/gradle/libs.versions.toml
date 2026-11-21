@@ -16,6 +16,8 @@ installReferrer = "2.2"
 playServicesAuth = "21.2.0"
 playServicesAuthApiPhone = "18.1.0"
 junit = "4.13.2"
+robolectric = "4.14.1"
+androidxTestCore = "1.6.1"
 androidxTestRunner = "1.6.2"
 androidxTestExtJunit = "1.2.1"
 uiautomator = "2.3.0"
@@ -46,6 +48,9 @@ play-services-auth = { module = "com.google.android.gms:play-services-auth", ver
 play-services-auth-api-phone = { module = "com.google.android.gms:play-services-auth-api-phone", version.ref = "playServicesAuthApiPhone" }
 installreferrer = { module = "com.android.installreferrer:installreferrer", version.ref = "installReferrer" }
 junit = { module = "junit:junit", version.ref = "junit" }
+# Unit tests that run Android code on the computer: notifications, the clipboard, and pictures of screens.
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+androidx-test-core = { module = "androidx.test:core-ktx", version.ref = "androidxTestCore" }
 # Phone tests (src/androidTest), run in Firebase Test Lab.
 androidx-test-runner = { module = "androidx.test:runner", version.ref = "androidxTestRunner" }
 androidx-test-ext-junit = { module = "androidx.test.ext:junit", version.ref = "androidxTestExtJunit" }

@@ -17,6 +17,9 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -206,8 +209,8 @@ fun Context.email(address: String) {
 const val HELP_EMAIL = "help@found-with.app"
 val PRIVACY_URL: String get() = BuildConfig.PRIVACY_URL
 
-/** The web page that deletes an account without the app: the privacy address with /delete (Play's account deletion rule). */
-val DELETE_URL: String get() = if (PRIVACY_URL.isBlank()) "" else PRIVACY_URL.substringBeforeLast("/privacy", PRIVACY_URL).trimEnd('/') + "/delete"
+/** The web page that deletes an account without the app (Play's account deletion rule). The API serves it at /delete. */
+val DELETE_URL: String get() = BuildConfig.API_BASE_URL.trimEnd('/').takeIf { it.startsWith("https://") }?.plus("/delete").orEmpty()
 
 // ---------------------------------------------------------------- building blocks
 
@@ -593,6 +596,7 @@ fun HeroCard(
     people: List<Pair<String, String>> = emptyList(),
     chip: String? = null,
     onClick: (() -> Unit)? = null,
+    extra: (@Composable () -> Unit)? = null,
 ) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Surface(
@@ -622,6 +626,23 @@ fun HeroCard(
                 }
             }
             if (chip != null) Chip(chip, Icons.Filled.KeyboardArrowUp)
+            extra?.invoke()
+        }
+    }
+}
+
+/** Your number before anyone has it: "No one on WhoHas has your number yet", then your level. */
+@Composable
+fun EmptyHero(number: String?, onShare: (() -> Unit)?) {
+    Surface(color = HeroColor, contentColor = MaterialTheme.colorScheme.onSurface, shape = RoundedCornerShape(24.dp),
+        border = BorderStroke(1.dp, HeroEdge), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row {
+                Text("Your number", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                if (number != null) Text(number, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text("No one on WhoHas has your number yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            LevelBlock(0, onShare = onShare)
         }
     }
 }
@@ -633,16 +654,34 @@ fun HeroCard(
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun NumberMenuSheet(e164: String, name: String, onOpen: () -> Unit, onDismiss: () -> Unit) {
-    val context = LocalContext.current
     androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(bottom = 24.dp)) {
-            Text(if (name == shown(e164)) shown(e164) else "$name · ${shown(e164)}", style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            MenuRow("Copy number") { context.copyNumber(e164); onDismiss() }
-            MenuRow("Search in Truecaller") { context.searchInTruecaller(e164); onDismiss() }
-            MenuRow("Call back") { context.dial(e164); onDismiss() }
-            MenuRow("Open card") { onDismiss(); onOpen() }
-        }
+        NumberMenu(e164, name, onOpen, onDismiss)
+    }
+}
+
+/** What the press-and-hold sheet holds. */
+@Composable
+fun NumberMenu(e164: String, name: String, onOpen: () -> Unit, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    Column(Modifier.padding(bottom = 24.dp)) {
+        Text(if (name == shown(e164)) shown(e164) else "$name · ${shown(e164)}", style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        MenuRow("Copy number") { context.copyNumber(e164); onDismiss() }
+        MenuRow("Search in Truecaller") { context.searchInTruecaller(e164); onDismiss() }
+        MenuRow("Call back") { context.dial(e164); onDismiss() }
+        MenuRow("Open card") { onDismiss(); onOpen() }
+    }
+}
+
+/** The two buttons on a card: copy the number, or copy it and open Truecaller. */
+@Composable
+fun NumberButtons(e164: String) {
+    val context = LocalContext.current
+    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+        androidx.compose.material3.OutlinedButton(onClick = { context.copyNumber(e164) }, modifier = Modifier.weight(1f).height(48.dp),
+            shape = RoundedCornerShape(24.dp)) { Text("Copy number", maxLines = 1) }
+        androidx.compose.material3.OutlinedButton(onClick = { context.searchInTruecaller(e164) }, modifier = Modifier.weight(1f).height(48.dp),
+            shape = RoundedCornerShape(24.dp)) { Text("Truecaller", maxLines = 1) }
     }
 }
 
@@ -654,16 +693,22 @@ private fun MenuRow(text: String, onClick: () -> Unit) {
 
 // ---------------------------------------------------------------- levels
 
-/** A level as a small tag. Highly popular is outlined gold, Popular is filled, Not popular is grey. */
+/**
+ * A level as a small tag (docs/WHOHAS_COPY.md): Not popular is grey and outlined, Popular is gold
+ * tint, Highly popular is gold tint with a gold outline.
+ */
 @Composable
 fun LevelTag(level: app.foundwith.core.Level, modifier: Modifier = Modifier) {
-    val gold = MaterialTheme.colorScheme.primary
-    val (bg, fg, edge) = when (level) {
-        app.foundwith.core.Level.HIGHLY_POPULAR -> Triple(Color.Transparent, gold, gold)
-        app.foundwith.core.Level.POPULAR -> Triple(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer, Color.Transparent)
-        app.foundwith.core.Level.NOT_POPULAR -> Triple(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant, Color.Transparent)
+    val scheme = MaterialTheme.colorScheme
+    val bg: Color
+    val fg: Color
+    val edge: BorderStroke
+    when (level) {
+        app.foundwith.core.Level.HIGHLY_POPULAR -> { bg = scheme.primaryContainer; fg = scheme.primary; edge = BorderStroke(1.5.dp, scheme.primary) }
+        app.foundwith.core.Level.POPULAR -> { bg = scheme.primaryContainer; fg = scheme.onPrimaryContainer; edge = BorderStroke(1.dp, scheme.primaryContainer) }
+        app.foundwith.core.Level.NOT_POPULAR -> { bg = Color.Transparent; fg = scheme.onSurfaceVariant; edge = BorderStroke(1.dp, scheme.onSurfaceVariant) }
     }
-    Surface(color = bg, contentColor = fg, shape = RoundedCornerShape(50), border = if (edge == Color.Transparent) null else BorderStroke(1.dp, edge), modifier = modifier) {
+    Surface(color = bg, contentColor = fg, shape = RoundedCornerShape(50), border = edge, modifier = modifier) {
         Text(level.label, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, maxLines = 1,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp))
     }
@@ -674,30 +719,69 @@ fun rowTag(total: Int?, lowerBound: Boolean = false): (@Composable () -> Unit)? 
     total?.let { app.foundwith.core.Levels.rowTag(it, lowerBound) }?.let { level -> { LevelTag(level) } }
 
 /**
- * Your own level: the tag, a bar toward the next level and the line "27 more people and you're
- * Highly popular". Real counts only. [onShare] adds the gold "Share in group" link.
+ * Your own level, inside your number's card: the tag and its short line, a bar toward the next
+ * level and "27 more people and you're Highly popular". Real counts only. [onShare] adds the gold
+ * "Share in group" link and the line on what a group does.
  */
 @Composable
 fun LevelBlock(total: Int, modifier: Modifier = Modifier, onShare: (() -> Unit)? = null) {
     val level = app.foundwith.core.Levels.of(total)
     val target = app.foundwith.core.Levels.target(level)
     val from = if (level == app.foundwith.core.Level.POPULAR) app.foundwith.core.Levels.POPULAR_FROM else 0
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             LevelTag(level)
-            Spacer(Modifier.width(10.dp))
-            Text(if (target == null) "Top level" else app.foundwith.core.Levels.progress(total).orEmpty(),
-                style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            val why = app.foundwith.core.Levels.why(level)
+            if (why.isNotEmpty()) {
+                Spacer(Modifier.width(10.dp))
+                Text(why, style = MaterialTheme.typography.bodySmall, color = muted, modifier = Modifier.weight(1f))
+            }
         }
-        if (target != null) {
-            androidx.compose.material3.LinearProgressIndicator(
-                progress = { ((total - from).toFloat() / (target - from)).coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(6.dp), color = MaterialTheme.colorScheme.primary,
-                trackColor = MaterialTheme.colorScheme.surfaceVariant)
+        if (target == null) {
+            Text(app.foundwith.core.Levels.topLine(total), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = muted)
+            return@Column
         }
-        if (onShare != null && target != null) {
-            Text("Share in group", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold,
-                modifier = Modifier.clickable(onClick = onShare).padding(vertical = 4.dp))
+        androidx.compose.material3.LinearProgressIndicator(
+            progress = { ((total - from).toFloat() / (target - from)).coerceIn(0f, 1f) },
+            modifier = Modifier.fillMaxWidth().height(8.dp), color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.outlineVariant, strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
+            gapSize = 0.dp, drawStopIndicator = {})
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(app.foundwith.core.Levels.progress(total).orEmpty(), style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+            if (onShare != null) {
+                Row(Modifier.heightIn(min = 44.dp).clickable(onClick = onShare).padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Share in group", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+        if (onShare != null) {
+            Text(app.foundwith.core.Levels.POOL_LINE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+        }
+    }
+}
+
+/** At the top of Updates for one day after reaching a level: "You're Popular now", with Share in group. */
+@Composable
+fun LevelUpBanner(total: Int, onShare: () -> Unit) {
+    val level = app.foundwith.core.Levels.of(total)
+    Surface(color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        shape = RoundedCornerShape(20.dp), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
+        Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(44.dp).background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.KeyboardArrowUp, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(26.dp))
+                }
+                Spacer(Modifier.width(12.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("You’re ${level.label} now", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(app.foundwith.core.Levels.reachedText(total), style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            PrimaryButton("Share in group", onShare, icon = Icons.Filled.Share)
         }
     }
 }

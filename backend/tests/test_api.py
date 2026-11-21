@@ -176,6 +176,23 @@ def test_opt_out_needs_only_a_verified_number(client):
     assert client.get("/v1/optout", headers=ravi).json() == {"opted_out": True, "has_account": False}
 
 
+def test_the_web_page_deletes_the_account_of_the_verified_number(client):
+    arjun, _ = join(client, ARJUN, "Arjun Rao", contacts=[PLUMBER])
+    ravi, _ = join(client, RAVI, "Ravi Kumar", contacts=[PLUMBER])
+    assert client.post("/v1/lookup", json={"number": PLUMBER}, headers=arjun).json()["total"] == 1   # Ravi
+    assert client.delete("/v1/account").status_code == 401
+    r = client.delete("/v1/account", headers=ravi)
+    assert r.status_code == 200 and r.json()["deleted"] is True and r.json()["had_account"] is True
+    assert client.get("/v1/me", headers=ravi).status_code == 404
+    assert client.post("/v1/lookup", json={"number": PLUMBER}, headers=arjun).json()["total"] == 0   # counts go down by one
+    # Not the opt-out list: Ravi can sign up again, and his number still shows.
+    assert client.get("/v1/optout", headers=ravi).json() == {"opted_out": False, "has_account": False}
+    join(client, RAVI, "Ravi Kumar", contacts=[])
+    # A number with no account: nothing to delete, and nothing is changed.
+    r = client.delete("/v1/account", headers=as_user(PLUMBER_E164))
+    assert r.status_code == 200 and r.json() == {"deleted": False, "had_account": False}
+
+
 def test_reports_and_blocks(client):
     arjun, _ = join(client, ARJUN, "Arjun Rao", contacts=[PLUMBER])
     ravi, _ = join(client, RAVI, "Ravi Kumar", contacts=[PLUMBER])

@@ -269,12 +269,8 @@ fun HomeScreen(
 
             when (state.setup) {
                 Setup.NOT_ALLOWED -> {
-                    val total = state.cards?.mine?.total ?: 0
-                    // An empty count is no reward: lead with Allow until someone has the number.
-                    if (total > 0) item {
-                        HeroCard(state.profile?.phone?.let(::shown), total, countLabel(total), "Allow contacts to see who they are.")
-                    }
-                    if (total > 0) item { LevelCard(total, null) }
+                    // Your number and your level first, even at 0: "Not popular · 10 more people and you're Popular".
+                    item { HeroBefore(state, "Allow contacts to see who they are.") }
                     item {
                         AllowCard(onAllow = {
                             graph.store.allowTapped = true
@@ -336,7 +332,9 @@ private fun LazyListScope.searchResults(state: AppState, query: String, found: F
                         leading = { Avatar(r.ref, state.nameFor(r.number, card).text) },
                         name = state.nameFor(r.number, card),
                         line = if (r.takenOut) "Hidden by the owner" else state.lineFor(card, onYourPhone = state.isSaved(r.number)),
+                        trailing = if (r.takenOut) null else rowTag(r.total, r.totalIsLowerBound),
                         onClick = { onNumber(r.number) },
+                        e164 = r.number,
                     )
                 }
                 is Found.Problem -> HintBox(Icons.Filled.Warning, found.title, found.text)
@@ -422,11 +420,7 @@ private fun AllowCard(onAllow: () -> Unit, onHowItWorks: () -> Unit) {
 
 @Composable
 private fun FindingCard(state: AppState, failed: Boolean, onTryNow: () -> Unit) {
-    val total = state.cards?.mine?.total ?: 0
-    if (total > 0) {
-        HeroCard(state.profile?.phone?.let(::shown), total, countLabel(total), null)
-        LevelCard(total, null)
-    }
+    HeroBefore(state, null)
     WhCard {
         if (failed) {
             Text("Couldn't finish. We'll keep trying.")
@@ -506,7 +500,10 @@ private fun LazyListScope.updatesTab(
     onSeeCalls: () -> Unit,
 ) {
     val mine = state.cards?.mine
-    item { MineHero(state, mine, onNumber, onInvite, onShareGroup) }
+    if (graph.store.levelReachedRecently(System.currentTimeMillis()) && (mine?.total ?: 0) >= app.foundwith.core.Levels.POPULAR_FROM) {
+        item(key = "level-up") { LevelUpBanner(mine!!.total, onShareGroup) }
+    }
+    item { MineHero(state, mine, onNumber, onShareGroup) }
     if (BuildConfig.CALL_LOG && graph.store.firstNamesSeen && !graph.store.notifAsked && !graph.notifier.canPost()) {
         item { NotificationsCard(onTurnOn = onTurnOnNotifications, onLater = { graph.store.notifAsked = true }) }
     }
@@ -555,7 +552,8 @@ private fun NothingFoundCard(state: AppState) {
     val context = LocalContext.current
     WhCard(padding = 20.dp) {
         Text("None of your numbers are with people on WhoHas yet", style = MaterialTheme.typography.titleLarge)
-        Text("When people you know join, every number in your contacts and calls that they have shows here, with who has it.",
+        Text(if (BuildConfig.CALL_LOG) "When people you know join, every number in your contacts and calls that they have shows here, with who has it."
+            else "When people you know join, every number in your contacts that they have shows here, with who has it.",
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         PrimaryButton("Share in group", {
             val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
@@ -601,21 +599,13 @@ private fun FoundContactRow(state: AppState, contact: SavedNumber, onNumber: (St
 private fun knownColour(card: Card?): androidx.compose.ui.graphics.Color =
     if ((card?.knownTotal ?: 0) > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
-/** Your number, big, with who you know and this week's change. */
+/** Your number, big, with who you know, this week's change and your level. */
 @Composable
-private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, onInvite: () -> Unit, onShareGroup: () -> Unit) {
+private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, onShareGroup: () -> Unit) {
     val total = mine?.total ?: 0
     val phone = state.profile?.phone
     if (mine == null || total <= 0) {
-        Surface(color = HeroColor, shape = RoundedCornerShape(24.dp), border = androidx.compose.foundation.BorderStroke(1.dp, HeroEdge),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Your number", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text("No one on WhoHas has your number yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                LevelBlock(0)
-                OutlinedButton(onClick = onInvite, shape = RoundedCornerShape(22.dp)) { Text("Invite friends") }
-            }
-        }
+        EmptyHero(phone?.let(::shown), onShare = onShareGroup)
         return
     }
     val names = state.knownOrdered(mine)
@@ -623,7 +613,6 @@ private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, o
     val newNames = state.changes.gains[mine.ref]?.ids.orEmpty()
         .mapNotNull { id -> mine.known.firstOrNull { it.id == id }?.let { state.personName(it) } }
         .filterNot { Naming.looksLikeNumber(it) }
-    Column {
     HeroCard(
         number = phone?.let(::shown),
         count = total,
@@ -633,18 +622,17 @@ private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, o
         chip = gained?.let { HolderText.mineUp(it.delta).removeSuffix(" have your number").removeSuffix(" has your number") +
             (newNames.firstOrNull()?.let { n -> " · One is $n" } ?: "") },
         onClick = phone?.let { { onNumber(it) } },
+        extra = { LevelBlock(total, onShare = onShareGroup) },
     )
-    LevelCard(total, onShareGroup)
-    }
 }
 
-/** Your level under your number: the tag, the bar and what is left (docs/WHOHAS_COPY.md). */
+/** Your number before the person allows anything, or while names are being found: the count and your level, no link. */
 @Composable
-private fun LevelCard(total: Int, onShare: (() -> Unit)?) {
-    Surface(color = HeroColor, shape = RoundedCornerShape(20.dp), border = androidx.compose.foundation.BorderStroke(1.dp, HeroEdge),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
-        LevelBlock(total, Modifier.padding(16.dp), onShare = onShare)
-    }
+private fun HeroBefore(state: AppState, line: String?) {
+    val total = state.cards?.mine?.total ?: 0
+    val phone = state.profile?.phone?.let(::shown)
+    if (total <= 0) EmptyHero(phone, onShare = null)
+    else HeroCard(phone, total, countLabel(total), line, extra = { LevelBlock(total) })
 }
 
 /** One number under New: what changed, with the gold dot. */

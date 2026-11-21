@@ -86,6 +86,21 @@ jobs:
       - name: Unit tests
         run: ./gradlew --no-daemon testFullDebugUnitTest
 
+      # Pictures of the new screen pieces, drawn by the unit tests (ScreensTest), on the "screens" branch.
+      - name: Publish screen pictures
+        if: always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [ -n "$(ls app/build/screens/*.png 2>/dev/null)" ] || { echo "No pictures"; exit 0; }
+          out="$RUNNER_TEMP/screens"; rm -rf "$out"; mkdir -p "$out"; cp app/build/screens/*.png "$out/"
+          cd "$out"
+          git init -q -b screens
+          git add .
+          git -c user.name="WhoHas CI" -c user.email="ci@users.noreply.github.com" commit -qm "Screens from ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" screens
+
       - name: Build debug APKs
         env:
           API_URL: ${{ vars.FOUNDWITH_API_URL || 'https://found-with-api-zda4qqks6q-el.a.run.app' }}

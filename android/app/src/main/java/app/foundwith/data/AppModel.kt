@@ -327,7 +327,7 @@ class AppModel(private val graph: AppGraph) {
             store.saveChangeLog(updated)
             // A contact who just joined: tell the person, quietly ("Priya joined WhoHas · Has your number").
             val index = store.index()
-            if (graph.store.notifyJoined) for (ref in updated.joined.keys - old?.joined?.keys.orEmpty()) {
+            if (graph.store.notifyJoined && !graph.inFront) for (ref in updated.joined.keys - old?.joined?.keys.orEmpty()) {
                 val e164 = index.byRef[ref]?.e164 ?: continue
                 val name = _state.value.contactsByE164[e164]?.shownName ?: continue
                 val hasYours = mine?.known?.any { it.contactRef == ref } == true
@@ -344,7 +344,8 @@ class AppModel(private val graph: AppGraph) {
      * Counts already told about after a call are left out.
      */
     private fun notifyChanges(old: ChangeLog, updated: ChangeLog, mine: Card?, cards: List<Card>, index: NumberIndex) {
-        if (!graph.store.notifyChanges) return
+        // The person is looking at Updates: the gold dots show what changed, no notification needed.
+        if (!graph.store.notifyChanges || graph.inFront) return
         val contacts = _state.value.contactsByE164
         fun e164(ref: String) = index.byRef[ref]?.e164
         val items = ChangeNotes.items(old, updated, mine?.ref).filter { item ->
@@ -374,11 +375,14 @@ class AppModel(private val graph: AppGraph) {
             return
         }
         val now = System.currentTimeMillis()
-        val decision = LevelRules.decide(store.levelAnnounced, total, store.levelNudgedAt, now)
+        val before = store.levelAnnounced
+        val decision = LevelRules.decide(before, total, store.levelNudgedAt, now)
         store.levelAnnounced = decision.announced
+        if (decision.announced > before) store.levelReachedAt = now
         if (decision.nudged) store.levelNudgedAt = now
         val note = decision.note ?: return
-        if (store.notifyLevel) graph.notifier.postLevel(note.title, note.text)
+        // While the app is open the banner on Updates says it; no notification on top.
+        if (store.notifyLevel && !graph.inFront) graph.notifier.postLevel(note.title, note.text)
     }
 
     /** The phone's push token, so wake-ups reach it. */

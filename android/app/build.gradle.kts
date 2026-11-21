@@ -116,6 +116,9 @@ android {
     }
     testOptions {
         unitTests.isReturnDefaultValues = true
+        // Robolectric needs the app's resources (fonts, icons, themes) to draw screens and notifications.
+        unitTests.isIncludeAndroidResources = true
+        unitTests.all { it.maxHeapSize = "2g" }
     }
 }
 
@@ -149,6 +152,10 @@ dependencies {
     implementation(libs.installreferrer)
 
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test.junit4)
 
     androidTestImplementation(platform(libs.compose.bom))
     androidTestImplementation(libs.compose.ui.test.junit4)

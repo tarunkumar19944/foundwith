@@ -45,6 +45,11 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        graph.inFront = true
+    }
+
     override fun onResume() {
         super.onResume()
         if (!graph.auth.isSignedIn) return
@@ -60,6 +65,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
+        graph.inFront = false
         if (graph.auth.isSignedIn) graph.model.leftApp()
     }
 }

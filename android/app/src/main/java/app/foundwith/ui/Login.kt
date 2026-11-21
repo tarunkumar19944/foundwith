@@ -31,6 +31,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
@@ -301,6 +302,7 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
     val context = LocalContext.current
     val activity = context.findActivity()
     val deleted = rememberSaveable { graph.justDeleted.also { graph.justDeleted = false } }
+    var deletedShown by rememberSaveable { mutableStateOf(deleted) }
     val invited = graph.store.pendingInvite != null
 
     val hint = rememberLauncherForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
@@ -365,28 +367,40 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         when (vm.step) {
-            LoginStep.WELCOME -> {
+            LoginStep.WELCOME -> if (deletedShown) {
+                // "Your account is deleted", once, after deleting in Settings (docs/WHOHAS_COPY.md).
+                Spacer(Modifier.height(120.dp))
+                Box(Modifier.align(Alignment.CenterHorizontally).size(72.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                    contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.Check, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
+                }
+                Text("Your account is deleted", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.CenterHorizontally))
+                Text(app.foundwith.core.AccountText.deleted(BuildConfig.CALL_LOG), style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth())
+                Spacer(Modifier.height(48.dp))
+                PrimaryButton("Done", { deletedShown = false })
+            } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) { Wordmark(30.sp) }
                     if (invited) Chip("A friend invited you")
                 }
-                if (deleted) {
-                    Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)).padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.tertiary)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Your account is deleted.")
-                    }
-                } else {
-                    Example()
-                }
+                Example()
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Unknown number calling?", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                    Text("See which of your people know it.", style = MaterialTheme.typography.titleMedium,
+                    Text(if (BuildConfig.CALL_LOG) "See which of your people know it." else "Search it. See which of your people know it.",
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Normal)
                 }
-                Benefit(Icons.Filled.Call, "Know your callers", "After a call, see which people you know have that number.")
-                Benefit(Icons.Filled.Search, "Check any number", "See how many people have it, and ask someone you know.")
+                if (BuildConfig.CALL_LOG) {
+                    Benefit(Icons.Filled.Call, "Know your callers", "After a call, see which people you know have that number.")
+                    Benefit(Icons.Filled.Search, "Check any number", "See how many people have it, and ask someone you know.")
+                } else {
+                    // The contacts-only version can't read calls: it promises search and contacts, nothing after a call.
+                    Benefit(Icons.Filled.Search, "Check any number", "Search a number that called you. See which people you know have it.")
+                    Benefit(Icons.Filled.Call, "See who has your contacts", "Each contact shows how many people on WhoHas have their number.")
+                }
                 Benefit(Icons.Filled.Person, "See who has your number", "Find out how many people have your number, and when it goes up.", saffron = true)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(15.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -397,6 +411,7 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
                 PrimaryButton("Get started", { openSheet() })
                 Text("Use the number of a SIM in this phone.", style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
+            }
             }
             LoginStep.CHECKING -> {
                 Text("Checking your SIM", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -517,11 +532,13 @@ private fun Benefit(icon: ImageVector, title: String, text: String, saffron: Boo
 private fun Example() {
     WhCard(Modifier.padding(horizontal = 0.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(CallIcons.Missed, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+            if (BuildConfig.CALL_LOG) Icon(CallIcons.Missed, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
+            else Icon(Icons.Filled.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(10.dp))
             Column {
                 Text("+91 98450 77120", fontWeight = FontWeight.Bold, maxLines = 1)
-                Text("Missed call · 10:42 am", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                if (BuildConfig.CALL_LOG) Text("Missed call · 10:42 am", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error)
+                else Text("You searched this number", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {

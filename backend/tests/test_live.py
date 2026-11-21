@@ -251,10 +251,11 @@ def test_delete_page_deletes_the_account_and_says_what_goes(db, settings, identi
     with TestClient(app) as client:
         r = client.get("/delete")
         assert r.status_code == 200 and "Delete your WhoHas account" in r.text
-        assert "Delete my account" in r.text and "Keep my account" in r.text and "privacy policy" in r.text
+        assert "Delete my account" in r.text and "privacy policy" in r.text
         assert "30 days" not in r.text                                    # nothing promised that isn't checked
-        assert "/v1/optout" in r.text and 'method: "DELETE"' in r.text    # status check, then the account itself
-        assert "delete_account" not in r.text                             # it never adds the number to the opt-out list
+        assert '"/v1/account", { method: "DELETE"' in r.text              # the account of the verified number
+        assert "delete_account" not in r.text and 'fetch("/v1/optout"' not in r.text   # never the opt-out list
+        assert "What is deleted:" in r.text and "sign up again later" in r.text
 
 
 # ---------------------------------------------------------------- live updates

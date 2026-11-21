@@ -30,6 +30,9 @@ class AppGraph(val context: Context) {
     /** Search results by number, so a card opens without a second lookup. */
     val lookups = java.util.concurrent.ConcurrentHashMap<String, LookupResult>()
 
+    /** True while a WhoHas screen is on show: change and level notifications wait, Updates shows them. */
+    @Volatile var inFront = false
+
     /** Set just before the app goes back to the start after deleting the account. */
     @Volatile var justDeleted = false
 

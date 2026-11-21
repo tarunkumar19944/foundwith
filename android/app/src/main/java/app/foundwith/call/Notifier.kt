@@ -86,7 +86,7 @@ class Notifier(private val context: Context) {
         runCatching { NotificationManagerCompat.from(context).notify(TAG_CALL, note.number.hashCode(), notification) }
     }
 
-    /** A button on a call notification: opens WhoHas's invisible [NumberActionActivity] with the number. */
+    /** A button on a notification: opens WhoHas's invisible [NumberActionActivity] with the number. */
     private fun action(name: String, e164: String): PendingIntent {
         val intent = Intent(context, NumberActionActivity::class.java).setAction(name).putExtra(EXTRA_NUMBER, e164)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_NO_ANIMATION)
@@ -124,6 +124,7 @@ class Notifier(private val context: Context) {
             .setSilent(true)
             .setAutoCancel(true)
             .setContentIntent(pending)
+            .addAction(0, "Share in group", action(ACTION_SHARE_GROUP, ""))
             .build()
         @Suppress("MissingPermission")
         runCatching { NotificationManagerCompat.from(context).notify(TAG_LEVEL, 2, notification) }
@@ -162,6 +163,7 @@ class Notifier(private val context: Context) {
         const val ACTION_OPEN_UPDATES = "app.foundwith.OPEN_UPDATES"
         const val ACTION_COPY = "app.foundwith.COPY_NUMBER"
         const val ACTION_TRUECALLER = "app.foundwith.TRUECALLER"
+        const val ACTION_SHARE_GROUP = "app.foundwith.SHARE_GROUP"
         const val EXTRA_NUMBER = "number"
         private const val TAG_CALL = "call"
         private const val TAG_CHANGES = "changes"

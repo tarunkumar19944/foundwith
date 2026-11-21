@@ -965,6 +965,19 @@ class Service:
         log.info("number opted out", extra={"event": "opt_out", "rows": removed, "account_deleted": deleted})
         return {"opted_out": True, "account_deleted": deleted}
 
+    async def delete_by_phone(self, ident: Identity) -> dict[str, Any]:
+        """The web page "Delete my account": the account of the verified number, found by the number
+        (not by the sign-in account, which may have changed). The number is not added to the
+        opt-out list, so the person can sign up again later."""
+        phone_hmac = self._own_phone_hmac(ident)
+        async with self.db.acquire() as conn:
+            account = await repo.user_by_phone(conn, phone_hmac)
+        if account is None:
+            return {"deleted": False, "had_account": False}
+        result = await self.delete_account(account)
+        log.info("account deleted from the web page", extra={"event": "web_delete"})
+        return {**result, "had_account": True}
+
     async def opt_in(self, ident: Identity) -> dict[str, Any]:
         async with self.db.acquire() as conn:
             await repo.unsuppress(conn, self._own_phone_hmac(ident))

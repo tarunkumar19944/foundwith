@@ -201,6 +201,7 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                             saved -> HolderText.NO_ONE_ELSE
                             else -> "No one on WhoHas has this number yet"
                         }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        if (mine) LevelBlock(0)
                     } else {
                         Row(verticalAlignment = Alignment.Bottom) {
                             Text(HolderText.grouped(total) + if (lowerBound) "+" else "", fontSize = 48.sp, fontWeight = FontWeight.Bold, lineHeight = 48.sp,
@@ -255,12 +256,7 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                             }
                         }
                     }
-                    if (!mine) Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(onClick = { context.copyNumber(e164) }, modifier = Modifier.weight(1f).height(48.dp),
-                            shape = RoundedCornerShape(24.dp)) { Text("Copy number", maxLines = 1) }
-                        OutlinedButton(onClick = { context.searchInTruecaller(e164) }, modifier = Modifier.weight(1f).height(48.dp),
-                            shape = RoundedCornerShape(24.dp)) { Text("Truecaller", maxLines = 1) }
-                    }
+                    if (!mine) NumberButtons(e164)
                     if (!saved && !mine && lastCall != null && lastCall.isIncoming) {
                         OutlinedButton(onClick = { context.dial(e164) }, modifier = Modifier.fillMaxWidth().height(48.dp),
                             shape = RoundedCornerShape(24.dp)) {

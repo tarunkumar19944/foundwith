@@ -51,13 +51,27 @@ class LevelsTest {
         val reached = LevelRules.decide(announced = 0, total = 10, lastNudgeAt = 0, now = now)
         assertNotNull(reached.note)
         assertEquals("You’re Popular now", reached.note!!.title)
+        assertEquals("10 people have your number. 40 more and you’re Highly popular.", reached.note!!.text)
         assertEquals(1, reached.announced)
+        // Dipping to 9 and back to 10 is not told again.
+        assertEquals(1, LevelRules.decide(1, 9, now, now).announced)
+        assertNull(LevelRules.decide(1, 10, now, now).note)
+        assertEquals("52 people have your number. That is the top level.", LevelRules.decide(1, 52, 0, now).note!!.text)
         assertNull(LevelRules.decide(1, 12, 0, now).note)
         val nudge = LevelRules.decide(1, 48, 0, now)
         assertEquals("2 more people and you’re Highly popular", nudge.note!!.title)
+        assertEquals("48 people have your number. Share WhoHas in a group.", nudge.note!!.text)
         assertNull(LevelRules.decide(1, 48, now - 2 * day, now).note)
         assertNotNull(LevelRules.decide(1, 48, now - 8 * day, now).note)
         assertNull(LevelRules.decide(2, 70, 0, now).note)
+    }
+
+    @Test
+    fun theLinesAroundYourLevel() {
+        assertEquals("Share WhoHas so people you know can find you.", Levels.why(Level.NOT_POPULAR))
+        assertEquals("", Levels.why(Level.HIGHLY_POPULAR))
+        assertEquals("Top level. 52 people have your number", Levels.topLine(52))
+        assertEquals("1 person has your number. 9 more and you’re Popular.", Levels.reachedText(1))
     }
 
     @Test

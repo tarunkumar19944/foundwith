@@ -197,6 +197,12 @@ class LocalStore(context: Context) {
     var levelAnnounced: Int
         get() = prefs.getInt("level_announced", -1)
         set(value) { prefs.edit().putInt("level_announced", value).apply() }
+    /** When a new level was reached: Updates shows "You're Popular now" at the top for one day. */
+    var levelReachedAt: Long
+        get() = prefs.getLong("level_reached_at", 0L)
+        set(value) { prefs.edit().putLong("level_reached_at", value).apply() }
+    fun levelReachedRecently(now: Long): Boolean = now - levelReachedAt in 0 until 24 * 60 * 60 * 1000L
+
     var levelNudgedAt: Long
         get() = prefs.getLong("level_nudged_at", 0L)
         set(value) { prefs.edit().putLong("level_nudged_at", value).apply() }

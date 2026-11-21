@@ -52,6 +52,26 @@ object Levels {
         return "${HolderText.more(left)} and you’re ${next.label}"
     }
 
+    /** The short line beside your own tag (docs/WHOHAS_COPY.md). Empty at the top. */
+    fun why(level: Level): String = when (level) {
+        Level.NOT_POPULAR -> "Share WhoHas so people you know can find you."
+        Level.POPULAR -> "More people means more callers you can recognise."
+        Level.HIGHLY_POPULAR -> ""
+    }
+
+    /** Under the bar, with the Share in group link: what sharing in a group does. */
+    const val POOL_LINE = "Share in a group so everyone pools their numbers. Then you can find who has any number that calls you."
+
+    /** At the top level, in place of the bar: "Top level. 52 people have your number". */
+    fun topLine(total: Int): String = "Top level. " + HolderText.haveYours(total)
+
+    /** The day you reach a level: "10 people have your number. 40 more and you’re Highly popular." */
+    fun reachedText(total: Int): String {
+        val left = left(total)
+        val next = next(of(total))
+        return HolderText.haveYours(total) + "." + if (left != null && next != null) " ${HolderText.grouped(left)} more and you’re ${next.label}." else " That is the top level."
+    }
+
     /** Beside your own level on a card: where this number stands. Levels only, from real counts. */
     fun compare(theirs: Level, mineTotal: Int): Comparison {
         val mine = of(mineTotal)
@@ -81,14 +101,15 @@ object LevelRules {
 
     data class Decision(val note: LevelNote?, val announced: Int, val nudged: Boolean = false)
 
+    /**
+     * [announced] never goes down: a count that dips below a level and comes back is not told
+     * again, so a number at 9 and 10 by turns doesn't notify every day.
+     */
     fun decide(announced: Int, total: Int, lastNudgeAt: Long, now: Long): Decision {
         val level = Levels.of(total)
         if (level.ordinal > announced) {
-            val next = Levels.progress(total)
-            val body = HolderText.haveYours(total) + "." + (next?.let { " $it." } ?: " That is the top level.")
-            return Decision(LevelNote("You’re ${level.label} now", body), level.ordinal)
+            return Decision(LevelNote("You’re ${level.label} now", Levels.reachedText(total)), level.ordinal)
         }
-        if (level.ordinal < announced) return Decision(null, level.ordinal)
         val left = Levels.left(total)
         if (left != null && left <= NUDGE_WITHIN && now - lastNudgeAt >= NUDGE_EVERY_MS) {
             val title = Levels.progress(total)!!.replaceFirstChar { it.uppercase() }

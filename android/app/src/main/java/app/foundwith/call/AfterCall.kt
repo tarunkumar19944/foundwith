@@ -127,9 +127,11 @@ object AfterCall {
         val hour = LocalTime.now(zone).hour
         var needsRetry = false
 
+        // Both call switches off: nothing will be shown, so nothing is looked up (no network, no battery).
+        val notifying = graph.store.notifyUnknownCalls || graph.store.notifyOtherCalls
         for (call in plan.toNotify) {
             val e164 = call.e164
-            if (e164 == null) {          // hidden number: nothing to look up
+            if (e164 == null || !notifying) {          // hidden number, or calls switched off: nothing to look up
                 handled += call.id
                 continue
             }

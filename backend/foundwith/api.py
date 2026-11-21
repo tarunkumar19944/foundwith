@@ -291,6 +291,10 @@ async def unhide_number(request: Request, svc: Service, ident: Identity, user: R
     return Response(status_code=204)
 
 
+async def delete_by_phone(request: Request, svc: Service, ident: Identity, _: Row) -> Response:
+    return JSONResponse(await svc.delete_by_phone(ident))
+
+
 async def get_opt_out(request: Request, svc: Service, ident: Identity, _: Row) -> Response:
     return JSONResponse(await svc.opt_out_status(ident))
 
@@ -480,6 +484,7 @@ def create_app(settings: Settings | None = None, *, db: Database | None = None, 
         Route("/v1/hidden/{ref}", signed_in(hide_number), methods=["PUT"]),
         Route("/v1/hidden/{ref}", signed_in(unhide_number), methods=["DELETE"]),
         # Taking your own number out of Found With needs a verified sign-in, not a profile.
+        Route("/v1/account", signed_in(delete_by_phone, needs_profile=False), methods=["DELETE"]),
         Route("/v1/optout", signed_in(get_opt_out, needs_profile=False), methods=["GET"]),
         Route("/v1/optout", signed_in(put_opt_out, needs_profile=False), methods=["PUT"]),
         Route("/v1/optout", signed_in(delete_opt_out, needs_profile=False), methods=["DELETE"]),

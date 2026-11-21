@@ -282,9 +282,7 @@ fun DataScreen(graph: AppGraph, onBack: () -> Unit, onBlocked: () -> Unit, onSig
                     withContext(Dispatchers.Main) { onSignedOut() }
                 }
             }, onDismiss = { confirm = null })
-        "delete" -> ConfirmDialog("Delete your account?",
-            "This removes your number and name, the contacts and call log numbers you shared, your blocked list and your settings. " +
-                "Other people's counts go down by one. Your phone's own contacts and call log are not touched. You can't undo this.",
+        "delete" -> ConfirmDialog("Delete your account?", app.foundwith.core.AccountText.deleteDialog(BuildConfig.CALL_LOG),
             "Delete my account", danger = true, cancel = "Keep my account",
             onConfirm = {
                 confirm = null

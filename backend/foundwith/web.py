@@ -24,29 +24,28 @@ _INVITE_PATH_CODE = re.compile(r"^[A-HJ-NP-Za-hj-np-z2-9]{8}$")
 FIREBASE_JS = "https://www.gstatic.com/firebasejs/10.14.1"
 
 _STYLE = """
-:root{--bg:#f7f7f5;--card:#fff;--text:#1d1d1b;--muted:#6b6b66;--accent:#2f5fd0;--accent-bg:#e8eefc;
---danger:#b3261e;--ok:#1e7a46;--border:#dcdcd6}
-@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1f1f1d;--text:#f1f1ec;--muted:#a3a39b;
---accent:#8fb0ff;--accent-bg:#22314f;--danger:#f2b8b5;--ok:#7fd3a0;--border:#3a3a36}}
+:root{--bg:#14151A;--card:#1D1F26;--text:#E7E8EC;--muted:#A3A6B1;--accent:#D9B65C;--accent-bg:#3A3220;
+--on-accent:#14151A;--danger:#F2867E;--ok:#7CCB98;--border:#2C2F38;color-scheme:dark}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
 font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
 main{max-width:420px;margin:0 auto;padding:32px 16px}
 .logo{width:48px;height:48px;border-radius:12px;background:var(--accent-bg);color:var(--accent);
 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
-h1{font-size:22px;line-height:1.3;margin:16px 0 8px}p{margin:8px 0;color:var(--muted)}
-.btn{display:block;width:100%;margin-top:20px;padding:12px;border-radius:12px;border:0;font:inherit;
-font-weight:600;text-align:center;text-decoration:none;cursor:pointer;background:var(--accent);color:#fff}
-@media (prefers-color-scheme:dark){.btn{color:#10204a}}
+h1{font-size:24px;line-height:1.25;margin:16px 0 8px}p{margin:8px 0;color:var(--muted)}
+.btn{display:block;width:100%;margin-top:20px;padding:14px;border-radius:26px;border:0;font:inherit;
+font-weight:700;text-align:center;text-decoration:none;cursor:pointer;background:var(--accent);color:var(--on-accent)}
 .btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--border)}
-.btn.danger{background:var(--danger);color:#fff}
+.btn.danger{background:var(--danger);color:var(--on-accent)}
 .btn[disabled]{opacity:.5;cursor:default}
 .row{display:flex;gap:8px;margin-top:16px}
-input{font:inherit;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--card);
+input{font:inherit;font-size:17px;padding:13px 14px;border-radius:14px;border:1.5px solid var(--border);background:#272A33;
 color:var(--text);width:100%}
 .cc{flex:none;width:64px;text-align:center;color:var(--muted)}
 .err{color:var(--danger);font-size:14px;margin-top:8px;min-height:1.2em}
-a{color:var(--accent);font-weight:600;text-decoration:none}
-.done{color:var(--ok);font-weight:600}
+a{color:var(--accent);font-weight:700;text-decoration:none}
+.done{color:var(--ok);font-weight:700}
+.note{margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:14px;line-height:1.6}
+.note b{color:var(--text)}
 [hidden]{display:none!important}
 small{display:block;margin-top:24px;color:var(--muted);font-size:13px}
 """
@@ -225,42 +224,98 @@ async def opt_out_page(request: Request) -> HTMLResponse:
 
 
 # ---------------------------------------------------------------- delete my account (the web page Play asks for)
-# Same sign-in as the opt-out page. It deletes the account only: it does not add the number to the
-# "remove my number" list, so the person can sign up again later.
+# For people without the app. Same SMS sign-in as the opt-out page; the code step has the delete
+# button. It deletes the account only: the number is not added to the opt-out list, so the person
+# can sign up again later. What is kept afterwards is described in the privacy policy, not here.
 
-_DELETE_BODY = _OUT_BODY.replace("Remove your number from WhoHas", "Delete your WhoHas account").replace(
-    "Works even if you don't use the app. People on WhoHas won't see who has your number.",
-    "Works even if the app is not on your phone. You get an SMS code to prove the number is yours.").replace(
-    "This number has a WhoHas account", "Delete this account?").replace(
-    "Removing it also deletes the account and everything in it.",
-    "This removes your number and name, the contacts and call log numbers you shared, your blocked list and your settings. "
-    "Other people's counts go down by one. Your phone's own contacts and call log are not touched. "
-    "What we keep, and for how long, is in the privacy policy.").replace(
-    "Remove and delete", "Delete my account").replace(
-    "Cancel</button>", "Keep my account</button>").replace(
-    "Done. Your number is removed.", "Your account is deleted.").replace(
-    "People on WhoHas won't see who has it, now or later.", "Your number and name are removed from WhoHas.").replace(
-    "Write to help@found-with.app to remove your number.", "Write to help@found-with.app to delete your account.")
+_DELETE_BODY = """
+<div class="logo" aria-hidden="true">W</div>
+<section id="s-number">
+  <h1>Delete your WhoHas account</h1>
+  <p>You don't need the app. Enter the mobile number you signed up with. We send a code to confirm it is yours.</p>
+  <div class="row"><input class="cc" value="+91" disabled aria-label="Country code">
+    <input id="number" inputmode="numeric" autocomplete="tel-national" maxlength="14" placeholder="98450 12345" aria-label="Mobile number"></div>
+  <div class="err" id="number-err" role="alert"></div>
+  <button class="btn" id="send">Send code</button>
+  <p class="note"><b>What is deleted:</b> your number, name, the contact and call log numbers WhoHas holds for you, blocked list and settings.
+  Counts on other people's cards go down by one. What is kept after that, and for how long, is in the privacy policy.</p>
+</section>
+<section id="s-code" hidden>
+  <h1>Enter the code</h1>
+  <p>Sent to <span id="sent-to"></span> · <a href="#" id="change">Change number</a></p>
+  <div class="row"><input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="6-digit code" aria-label="Code"></div>
+  <div class="err" id="code-err" role="alert"></div>
+  <button class="btn danger" id="delete">Delete my account</button>
+  <p class="note">This can't be undone. You can sign up again later with a fresh start.</p>
+</section>
+<section id="s-done" hidden>
+  <h1 class="done">Your account is deleted</h1>
+  <p>Your number, name, contacts and call log numbers are gone from WhoHas.</p>
+</section>
+<section id="s-none" hidden>
+  <h1>No WhoHas account uses this number</h1>
+  <p>There is nothing to delete. To stop your number showing to people on WhoHas, use <a href="/out">Remove your number</a>.</p>
+</section>
+<section id="s-off" hidden><h1>This page isn't ready yet</h1><p>Write to help@found-with.app to delete your account.</p></section>
+<div id="recaptcha"></div>
+"""
 
-_DELETE_SCRIPT = _OUT_SCRIPT.replace(
-    '''  function takeOut(withAccount) {{
-    return api("PUT", {{ delete_account: !!withAccount }}).then(function (r) {{
-      if (r.status === 200) {{ auth.signOut(); show("s-done"); return; }}
-      if (r.body && r.body.error && r.body.error.code === "account_exists") {{ show("s-account"); return; }}
-      throw new Error("failed");
-    }});
-  }}''',
-    '''  function takeOut() {{
-    return fetch("/v1/me", {{ method: "DELETE", headers: {{ "Authorization": "Bearer " + token }} }}).then(function (r) {{
-      if (r.status === 200 || r.status === 404) {{ auth.signOut(); show("s-done"); return; }}
-      throw new Error("failed");
-    }});
-  }}''').replace(
-    '''        if (r.body.opted_out) {{ auth.signOut(); show("s-done"); return; }}
-        if (r.body.has_account) {{ show("s-account"); return; }}
-        return takeOut(false);''',
-    '''        if (r.body.has_account) {{ show("s-account"); return; }}
-        auth.signOut(); show("s-done");''').replace("takeOut(true)", "takeOut()")
+_DELETE_SCRIPT = """
+<script nonce="{nonce}" src="{fb}/firebase-app-compat.js"></script>
+<script nonce="{nonce}" src="{fb}/firebase-auth-compat.js"></script>
+<script nonce="{nonce}">
+(function () {{
+  var config = {config};
+  var $ = function (id) {{ return document.getElementById(id); }};
+  function show(id) {{ ["s-number", "s-code", "s-done", "s-none", "s-off"].forEach(function (s) {{ $(s).hidden = s !== id; }}); }}
+  if (!config.apiKey || !window.firebase) {{ show("s-off"); return; }}
+  firebase.initializeApp(config);
+  var auth = firebase.auth(), confirmation = null, phone = null;
+  var verifier = new firebase.auth.RecaptchaVerifier("send", {{ size: "invisible" }});
+  function digits(s) {{ return (s || "").replace(/[^0-9]/g, ""); }}
+  function mobile(raw) {{
+    var d = digits(raw);
+    if (d.length === 12 && d.indexOf("91") === 0) d = d.slice(2);
+    if (d.length === 11 && d[0] === "0") d = d.slice(1);
+    return /^[6-9][0-9]{{9}}$/.test(d) ? "+91" + d : null;
+  }}
+  function problem(e) {{
+    var code = (e && e.code) || "";
+    if (code.indexOf("too-many-requests") >= 0) return "Too many tries. For safety, wait a while and try again.";
+    if (code.indexOf("invalid-verification-code") >= 0) return "That code doesn't match. Check the SMS.";
+    if (code.indexOf("network") >= 0 || !navigator.onLine) return "No internet. Connect and try again.";
+    return "Something went wrong. Try again.";
+  }}
+  $("send").addEventListener("click", function () {{
+    phone = mobile($("number").value);
+    $("number-err").textContent = phone ? "" : "10 digits, starting with 6, 7, 8 or 9.";
+    if (!phone) return;
+    $("send").disabled = true;
+    auth.signInWithPhoneNumber(phone, verifier).then(function (c) {{
+      confirmation = c; $("sent-to").textContent = phone.slice(0, 3) + " " + phone.slice(3, 8) + " " + phone.slice(8); show("s-code"); $("code").focus();
+    }}).catch(function (e) {{ $("number-err").textContent = problem(e); }})
+      .then(function () {{ $("send").disabled = false; }});
+  }});
+  $("change").addEventListener("click", function (e) {{ e.preventDefault(); show("s-number"); }});
+  $("delete").addEventListener("click", function () {{
+    var code = digits($("code").value);
+    if (code.length !== 6) {{ $("code-err").textContent = "Enter the 6-digit code."; return; }}
+    $("delete").disabled = true;
+    confirmation.confirm(code).then(function (result) {{ return result.user.getIdToken(); }})
+      .then(function (token) {{
+        return fetch("/v1/account", {{ method: "DELETE", headers: {{ "Authorization": "Bearer " + token }} }});
+      }})
+      .then(function (r) {{
+        if (r.status !== 200) throw new Error("failed");
+        return r.json();
+      }})
+      .then(function (body) {{ auth.signOut(); show(body.had_account ? "s-done" : "s-none"); }})
+      .catch(function (e) {{ $("code-err").textContent = problem(e); }})
+      .then(function () {{ $("delete").disabled = false; }});
+  }});
+}})();
+</script>
+"""
 
 
 async def delete_page(request: Request) -> HTMLResponse:
