@@ -183,7 +183,7 @@ class NotificationsTest {
         // Truecaller with a "search with Truecaller" text action: that, with the number.
         val search = android.content.ComponentName("com.truecaller", "com.truecaller.SearchText")
         pm.addActivityIfNotPresent(search)
-        pm.addIntentFilterForActivity(search, android.content.IntentFilter(android.content.Intent.ACTION_PROCESS_TEXT).apply { addDataType("text/plain") })
+        pm.addIntentFilterForActivity(search, android.content.IntentFilter(android.content.Intent.ACTION_PROCESS_TEXT).apply { addCategory(android.content.Intent.CATEGORY_DEFAULT); addDataType("text/plain") })
         assertEquals(TruecallerRoute.SEARCH, context.searchInTruecaller("+919845077120"))
         val started = org.robolectric.Shadows.shadowOf(application).nextStartedActivity
         assertEquals(android.content.Intent.ACTION_PROCESS_TEXT, started.action)
