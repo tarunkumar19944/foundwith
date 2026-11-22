@@ -103,7 +103,11 @@ jobs:
           cp app/build/outputs/mapping/fullRelease/mapping.txt "$out/mapping-full.txt"
           cp app/build/outputs/mapping/contactsOnlyRelease/mapping.txt "$out/mapping-contacts-only.txt"
           cp "$(find app/build/outputs/apk/full/release -name '*.apk' | head -1)" "$out/whohas-full-release.apk"
-          gh release delete play-build --yes --cleanup-tag 2>/dev/null || true
-          gh release create play-build "$out"/* --prerelease --target "$GITHUB_SHA" \
+          # Keep the tag (see android.yml); the title names the commit.
+          gh release delete play-build --yes 2>/dev/null || true
+          gh release create play-build "$out"/* --prerelease --target main \
             --title "Play build 1.0.${{ github.run_number }} (${GITHUB_SHA::7})" \
             --notes "For Play Console. Upload whohas-full.aab (or whohas-contacts-only.aab), version code ${{ github.run_number }}. The mapping file of the same version goes in App bundle explorer › Downloads, so crash reports are readable. whohas-full-release.apk is the same build for a quick check on a phone."
+          if [ "$(gh release view play-build --json isDraft --jq .isDraft)" = "true" ]; then
+            gh release edit play-build --draft=false
+          fi
