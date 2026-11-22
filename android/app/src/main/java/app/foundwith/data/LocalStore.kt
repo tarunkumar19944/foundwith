@@ -131,6 +131,14 @@ class LocalStore(context: Context) {
         get() = prefs.getLong("last_opened", 0L)
         set(value) { prefs.edit().putLong("last_opened", value).apply() }
 
+    /**
+     * When the person last looked at Updates (22 Nov 2026): newer updates count on the Updates tab's
+     * badge and get a dot. Before this existed, the last time the app was left stood in for it.
+     */
+    var updatesSeenAt: Long
+        get() = prefs.getLong("updates_seen", 0L).takeIf { it > 0 } ?: lastOpenedAt
+        set(value) { prefs.edit().putLong("updates_seen", value).apply() }
+
     /** When each number was last told from the Tell card or the Invite page (E.164 -> millis). */
     fun toldAt(): Map<String, Long> = prefs.getStringSet("told", emptySet()).orEmpty().mapNotNull { entry ->
         val (number, at) = entry.split('@').takeIf { it.size == 2 } ?: return@mapNotNull null

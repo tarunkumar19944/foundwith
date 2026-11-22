@@ -58,7 +58,10 @@ fun AppRoot(graph: AppGraph, openNumber: Flow<String?>) {
     LaunchedEffect(Unit) {
         openNumber.collect { e164 ->
             if (e164 == null) return@collect
-            if (e164 == UPDATES) nav.startOver(Routes.HOME)
+            if (e164 == UPDATES) {
+                graph.openUpdates.value = true
+                nav.startOver(Routes.HOME)
+            }
             else if (graph.auth.isSignedIn) nav.navigate(Routes.number(e164)) { launchSingleTop = true }
         }
     }

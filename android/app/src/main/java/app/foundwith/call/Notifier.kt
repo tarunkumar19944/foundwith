@@ -111,10 +111,11 @@ class Notifier(private val context: Context) {
         runCatching { NotificationManagerCompat.from(context).notify(TAG_CHANGES, 1, builder.build()) }
     }
 
-    /** "You're Popular now" or "2 more people and you're Highly popular". Silent; opens Home. */
+    /** "You're Popular now" or "2 more people and you're Highly popular". Silent; opens Updates (its banner is there). */
     fun postLevel(title: String, text: String) {
         if (!canPost()) return
-        val open = Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val open = Intent(context, MainActivity::class.java).setAction(ACTION_OPEN_UPDATES)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pending = PendingIntent.getActivity(context, 2, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(context, LEVEL)
             .setSmallIcon(R.drawable.ic_stat_found_with)

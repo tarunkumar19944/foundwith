@@ -55,8 +55,10 @@ data class AppState(
     val refreshing: Boolean = false,
     /** Calls WhoHas only reached after the hour was up, in the last week (the phone stops it). */
     val lateCalls: Int = 0,
-    /** Updates newer than this get a green dot: when the app was last left. */
+    /** Updates newer than this get a dot in Updates: when Updates was looked at before this visit. */
     val dotsSince: Long = 0L,
+    /** Updates newer than this count on the Updates tab's badge: when Updates was last looked at. */
+    val updatesSeenAt: Long = 0L,
     val loaded: Boolean = false,
 ) {
     val cardsByRef: Map<String, Card> by lazy(LazyThreadSafetyMode.NONE) {
@@ -107,7 +109,8 @@ class AppModel(private val graph: AppGraph) {
                 setup = setupFrom(profile, cards),
                 gate = gateFrom(store.gate),
                 lateCalls = lateAt.count { t -> t >= weekAgo },
-                dotsSince = store.lastOpenedAt,
+                dotsSince = store.updatesSeenAt,
+                updatesSeenAt = store.updatesSeenAt,
                 loaded = true,
             )
         }
@@ -259,9 +262,22 @@ class AppModel(private val graph: AppGraph) {
         runCatching { fetchCards() }.getOrNull()?.let { cards -> _state.update { it.copy(cards = cards) } }
     }
 
-    /** Remembered when the app goes to the background, for the green dots next time. */
+    /** Remembered when the app goes to the background. */
     fun leftApp() {
         store.lastOpenedAt = System.currentTimeMillis()
+    }
+
+    /** Updates opened: the badge clears; what's new keeps its dot for this visit. */
+    fun openedUpdates(now: Long = System.currentTimeMillis()) {
+        val before = store.updatesSeenAt
+        store.updatesSeenAt = now
+        _state.update { it.copy(dotsSince = before, updatesSeenAt = now) }
+    }
+
+    /** Left Updates (another tab, or the app went away): what came in while it was open was seen too. */
+    fun leftUpdates(now: Long = System.currentTimeMillis()) {
+        store.updatesSeenAt = now
+        _state.update { it.copy(updatesSeenAt = now) }
     }
 
     fun dismissFix() {

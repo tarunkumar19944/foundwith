@@ -33,6 +33,9 @@ class AppGraph(val context: Context) {
     /** True while a WhoHas screen is on show: change and level notifications wait, Updates shows them. */
     @Volatile var inFront = false
 
+    /** Set by a notification's "Open Updates": Home opens on the Updates tab instead of Call log. */
+    val openUpdates = kotlinx.coroutines.flow.MutableStateFlow(false)
+
     /** Set just before the app goes back to the start after deleting the account. */
     @Volatile var justDeleted = false
 

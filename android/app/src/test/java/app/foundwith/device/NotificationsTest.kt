@@ -161,4 +161,13 @@ class NotificationsTest {
         assertNull(store.callLookup("+917760000004", now + 100))                            // only the last 50 are kept
         assertEquals(54, store.callLookup("+917760000054", now + 100)?.result?.total)
     }
+
+    @Test
+    fun updatesSeenStartsFromTheLastTimeTheAppWasLeft() {
+        val store = LocalStore(context)
+        store.lastOpenedAt = 500L
+        assertEquals(500L, store.updatesSeenAt)   // before Updates was ever looked at
+        store.updatesSeenAt = 900L
+        assertEquals(900L, store.updatesSeenAt)
+    }
 }

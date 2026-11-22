@@ -72,11 +72,15 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.foundwith.AppGraph
 import app.foundwith.BuildConfig
@@ -131,7 +135,23 @@ fun HomeScreen(
     val state by graph.model.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var tab by rememberSaveable { mutableStateOf(Tab.UPDATES) }
+    // Call log first (Y, 22 Nov 2026): the app opens on it; Contacts in the contacts-only build.
+    val homeTab = if (BuildConfig.CALL_LOG) Tab.CALLS else Tab.CONTACTS
+    var tab by rememberSaveable { mutableStateOf(if (graph.openUpdates.value) Tab.UPDATES else homeTab) }
+    // A notification's "Open Updates" switches to Updates, also when Home is already open.
+    LaunchedEffect(Unit) {
+        graph.openUpdates.collect { open -> if (open) { tab = Tab.UPDATES; graph.openUpdates.value = false } }
+    }
+    // The Updates badge counts what came since Updates was last looked at: opening Updates clears it,
+    // and leaving Updates (another tab, or the app) counts what came in meanwhile as seen.
+    var shownTab by rememberSaveable { mutableStateOf<Tab?>(null) }
+    LaunchedEffect(tab) {
+        if (tab == shownTab) return@LaunchedEffect
+        if (shownTab == Tab.UPDATES) graph.model.leftUpdates()
+        if (tab == Tab.UPDATES) graph.model.openedUpdates()
+        shownTab = tab
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { if (tab == Tab.UPDATES) graph.model.leftUpdates() }
     var query by rememberSaveable { mutableStateOf("") }
     var found by remember { mutableStateOf<Found>(Found.Idle) }
     var searching by remember { mutableStateOf(false) }
@@ -155,13 +175,17 @@ fun HomeScreen(
         if (tab == t) scope.launch { listFor(t).animateScrollToItem(0) } else tab = t
     }
 
-    // Back closes the search first (it used to close the app), then goes back to Updates.
+    // Back closes the search first (it used to close the app), then goes back to Call log
+    // (or to Updates when the tab was opened from its See all).
     BackHandler(enabled = searching || query.isNotEmpty()) {
         query = ""
         focus.clearFocus()
         searching = false
     }
-    BackHandler(enabled = !searching && query.isEmpty() && tab != Tab.UPDATES) { fromSeeAll = false; tab = Tab.UPDATES }
+    BackHandler(enabled = !searching && query.isEmpty() && (tab != homeTab || fromSeeAll)) {
+        tab = if (fromSeeAll) Tab.UPDATES else homeTab
+        fromSeeAll = false
+    }
 
     // Allow asks only for what the reward needs. Notifications are asked once names have shown.
     val allowPermissions = remember {
@@ -239,19 +263,26 @@ fun HomeScreen(
                     selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    val newCount = updateEntries(state).count { it.at > state.dotsSince }
-                    NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { pick(Tab.UPDATES) }, label = { Text("Updates") }, colors = tabColors,
-                        icon = {
-                            BadgedBox(badge = { if (newCount > 0) Badge { Text(newCount.toString()) } }) {
-                                Icon(Icons.Filled.Notifications, contentDescription = null)
-                            }
-                        })
-                    NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { pick(Tab.CONTACTS) }, label = { Text("Contacts") }, colors = tabColors,
-                        icon = { Icon(Icons.Filled.Person, contentDescription = null) })
+                    // Call log · Contacts · Updates (Y, 22 Nov 2026). Updates carries a gold badge with
+                    // how many new things haven't been seen there yet.
                     if (BuildConfig.CALL_LOG) {
                         NavigationBarItem(selected = tab == Tab.CALLS, onClick = { pick(Tab.CALLS) }, label = { Text("Call log") }, colors = tabColors,
                             icon = { Icon(Icons.Filled.Call, contentDescription = null) })
                     }
+                    NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { pick(Tab.CONTACTS) }, label = { Text("Contacts") }, colors = tabColors,
+                        icon = { Icon(Icons.Filled.Person, contentDescription = null) })
+                    val unseen = if (tab == Tab.UPDATES) 0 else updateEntries(state).count { it.at > state.updatesSeenAt }
+                    NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { pick(Tab.UPDATES) }, label = { Text("Updates") }, colors = tabColors,
+                        modifier = Modifier.semantics { if (unseen > 0) stateDescription = "$unseen new" },
+                        icon = {
+                            BadgedBox(badge = {
+                                if (unseen > 0) Badge(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
+                                    Text(if (unseen > 99) "99+" else unseen.toString(), fontWeight = FontWeight.Bold)
+                                }
+                            }) {
+                                Icon(Icons.Filled.Notifications, contentDescription = null)
+                            }
+                        })
                 }
             }
         },
