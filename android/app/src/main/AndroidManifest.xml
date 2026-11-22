@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
-    <!-- Android 13+: the notification after a call, and the evening note. -->
+    <!-- WhoHas shows no ads: keep the advertising ID permission out even if a library brings it
+         (Play's Data safety and Advertising ID answers say "No"). -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <!-- Android 13+: notifications after calls and about changes. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- No caller ID role, no drawing over other apps, no phone-state permission: Found With learns
          about calls from the call log (full flavour only, see src/full/AndroidManifest.xml). -->
