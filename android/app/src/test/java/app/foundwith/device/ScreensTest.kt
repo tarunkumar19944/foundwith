@@ -37,6 +37,9 @@ import app.foundwith.ui.InfoRow
 import app.foundwith.ui.LevelBlock
 import app.foundwith.ui.LevelTag
 import app.foundwith.ui.LevelUpBanner
+import app.foundwith.core.DataNotice
+import app.foundwith.BuildConfig
+import app.foundwith.ui.AllowCard
 import app.foundwith.ui.CardButtons
 import app.foundwith.ui.YourNumberBar
 import app.foundwith.ui.CopyNumberButton
@@ -89,6 +92,14 @@ class ScreensTest {
         compose.onAllNodesWithText("Share WhoHas so people you know can find you.").assertCountEquals(2)
         compose.onNodeWithText("More people means more callers you can recognise.").assertExists()
         compose.onAllNodesWithText("Share in group").assertCountEquals(0)          // no link inside the card (Y, 22 Nov)
+    }
+
+    @Test
+    fun allowCardSaysWhatIsSent() {
+        shot("10-allow-notice") { AllowCard(onAllow = {}, onHowItWorks = {}) }
+        compose.onNodeWithText("What WhoHas sends").assertExists()
+        compose.onNodeWithText(DataNotice.text(BuildConfig.CALL_LOG)).assertExists()
+        compose.onNodeWithText("Agree and allow").assertExists()
     }
 
     @Test

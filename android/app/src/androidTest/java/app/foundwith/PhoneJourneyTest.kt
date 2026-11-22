@@ -115,7 +115,7 @@ class PhoneJourneyTest {
         if (exists("Allow")) {
             shot("05-allow-card")
             // The card can go by itself (another phone on this test account already took part).
-            runCatching { compose.onAllNodes(hasText("Allow")).onFirst().performClick() }
+            runCatching { compose.onAllNodes(hasText("Agree and allow")).onFirst().performClick() }
         }
         waitFor("Updates", 120_000)
         // The notification and name cards wait until names have shown; put both off.

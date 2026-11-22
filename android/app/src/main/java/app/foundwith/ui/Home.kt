@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -84,6 +85,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.foundwith.AppGraph
 import app.foundwith.BuildConfig
+import app.foundwith.core.DataNotice
 import app.foundwith.core.CallEvent
 import app.foundwith.core.Changes
 import app.foundwith.core.HolderText
@@ -482,7 +484,7 @@ private fun InvitedCard(names: List<String>, count: Int, total: Int) {
 
 /** The Allow card: what WhoHas will do, then Allow. Contacts and call log only. */
 @Composable
-private fun AllowCard(onAllow: () -> Unit, onHowItWorks: () -> Unit) {
+internal fun AllowCard(onAllow: () -> Unit, onHowItWorks: () -> Unit) {
     WhCard(padding = 20.dp) {
         Text("See who has each number", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Text(if (BuildConfig.CALL_LOG) "Allow contacts and call log. Then you can:" else "Allow contacts. Then you can:",
@@ -491,7 +493,20 @@ private fun AllowCard(onAllow: () -> Unit, onHowItWorks: () -> Unit) {
         TickLine("See who has each number on your phone")
         TickLine("Know when something new happens or changes")
         if (BuildConfig.CALL_LOG) TickLine("After a call, get a notification if someone has the caller's number")
-        PrimaryButton("Allow", onAllow)
+        // Google Play's prominent disclosure: what is sent and why, right before the Android prompts,
+        // with a button that agrees to it (User Data policy).
+        androidx.compose.material3.Surface(
+            color = MaterialTheme.colorScheme.background,
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("What WhoHas sends", fontWeight = FontWeight.Bold)
+                Text(DataNotice.text(BuildConfig.CALL_LOG))
+            }
+        }
+        PrimaryButton("Agree and allow", onAllow)
         Row(Modifier.clickable(onClick = onHowItWorks).padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
             Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(8.dp))
