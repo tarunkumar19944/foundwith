@@ -81,7 +81,7 @@ class ScreensTest {
             HeroCard("+91 98450 31207", 23, "people have it", "You know Priya, Meena and 4 more", extra = { LevelBlock(23) })
         }
         compose.onNodeWithText("No one on WhoHas has your number yet").assertExists()
-        compose.onNodeWithText("Share WhoHas so people you know can find you.").assertExists()
+        compose.onAllNodesWithText("Share WhoHas so people you know can find you.").assertCountEquals(2)
         compose.onNodeWithText("More people means more callers you can recognise.").assertExists()
         compose.onAllNodesWithText("Share in group").assertCountEquals(0)          // no link inside the card (Y, 22 Nov)
     }
