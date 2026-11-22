@@ -38,6 +38,7 @@ import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import java.io.File
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.BeforeClass
@@ -212,7 +213,17 @@ class PhoneJourneyTest {
         assertTrue("Copy number and Truecaller buttons: $buttons", buttons == listOf("Copy number", "Truecaller"))
         // Tapping it opens the caller's card.
         note.notification.contentIntent.send()
-        waitFor(caller.takeLast(5), 30_000)
+        // The caller's card is open once its copy icon shows (only a card has one beside the number).
+        try {
+            compose.waitUntil(30_000) { compose.onAllNodes(hasContentDescription("Copy number")).fetchSemanticsNodes().isNotEmpty() }
+        } catch (e: ComposeTimeoutException) {
+            shot("failed-waiting")
+            throw AssertionError("The caller's card didn't open from the notification", e)
+        }
+        // It shows the notification's count straight away, never "No one has this number" first.
+        assertFalse("The card said no one has the number, but the notification said someone does",
+            exists("No one on WhoHas has this number yet"))
+        waitForAny(listOf("person has this number", "people have this number"), 20_000)
         shot("14-caller-card")
         back()
     }
