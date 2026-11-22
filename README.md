@@ -133,9 +133,9 @@ terraform apply
 
 The first apply starts the service and jobs with Google's placeholder image. Terraform ignores image changes after that, because Cloud Build owns deployments.
 
-The apply also creates three Cloud Scheduler jobs that call the API with an OIDC token: pushes every minute, the evening note at 7:30 pm IST, and wake-ups at 10 am, 2 pm and 6 pm. `push_mode` defaults to `fcm`.
+The apply also creates Cloud Scheduler jobs that call the API with an OIDC token: pushes every minute and wake-ups at 10 am, 2 pm and 6 pm (there is no evening note any more). `push_mode` defaults to `fcm`.
 
-**3. CI/CD.** Set `github_repository = "owner/repo"` in `terraform.tfvars` and apply again. That lets `.github/workflows/deploy.yml` deploy without any key (Workload Identity Federation, main branch of that repository only): every push to `main` that touches `backend/` runs `cloudbuild.yaml`, which tests, builds, runs migrations, deploys and checks `/readyz`. Put the project number and IDs from `terraform output github_workload_identity_provider` and `deployer_service_account` into that workflow.
+**3. CI/CD.** Set `github_repository = "owner/repo"` in `terraform.tfvars` and apply again. That lets `.github/workflows/deploy.yml` deploy without any key (Workload Identity Federation, main branch of that repository only): every push to `main` that touches `backend/` runs `cloudbuild.yaml`, which tests, builds, runs migrations, deploys and checks `/readyz`. Then run `infra/point-ci.sh` from the repository root: it puts the new project's Workload Identity provider, service accounts, project ID and API address into every workflow. Commit the result.
 
 To deploy by hand instead:
 
@@ -180,7 +180,7 @@ The output is in the job's logs. `backend/foundwith/admin.py` lists every comman
 
 - Keep `api_min_instances` at 1 or more (the default) so after-call lookups never hit a cold start, and set `db_high_availability = true`.
 - Get a legal review of the visibility rule, the consent text and the privacy notice under the DPDP Act (see `docs/SPEC.md`, section 9).
-- Host a privacy policy and set `foundwith.privacyUrl` for the Android release build. The account-deletion page Play asks for is `/out` on the API.
+- Host a privacy policy and set `foundwith.privacyUrl` for the Android release build. The account-deletion page Play asks for is `/delete` on the API (the app's Help screen links to it).
 - Keep one `test_phone_numbers` entry for Play's reviewers and nothing else; its code lets anyone sign in as that number.
 - Ship the `contactsOnly` Android build first; submit `full` only after Play approves the call-log declaration (`android/README.md`, section 4).
 - Popular names come from what people saved, unfiltered. Watch the help inbox from day one and use `hold-name` quickly; a name like "Fraud" on a business's number is a legal risk (see `docs/SPEC.md`, section 9).
