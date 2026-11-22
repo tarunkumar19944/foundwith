@@ -18,8 +18,8 @@ resource "google_firebase_project" "main" {
 resource "google_firebase_android_app" "app" {
   provider     = google-beta
   project      = var.project_id
-  display_name = "Found With"
-  package_name = "app.foundwith"
+  display_name = "WhoHas"
+  package_name = var.android_package
   # Fingerprints of the keys the APKs are signed with: SMS sign-in checks them. Add Play's
   # app-signing key here before the Play release.
   sha1_hashes     = var.android_sha1

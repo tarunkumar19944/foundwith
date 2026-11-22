@@ -1,0 +1,109 @@
+# The Google Play build: both versions as signed app bundles (.aab), with the upload key from
+# Secret Manager (infra/terraform/android_ci.tf), keylessly. A release APK of the full version is
+# started on a Test Lab phone first (Robo), so a build that crashes on start is never published.
+# The bundles go to the GitHub release "play-build", for whoever uploads them to Play Console.
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths: ["android/**", ".github/workflows/release.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROJECT: whohas-prod-515506
+  API_URL: https://found-with-api-lg62ek6lma-el.a.run.app
+
+jobs:
+  bundle:
+    if: github.repository == 'tarunkumar19944/foundwith'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: android
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Sign in to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/462748736171/locations/global/workloadIdentityPools/github/providers/github-actions
+          service_account: found-with-android-ci@whohas-prod-515506.iam.gserviceaccount.com
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Firebase config and upload key
+        run: |
+          set -euo pipefail
+          umask 077
+          gcloud secrets versions access latest --project=$PROJECT --secret=found-with-android-google-services > app/google-services.json
+          if ! gcloud secrets versions access latest --project=$PROJECT --secret=found-with-android-upload-keystore > "$RUNNER_TEMP/upload.b64" 2>/dev/null; then
+            echo "::error::No upload key in Secret Manager yet (android_upload_keystore_base64 in terraform.tfvars, then terraform apply)."
+            exit 1
+          fi
+          base64 -d "$RUNNER_TEMP/upload.b64" > "$RUNNER_TEMP/upload.jks"
+          rm -f "$RUNNER_TEMP/upload.b64"
+          pw="$(gcloud secrets versions access latest --project=$PROJECT --secret=found-with-android-upload-password)"
+          echo "::add-mask::$pw"
+          echo "UPLOAD_PASSWORD=$pw" >> "$GITHUB_ENV"
+          keytool -list -v -keystore "$RUNNER_TEMP/upload.jks" -storepass "$pw" -alias upload | grep -E "SHA1:|SHA256:"
+
+      - name: Build the bundles and a release APK
+        run: >
+          ./gradlew --no-daemon bundleFullRelease bundleContactsOnlyRelease assembleFullRelease
+          -Pfoundwith.versionCode=${{ github.run_number }}
+          -Pfoundwith.versionName=1.0.${{ github.run_number }}
+          -Pfoundwith.apiUrl=$API_URL
+          -Pfoundwith.privacyUrl=$API_URL/privacy
+          -Pwhohas.uploadKeystore=$RUNNER_TEMP/upload.jks
+          -Pwhohas.uploadPassword=$UPLOAD_PASSWORD
+
+      - name: Sizes
+        run: |
+          find app/build/outputs -name '*.aab' -o -name '*-release.apk' | xargs ls -l | awk '{printf "%8.1f MB  %s\n", $5/1048576, $NF}'
+
+      - name: The release build starts on a phone (Test Lab, Robo)
+        run: |
+          set -uo pipefail
+          apk="$(find app/build/outputs/apk/full/release -name '*.apk' | head -1)"
+          gcloud firebase test android run --project=$PROJECT --type=robo --app="$apk" \
+            --device model=MediumPhone.arm,version=34,locale=en,orientation=portrait \
+            --timeout=3m --results-bucket=$PROJECT-test-lab --results-dir="release-$GITHUB_RUN_ID" \
+            --format=json > "$RUNNER_TEMP/robo.json"
+          status=$?
+          cat "$RUNNER_TEMP/robo.json" | python3 -c "import json,sys; [print(r.get('axis_value'), r.get('outcome'), r.get('test_details')) for r in json.load(sys.stdin)]" || true
+          # 10 = a test failed (crash); 0 = passed. Anything else is Test Lab itself, not the app.
+          if [ "$status" = 10 ]; then echo "::error::The release build crashed on Test Lab"; exit 1; fi
+
+      - name: Publish for Play Console
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/play"; mkdir -p "$out"
+          cp app/build/outputs/bundle/fullRelease/*.aab "$out/whohas-full.aab"
+          cp app/build/outputs/bundle/contactsOnlyRelease/*.aab "$out/whohas-contacts-only.aab"
+          cp app/build/outputs/mapping/fullRelease/mapping.txt "$out/mapping-full.txt"
+          cp app/build/outputs/mapping/contactsOnlyRelease/mapping.txt "$out/mapping-contacts-only.txt"
+          cp "$(find app/build/outputs/apk/full/release -name '*.apk' | head -1)" "$out/whohas-full-release.apk"
+          gh release delete play-build --yes --cleanup-tag 2>/dev/null || true
+          gh release create play-build "$out"/* --prerelease --target "$GITHUB_SHA" \
+            --title "Play build 1.0.${{ github.run_number }} (${GITHUB_SHA::7})" \
+            --notes "For Play Console. Upload whohas-full.aab (or whohas-contacts-only.aab), version code ${{ github.run_number }}. The mapping file of the same version goes in App bundle explorer › Downloads, so crash reports are readable. whohas-full-release.apk is the same build for a quick check on a phone."

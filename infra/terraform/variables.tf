@@ -163,3 +163,9 @@ variable "contact_email" {
   type        = string
   default     = ""
 }
+
+variable "android_package" {
+  description = "The Android app ID (applicationId). Permanent once uploaded to Google Play; must match android/app/build.gradle.kts."
+  type        = string
+  default     = "app.foundwith"
+}

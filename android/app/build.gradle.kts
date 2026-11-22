@@ -22,6 +22,9 @@ val privacyUrl: String = providers.gradleProperty("foundwith.privacyUrl").getOrE
 // The project's shared debug key (CI passes it), so every test APK has the fingerprint registered in
 // Firebase for SMS sign-in. Without it, debug builds use this computer's own debug key.
 val sharedDebugKeystore: String? = providers.gradleProperty("foundwith.debugKeystore").orNull
+// The Play upload key, for release bundles: -Pwhohas.uploadKeystore=PATH -Pwhohas.uploadPassword=...
+val uploadKeystore: String? = providers.gradleProperty("whohas.uploadKeystore").orNull
+val uploadPassword: String = providers.gradleProperty("whohas.uploadPassword").getOrElse("")
 
 // A release build pointed at the emulator's laptop address (or any plain-http URL) would be a
 // broken app on every phone: refuse to build it.
@@ -81,6 +84,16 @@ android {
     }
 
     signingConfigs {
+        // The Play upload key (.github/workflows/release.yml reads it from Secret Manager). Google Play
+        // re-signs the uploaded bundle with its own app signing key.
+        if (uploadKeystore != null) {
+            create("upload") {
+                storeFile = file(uploadKeystore)
+                storePassword = uploadPassword
+                keyAlias = "upload"
+                keyPassword = uploadPassword
+            }
+        }
         getByName("debug") {
             if (sharedDebugKeystore != null) {
                 storeFile = file(sharedDebugKeystore)
@@ -97,6 +110,7 @@ android {
             buildConfigField("boolean", "DEV_SIGN_IN", devSignIn.toString())
         }
         release {
+            if (uploadKeystore != null) signingConfig = signingConfigs.getByName("upload")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
