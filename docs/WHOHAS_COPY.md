@@ -106,6 +106,8 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Notifications off | Notifications are off. You won't know who called. · Turn on |
 | Late calls | Your phone stopped WhoHas. Last 3 calls weren't checked. · Fix |
 | Tabs | **Updates · Contacts · Call log** (Call log only in the full build) |
+| Scrolling (22 Nov) | The WhoHas name and Share in group scroll away; the **search box stays pinned at the top** on every tab. Each tab keeps its own place. Tapping the tab you're on jumps to its top. |
+| See all | Opens Contacts or Call log at the top of the list, with **←** beside the search (Back to Updates, where you left it). Android's back does the same. |
 
 ### Updates: everything found, what changed on top
 

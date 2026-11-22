@@ -3,6 +3,10 @@ package app.foundwith.ui
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
@@ -114,6 +118,7 @@ private sealed interface Found {
  * shows their own number's count (only when someone has it) and the Allow card. The name and
  * notification cards wait until names have shown, so nothing stands before the first reward.
  */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun HomeScreen(
     graph: AppGraph,
@@ -131,6 +136,24 @@ fun HomeScreen(
     var found by remember { mutableStateOf<Found>(Found.Idle) }
     var searching by remember { mutableStateOf(false) }
     val focus = LocalFocusManager.current
+    // Each tab keeps its own place in its list (22 Nov 2026), so going back to Updates lands where you were.
+    val updatesList = rememberLazyListState()
+    val contactsList = rememberLazyListState()
+    val callsList = rememberLazyListState()
+    fun listFor(t: Tab) = when (t) { Tab.UPDATES -> updatesList; Tab.CONTACTS -> contactsList; Tab.CALLS -> callsList }
+    // Opened from "See all": the pinned search row gets a back arrow to Updates.
+    var fromSeeAll by rememberSaveable { mutableStateOf(false) }
+    /** "See all": the tab opens at the top of its list (search pinned above it), not where it was. */
+    fun seeAll(t: Tab) {
+        fromSeeAll = true
+        tab = t
+        scope.launch { listFor(t).scrollToItem(SEARCH_ITEM) }
+    }
+    /** A tab at the bottom: tapping the one you're on jumps to its top. */
+    fun pick(t: Tab) {
+        fromSeeAll = false
+        if (tab == t) scope.launch { listFor(t).animateScrollToItem(0) } else tab = t
+    }
 
     // Back closes the search first (it used to close the app), then goes back to Updates.
     BackHandler(enabled = searching || query.isNotEmpty()) {
@@ -138,7 +161,7 @@ fun HomeScreen(
         focus.clearFocus()
         searching = false
     }
-    BackHandler(enabled = !searching && query.isEmpty() && tab != Tab.UPDATES) { tab = Tab.UPDATES }
+    BackHandler(enabled = !searching && query.isEmpty() && tab != Tab.UPDATES) { fromSeeAll = false; tab = Tab.UPDATES }
 
     // Allow asks only for what the reward needs. Notifications are asked once names have shown.
     val allowPermissions = remember {
@@ -217,23 +240,24 @@ fun HomeScreen(
                 )
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     val newCount = updateEntries(state).count { it.at > state.dotsSince }
-                    NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { tab = Tab.UPDATES }, label = { Text("Updates") }, colors = tabColors,
+                    NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { pick(Tab.UPDATES) }, label = { Text("Updates") }, colors = tabColors,
                         icon = {
                             BadgedBox(badge = { if (newCount > 0) Badge { Text(newCount.toString()) } }) {
                                 Icon(Icons.Filled.Notifications, contentDescription = null)
                             }
                         })
-                    NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { tab = Tab.CONTACTS }, label = { Text("Contacts") }, colors = tabColors,
+                    NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { pick(Tab.CONTACTS) }, label = { Text("Contacts") }, colors = tabColors,
                         icon = { Icon(Icons.Filled.Person, contentDescription = null) })
                     if (BuildConfig.CALL_LOG) {
-                        NavigationBarItem(selected = tab == Tab.CALLS, onClick = { tab = Tab.CALLS }, label = { Text("Call log") }, colors = tabColors,
+                        NavigationBarItem(selected = tab == Tab.CALLS, onClick = { pick(Tab.CALLS) }, label = { Text("Call log") }, colors = tabColors,
                             icon = { Icon(Icons.Filled.Call, contentDescription = null) })
                     }
                 }
             }
         },
     ) { padding ->
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() + 16.dp,
+        val list = listFor(tab)
+        LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() + 16.dp,
             top = padding.calculateTopPadding())) {
             item {
                 Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -255,7 +279,23 @@ fun HomeScreen(
                     IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) { Icon(Icons.Filled.Settings, contentDescription = "Settings") }
                 }
             }
-            item { SearchBox(query, onChange = { query = it }, onFocus = { searching = it }) }
+            // The search stays pinned at the top while the list scrolls under it (22 Nov 2026).
+            stickyHeader(key = "search") {
+                val pinned = list.firstVisibleItemIndex >= SEARCH_ITEM
+                Surface(color = MaterialTheme.colorScheme.background, shadowElevation = if (pinned) 6.dp else 0.dp) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (fromSeeAll && tab != Tab.UPDATES && query.isEmpty()) {
+                                IconButton(onClick = { fromSeeAll = false; tab = Tab.UPDATES }, modifier = Modifier.padding(start = 4.dp)) {
+                                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Updates")
+                                }
+                            }
+                            Box(Modifier.weight(1f)) { SearchBox(query, onChange = { query = it }, onFocus = { searching = it }) }
+                        }
+                        if (pinned) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    }
+                }
+            }
 
             if (query.isNotBlank()) {
                 searchResults(state, query, found, onNumber)
@@ -282,7 +322,7 @@ fun HomeScreen(
                 Setup.FIND_FAILED -> item { FindingCard(state, failed = true) { scope.launch { graph.model.retryFinding() } } }
                 Setup.READY -> when (tab) {
                     Tab.UPDATES -> updatesTab(graph, state, onNumber, onInvite, shareGroup, turnOnNotifications,
-                        onSeeContacts = { tab = Tab.CONTACTS }, onSeeCalls = { tab = Tab.CALLS })
+                        onSeeContacts = { seeAll(Tab.CONTACTS) }, onSeeCalls = { seeAll(Tab.CALLS) })
                     Tab.CONTACTS -> contactsTab(graph, state, onNumber, onAllow = { ask(Manifest.permission.READ_CONTACTS) })
                     Tab.CALLS -> callsTab(graph, state, onNumber, onAllow = { ask(Manifest.permission.READ_CALL_LOG) })
                 }
@@ -294,6 +334,9 @@ fun HomeScreen(
         NumberMenuSheet(e164, state.nameFor(e164, state.cardFor(e164)).text, onOpen = { onNumber(e164) }, onDismiss = { menuFor = null })
     }
 }
+
+/** The pinned search row is the second item, under WhoHas and Share in group. */
+private const val SEARCH_ITEM = 1
 
 private fun countLabel(total: Int): String = if (total == 1) "person has it" else "people have it"
 
