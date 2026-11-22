@@ -714,12 +714,11 @@ fun YourNumberBar(total: Int, up: Int, onClick: (() -> Unit)?) {
                     append(if (total == 1) " person has your number" else " people have your number")
                 },
                 color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
-                maxLines = 2, modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium, maxLines = 2, modifier = Modifier.weight(1f),
             )
-            if (up > 0) Text("+${HolderText.grouped(up)}", color = LiveGreen, fontWeight = FontWeight.Bold)
+            // One thin line on most phones: no arrow (the whole bar opens your card), smaller words.
+            if (up > 0) Text("+${HolderText.grouped(up)}", color = LiveGreen, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
             LevelTag(Levels.of(total))
-            if (onClick != null) androidx.compose.material3.Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
