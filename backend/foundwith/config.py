@@ -98,7 +98,7 @@ class Settings:
     # Invites: who joined through whose link, so the inviter hears about it. No reward.
     invite_window_days: int = 7        # an invite only counts in a new account's first week
     circle_goal: int = 20              # contacts on WhoHas at which most cards fill in
-    play_store_url: str = "https://play.google.com/store/apps/details?id=app.foundwith"
+    play_store_url: str = "https://play.google.com/store/apps/details?id=app.whohas"
 
     # Popular name: the name at least this many established people saved for a number. Established
     # means an account this old, used in the last 30 days, syncing and not suspended, so a handful

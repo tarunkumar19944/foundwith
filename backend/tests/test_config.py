@@ -7,9 +7,9 @@ BASE = {"AUTH_MODE": "dev", "NUMBER_PEPPER": "p" * 32, "NAME_KEY": "n" * 32}
 
 def test_invite_settings_come_from_the_environment():
     s = Settings.from_env({**BASE, "INVITE_WINDOW_DAYS": "3", "CIRCLE_GOAL": "15",
-                           "PLAY_STORE_URL": "https://play.google.com/store/apps/details?id=app.foundwith.beta"})
+                           "PLAY_STORE_URL": "https://play.google.com/store/apps/details?id=app.whohas.beta"})
     assert (s.invite_window_days, s.circle_goal) == (3, 15)
-    assert s.play_store_url.endswith("id=app.foundwith.beta")
+    assert s.play_store_url.endswith("id=app.whohas.beta")
 
 
 def test_defaults():
@@ -48,7 +48,7 @@ def test_jobs_dont_need_the_secrets():
 @pytest.mark.parametrize("env", [
     {"CIRCLE_GOAL": "0"},
     {"INVITE_WINDOW_DAYS": "0"},
-    {"PLAY_STORE_URL": "http://play.google.com/store/apps/details?id=app.foundwith"},
+    {"PLAY_STORE_URL": "http://play.google.com/store/apps/details?id=app.whohas"},
     {"PLAY_STORE_URL": "https://play.google.com/store/apps/details"},
 ])
 def test_bad_invite_settings_stop_start_up(env):

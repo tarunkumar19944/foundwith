@@ -12,7 +12,7 @@ import com.android.installreferrer.api.InstallReferrerStateListener
  */
 object Invites {
     /** Play's link for people without an invite link, such as in a shared card. */
-    const val PLAY_STORE = "https://play.google.com/store/apps/details?id=app.foundwith"
+    const val PLAY_STORE = "https://play.google.com/store/apps/details?id=app.whohas"
 
     /**
      * Asks Google Play, once per install, which link the app was installed from, and keeps the

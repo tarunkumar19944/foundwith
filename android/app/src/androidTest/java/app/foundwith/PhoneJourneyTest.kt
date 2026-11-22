@@ -371,7 +371,7 @@ class PhoneJourneyTest {
     }
 
     companion object {
-        private const val PACKAGE = "app.foundwith"
+        private const val PACKAGE = "app.whohas"
 
         /** Before the app starts: permissions, as if the person tapped Allow, and a few contacts and calls. */
         @BeforeClass

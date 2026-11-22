@@ -171,7 +171,7 @@ variable "public_site_id" {
 }
 
 variable "android_package" {
-  description = "The Android app ID (applicationId). Permanent once uploaded to Google Play; must match android/app/build.gradle.kts."
+  description = "The Android app ID (applicationId): the Play Store ID, permanent once uploaded; must match android/app/build.gradle.kts."
   type        = string
-  default     = "app.foundwith"
+  default     = "app.whohas"
 }

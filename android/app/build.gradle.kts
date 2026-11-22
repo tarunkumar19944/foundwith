@@ -51,7 +51,8 @@ android {
     }
 
     defaultConfig {
-        applicationId = "app.foundwith"
+        // The Play Store ID (permanent once uploaded). The code keeps its app.foundwith package names.
+        applicationId = "app.whohas"
         // Runs on Android 8+.
         minSdk = 26
         // Google Play requires API 36 for new apps and updates from 31 Aug 2026.

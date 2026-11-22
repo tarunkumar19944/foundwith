@@ -124,7 +124,7 @@ jobs:
               "${args[@]}" \
               --environment-variables "fwCode=$FW_CODE,fwNumber=9000000010,fwCaller=+919000000077" \
               --results-bucket=$PROJECT-test-lab --results-dir="run-$GITHUB_RUN_ID-$label" \
-              --directories-to-pull=/sdcard/Android/data/app.foundwith/files \
+              --directories-to-pull=/sdcard/Android/data/app.whohas/files \
               --timeout=15m --num-flaky-test-attempts=1 --format=json > "$RUNNER_TEMP/$label.json"
             status=$?
             echo "::endgroup::"
@@ -154,7 +154,7 @@ jobs:
               "${args[@]}" \
               --environment-variables "fwCode=$FW_CODE,fwNumber=9000000010,fwCaller=+919000000077" \
               --results-bucket=$PROJECT-test-lab --results-dir="run-$GITHUB_RUN_ID-phones" \
-              --directories-to-pull=/sdcard/Android/data/app.foundwith/files \
+              --directories-to-pull=/sdcard/Android/data/app.whohas/files \
               --timeout=15m --num-flaky-test-attempts=1 2> "$RUNNER_TEMP/phones.txt"
             cat "$RUNNER_TEMP/phones.txt"
             matrix=$(grep -o 'matrix-[a-z0-9]*' "$RUNNER_TEMP/phones.txt" | head -1)

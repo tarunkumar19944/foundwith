@@ -380,7 +380,7 @@ def test_invite_link_circle_and_redeem(client):
     android = {"user-agent": "Mozilla/5.0 (Linux; Android 14; 23021RAA2Y) Mobile"}
     r = client.get(f"/i/{code}", headers=android)
     assert r.status_code == 200 and "Arjun invited you to WhoHas" in r.text
-    assert f"https://play.google.com/store/apps/details?id=app.foundwith&amp;referrer=invite%3D{code}" in r.text
+    assert f"https://play.google.com/store/apps/details?id=app.whohas&amp;referrer=invite%3D{code}" in r.text
     assert "default-src 'none'" in r.headers["content-security-policy"]
     iphone = client.get(f"/i/{code}", headers={"user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0)"})
     assert "Android for now" in iphone.text and "play.google.com" not in iphone.text
