@@ -159,15 +159,45 @@ fun Context.copyNumber(e164: String) {
     if (android.os.Build.VERSION.SDK_INT < 33) android.widget.Toast.makeText(this, "Number copied", android.widget.Toast.LENGTH_SHORT).show()
 }
 
+/** How the Truecaller button reached Truecaller. Test builds show it in a short note. */
+enum class TruecallerRoute(val note: String) {
+    SEARCH("Opened Truecaller search"),
+    WEB_LINK("Opened Truecaller's page for the number"),
+    DIAL_PAD("Opened Truecaller's dial pad"),
+    APP("Opened Truecaller (number copied)"),
+    WEBSITE("Opened truecaller.com search"),
+    NONE("Couldn't open Truecaller"),
+}
+
 /**
- * Copies the number, then opens Truecaller when it is installed, else Truecaller's web search.
- * Truecaller has no link that takes a number, so the person pastes it into its search.
+ * Opens Truecaller on the number (Y, 23 Nov 2026: it should search straight away). Truecaller has
+ * no published link that takes a number, so this tries, in order, what an installed Truecaller says
+ * it accepts: its "search with Truecaller" text action, its own number page link, its dial pad with
+ * the number typed, then Truecaller itself. Without Truecaller: its website search. The number is
+ * copied first, so it can always be pasted.
  */
-fun Context.searchInTruecaller(e164: String) {
+fun Context.searchInTruecaller(e164: String): TruecallerRoute {
     copyNumber(e164)
-    val intent = packageManager.getLaunchIntentForPackage("com.truecaller")
-        ?: Intent(Intent.ACTION_VIEW, Uri.parse("https://www.truecaller.com/search/in/" + app.foundwith.core.PhoneNumbers.copyText(e164)))
-    runCatching { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+    val digits = app.foundwith.core.PhoneNumbers.copyText(e164)
+    val truecaller = "com.truecaller"
+    val tries = listOf(
+        TruecallerRoute.SEARCH to Intent(Intent.ACTION_PROCESS_TEXT).setType("text/plain").setPackage(truecaller)
+            .putExtra(Intent.EXTRA_PROCESS_TEXT, digits).putExtra(Intent.EXTRA_PROCESS_TEXT_READONLY, true),
+        TruecallerRoute.WEB_LINK to Intent(Intent.ACTION_VIEW, Uri.parse("https://www.truecaller.com/search/in/$digits")).setPackage(truecaller),
+        TruecallerRoute.DIAL_PAD to Intent(Intent.ACTION_DIAL, Uri.parse("tel:$e164")).setPackage(truecaller),
+        TruecallerRoute.APP to packageManager.getLaunchIntentForPackage(truecaller),
+        TruecallerRoute.WEBSITE to Intent(Intent.ACTION_VIEW, Uri.parse("https://www.truecaller.com/search/in/$digits")),
+    )
+    for ((route, intent) in tries) {
+        if (intent == null) continue
+        // Truecaller's own routes only when it says it takes them; the website is the last resort.
+        if (route != TruecallerRoute.WEBSITE && intent.resolveActivity(packageManager) == null) continue
+        if (runCatching { startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess) {
+            if (BuildConfig.DEBUG) android.widget.Toast.makeText(this, route.note, android.widget.Toast.LENGTH_LONG).show()
+            return route
+        }
+    }
+    return TruecallerRoute.NONE
 }
 
 /** "Call back": the phone's own dialer, with the number filled in. No call permission needed. */

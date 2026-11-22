@@ -1,5 +1,6 @@
 package app.foundwith.device
 
+import app.foundwith.ui.searchInTruecaller
 import app.foundwith.data.LookupResult
 import kotlinx.coroutines.runBlocking
 import android.Manifest
@@ -169,5 +170,23 @@ class NotificationsTest {
         assertEquals(500L, store.updatesSeenAt)   // before Updates was ever looked at
         store.updatesSeenAt = 900L
         assertEquals(900L, store.updatesSeenAt)
+    }
+
+    @Test
+    fun truecallerOpensItsSearchWhenItAcceptsTheNumber() {
+        val app = context as android.app.Application
+        val pm = org.robolectric.Shadows.shadowOf(app.packageManager)
+        // No Truecaller: its website search.
+        assertEquals(app.foundwith.ui.TruecallerRoute.WEBSITE, context.searchInTruecaller("+919845077120"))
+        assertEquals("https://www.truecaller.com/search/in/9845077120", org.robolectric.Shadows.shadowOf(app).nextStartedActivity.dataString)
+        // Truecaller with a "search with Truecaller" text action: that, with the number.
+        val search = android.content.ComponentName("com.truecaller", "com.truecaller.SearchText")
+        pm.addActivityIfNotPresent(search)
+        pm.addIntentFilterForActivity(search, android.content.IntentFilter(android.content.Intent.ACTION_PROCESS_TEXT).apply { addDataType("text/plain") })
+        assertEquals(app.foundwith.ui.TruecallerRoute.SEARCH, context.searchInTruecaller("+919845077120"))
+        val started = org.robolectric.Shadows.shadowOf(app).nextStartedActivity
+        assertEquals(android.content.Intent.ACTION_PROCESS_TEXT, started.action)
+        assertEquals("com.truecaller", started.`package`)
+        assertEquals("9845077120", started.getStringExtra(android.content.Intent.EXTRA_PROCESS_TEXT))
     }
 }

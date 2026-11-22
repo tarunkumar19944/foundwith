@@ -174,7 +174,7 @@ Order on screen (22 Nov 2026): who it is, with a copy icon beside the number →
 |---|---|---|
 | Not-a-contact subtitle | (none) | Missed call · 10:42 am · not in your contacts |
 | The number | | A copy icon beside the number (gold, "Copy number" for screen readers); tapping the number copies it too (the plain 10 digits). Android 13+ shows its own "Copied"; older phones: Number copied |
-| Buttons under the card | | **Truecaller** (copies the number, then opens Truecaller if installed, else Truecaller's web search; Truecaller has no link that takes a number) · **Call back** beside it after a call from a number not in your contacts |
+| Buttons under the card | | **Truecaller** (23 Nov: copies the number, then opens Truecaller straight on it: its "search with Truecaller" action, else its page for the number, else its dial pad with the number typed, else Truecaller itself; without Truecaller, truecaller.com search. Test builds show which in a short note: Opened Truecaller search / …) · **Call back** beside it after a call from a number not in your contacts |
 | Owner's own name | Raju Sharma (name they gave) | **Their own name: Raju Sharma** (chip) |
 | Name 3+ people have for it | Raju Plumber (popular name) | **5 people know it as "Raju Plumber"** |
 | Main line | Found with Priya, Ravi and 21 others | **12 people** have this number · **You know 3 of them** |
