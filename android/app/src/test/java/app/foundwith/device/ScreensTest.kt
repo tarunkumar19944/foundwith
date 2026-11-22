@@ -7,17 +7,20 @@ import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.unit.dp
 import app.foundwith.core.Level
 import app.foundwith.core.NameSource
@@ -34,7 +37,8 @@ import app.foundwith.ui.InfoRow
 import app.foundwith.ui.LevelBlock
 import app.foundwith.ui.LevelTag
 import app.foundwith.ui.LevelUpBanner
-import app.foundwith.ui.NumberButtons
+import app.foundwith.ui.CardButtons
+import app.foundwith.ui.CopyNumberButton
 import app.foundwith.ui.NumberMenu
 import app.foundwith.ui.WhCard
 import app.foundwith.ui.rowTag
@@ -108,13 +112,22 @@ class ScreensTest {
             WhCard { CompareBox(Level.HIGHLY_POPULAR, 8) }
             WhCard { CompareBox(Level.POPULAR, 23) }
             WhCard { CompareBox(Level.NOT_POPULAR, 23) }
-            Column(Modifier.padding(horizontal = 16.dp)) { NumberButtons("+917760934418") }
+            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("+91 77609 34418", style = MaterialTheme.typography.headlineSmall)
+                    CopyNumberButton("+917760934418")
+                }
+                CardButtons("+917760934418", callBack = true)
+                CardButtons("+917760934418", callBack = false)
+            }
         }
         compose.onNodeWithText("More popular than your number. 2 more people and you catch up.").assertExists()
         compose.onNodeWithText("Same level as your number.").assertExists()
         compose.onNodeWithText("Your number is ahead of this one.").assertExists()
-        compose.onNodeWithText("Copy number").assertExists()
-        compose.onNodeWithText("Truecaller").assertExists()
+        compose.onNodeWithContentDescription("Copy number").assertExists()
+        compose.onAllNodesWithText("Truecaller").assertCountEquals(2)
+        compose.onAllNodesWithText("Call back").assertCountEquals(1)
+        compose.onAllNodesWithText("Ask who this is").assertCountEquals(0)
     }
 
     @Test

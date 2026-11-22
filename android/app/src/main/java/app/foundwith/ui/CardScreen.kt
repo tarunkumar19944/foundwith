@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -151,8 +152,12 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
         Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (saved || mine) {
                 Text(name.text, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, maxLines = 2)
-                Text(if (mine) shown(e164) else "${shown(e164)} · In your contacts", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.clickable { context.copyNumber(e164) })
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (mine) shown(e164) else "${shown(e164)} · In your contacts", color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.weight(1f, fill = false).clickable { context.copyNumber(e164) })
+                    Spacer(Modifier.width(8.dp))
+                    CopyNumberButton(e164)
+                }
             } else {
                 if (lastCall != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -161,8 +166,12 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                         Text(callLine(lastCall), style = MaterialTheme.typography.labelLarge, color = callKindColour(lastCall))
                     }
                 }
-                Text(shown(e164), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
-                    modifier = Modifier.clickable { context.copyNumber(e164) })
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(shown(e164), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f, fill = false).clickable { context.copyNumber(e164) })
+                    Spacer(Modifier.width(10.dp))
+                    CopyNumberButton(e164)
+                }
                 Text("Not in your contacts", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 when (name.source) {
                     NameSource.THEIR_OWN -> Chip("Their own name: ${name.text}", saffron = false)
@@ -193,84 +202,41 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                 })
             }
             else -> {
-                // How many have it.
-                WhCard(Modifier.clickable { showMeaning = true }, padding = 18.dp) {
-                    if (total <= 0) {
-                        Text(when {
-                            mine -> "No one on WhoHas has your number yet"
-                            saved -> HolderText.NO_ONE_ELSE
-                            else -> "No one on WhoHas has this number yet"
-                        }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        if (mine) LevelBlock(0)
-                    } else {
-                        Row(verticalAlignment = Alignment.Bottom) {
-                            Text(HolderText.grouped(total) + if (lowerBound) "+" else "", fontSize = 48.sp, fontWeight = FontWeight.Bold, lineHeight = 48.sp,
-                                color = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.width(10.dp))
-                            Text(if (mine) (if (total == 1) "person has your number" else "people have your number")
-                                else (if (total == 1 && !lowerBound) "person has this number" else "people have this number"),
-                                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val faces = people.map { it.first }.filterNot { Naming.looksLikeNumber(it.name) }
-                            if (faces.isNotEmpty()) {
-                                PeopleStack(faces.take(3).map { it.id to it.name }, ring = MaterialTheme.colorScheme.surface)
+                // How many have it, and right under it the people you know who have it.
+                WhCard(padding = 4.dp) {
+                    Column(Modifier.fillMaxWidth().clickable { showMeaning = true }.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        if (total <= 0) {
+                            Text(when {
+                                mine -> "No one on WhoHas has your number yet"
+                                saved -> HolderText.NO_ONE_ELSE
+                                else -> "No one on WhoHas has this number yet"
+                            }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            if (mine) LevelBlock(0)
+                        } else {
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(HolderText.grouped(total) + if (lowerBound) "+" else "", fontSize = 48.sp, fontWeight = FontWeight.Bold, lineHeight = 48.sp,
+                                    color = MaterialTheme.colorScheme.primary)
                                 Spacer(Modifier.width(10.dp))
+                                Text(if (mine) (if (total == 1) "person has your number" else "people have your number")
+                                    else (if (total == 1 && !lowerBound) "person has this number" else "people have this number"),
+                                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 6.dp))
                             }
-                            Text(HolderText.youKnowCount(knownCount), style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold, color = if (knownCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        if (change != null) Chip(HolderText.today(change.delta), Icons.Filled.KeyboardArrowUp)
-                        val ownTotal = state.cards?.mine?.total ?: 0
-                        if (mine) LevelBlock(total)
-                        else CompareBox(Levels.of(total, lowerBound), ownTotal)
-                    }
-                }
-
-                // One main action.
-                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    val member = state.onWhoHas(e164, card)
-                    when {
-                        mine -> PrimaryButton("Invite friends", onInviteFriends)
-                        askMode && people.isNotEmpty() -> {
-                            // Someone with a name first: contacts, then call-log people who gave one.
-                            val first = people.map { it.first }.firstOrNull { !Naming.looksLikeNumber(it.name) } ?: people.first().first
-                            // The whole name: first words like "Dr." or "Plumber" don't stand alone.
-                            PrimaryButton(if (Naming.looksLikeNumber(first.name)) "Ask who this is" else "Ask ${first.name} who this is", {
-                                context.messagePerson(first.e164, Messages.ask(e164, card?.name, card?.popularName))
-                            }, icon = Icons.Filled.Send)
-                        }
-                        saved && PhoneNumbers.isIndianMobile(e164) && !member -> {
-                            val who = name.text
-                            WhCard(Modifier, color = MaterialTheme.colorScheme.secondaryContainer, edge = false) {
-                                Text("$who isn't on WhoHas yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                Text(if (total > 0) "${theirNumberLine(total, lowerBound)}. Let them know."
-                                    else "Tell them about WhoHas, so you can ask each other about unknown callers.",
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer)
-                                PrimaryButton(if (invited) "Told" else "Tell $who on WhatsApp", {
-                                    context.messagePerson(e164, Messages.invite(total, link, lowerBound))
-                                    invited = true
-                                    scope.launch { graph.model.recordTell(e164) }
-                                }, saffron = true, icon = Icons.Filled.Send)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val faces = people.map { it.first }.filterNot { Naming.looksLikeNumber(it.name) }
+                                if (faces.isNotEmpty()) {
+                                    PeopleStack(faces.take(3).map { it.id to it.name }, ring = MaterialTheme.colorScheme.surface)
+                                    Spacer(Modifier.width(10.dp))
+                                }
+                                Text(HolderText.youKnowCount(knownCount), style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold, color = if (knownCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                             }
+                            if (change != null) Chip(HolderText.today(change.delta), Icons.Filled.KeyboardArrowUp)
                         }
                     }
-                    if (!mine) NumberButtons(e164)
-                    if (!saved && !mine && lastCall != null && lastCall.isIncoming) {
-                        OutlinedButton(onClick = { context.dial(e164) }, modifier = Modifier.fillMaxWidth().height(48.dp),
-                            shape = RoundedCornerShape(24.dp)) {
-                            Icon(Icons.Filled.Call, contentDescription = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text("Call back")
-                        }
-                    }
-                }
-
-                // The list: people you know (contacts first, then call log), then a count of the rest.
-                if (people.isNotEmpty() || total > knownCount) {
-                    SectionLabel("People you know who have it")
-                    WhCard(padding = 4.dp) {
+                    // Who you know: contacts first, then call log, each with Ask; then a count of the rest.
+                    if (total > 0 && people.isNotEmpty()) {
+                        HorizontalDivider(Modifier.padding(horizontal = 14.dp), color = MaterialTheme.colorScheme.outlineVariant)
                         val shownPeople = if (showAll) people else people.take(3)
                         for ((person, why) in shownPeople) {
                             // Someone only in the call log: the last call helps you place them.
@@ -298,8 +264,40 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                         if (rest > 0) {
                             Text("+${HolderText.grouped(rest)}${if (lowerBound) "+" else ""} more ${if (rest == 1 && !lowerBound) "person" else "people"} you don't know",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.SemiBold,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
+                                modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp))
                         }
+                    }
+                }
+
+                // Actions: Invite friends on your own number, Tell for a contact not on WhoHas; Truecaller and Call back.
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    val member = state.onWhoHas(e164, card)
+                    when {
+                        mine -> PrimaryButton("Invite friends", onInviteFriends)
+                        saved && PhoneNumbers.isIndianMobile(e164) && !member -> {
+                            val who = name.text
+                            WhCard(Modifier, color = MaterialTheme.colorScheme.secondaryContainer, edge = false) {
+                                Text("$who isn't on WhoHas yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                Text(if (total > 0) "${theirNumberLine(total, lowerBound)}. Let them know."
+                                    else "Tell them about WhoHas, so you can ask each other about unknown callers.",
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                PrimaryButton(if (invited) "Told" else "Tell $who on WhatsApp", {
+                                    context.messagePerson(e164, Messages.invite(total, link, lowerBound))
+                                    invited = true
+                                    scope.launch { graph.model.recordTell(e164) }
+                                }, saffron = true, icon = Icons.Filled.Send)
+                            }
+                        }
+                    }
+                    if (!mine) CardButtons(e164, callBack = !saved && lastCall != null && lastCall.isIncoming)
+                }
+
+                // How popular it is, below the actions.
+                if (total > 0) {
+                    SectionLabel(if (mine) "How popular your number is" else "How popular it is")
+                    WhCard(padding = if (mine) 16.dp else 4.dp) {
+                        if (mine) LevelBlock(total) else CompareBox(Levels.of(total, lowerBound), state.cards?.mine?.total ?: 0)
                     }
                 }
 

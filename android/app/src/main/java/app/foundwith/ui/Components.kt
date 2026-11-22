@@ -683,15 +683,32 @@ fun NumberMenu(e164: String, name: String, onOpen: () -> Unit, onDismiss: () -> 
     }
 }
 
-/** The two buttons on a card: copy the number, or copy it and open Truecaller. */
+/** The copy icon beside a number on its card. Android 13+ shows its own "Copied"; older phones get a toast. */
 @Composable
-fun NumberButtons(e164: String) {
+fun CopyNumberButton(e164: String) {
+    val context = LocalContext.current
+    androidx.compose.material3.OutlinedIconButton(onClick = { context.copyNumber(e164) },
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+        androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(app.foundwith.R.drawable.ic_copy),
+            contentDescription = "Copy number", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** The buttons under a card: Truecaller (copies, then opens it), and Call back after a call from a number not in contacts. */
+@Composable
+fun CardButtons(e164: String, callBack: Boolean) {
     val context = LocalContext.current
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-        androidx.compose.material3.OutlinedButton(onClick = { context.copyNumber(e164) }, modifier = Modifier.weight(1f).height(48.dp),
-            shape = RoundedCornerShape(24.dp)) { Text("Copy number", maxLines = 1) }
         androidx.compose.material3.OutlinedButton(onClick = { context.searchInTruecaller(e164) }, modifier = Modifier.weight(1f).height(48.dp),
             shape = RoundedCornerShape(24.dp)) { Text("Truecaller", maxLines = 1) }
+        if (callBack) {
+            androidx.compose.material3.OutlinedButton(onClick = { context.dial(e164) }, modifier = Modifier.weight(1f).height(48.dp),
+                shape = RoundedCornerShape(24.dp)) {
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.Call, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Call back", maxLines = 1)
+            }
+        }
     }
 }
 

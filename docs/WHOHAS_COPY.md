@@ -165,26 +165,25 @@ Every call under its day (Today, Yesterday, Friday, 12 Nov), each with the phone
 
 ## A number's card
 
-Order on screen: who it is → how many have it → people you know → one main action → the list → "What does this mean?".
+Order on screen (22 Nov 2026): who it is, with a copy icon beside the number → one card: how many have it, then the people you know who have it → Truecaller · Call back → How popular it is → your calls with it → "What does this mean?". No big Ask button: Ask is on each person.
 
 | Where | Now | New |
 |---|---|---|
 | Not-a-contact subtitle | (none) | Missed call · 10:42 am · not in your contacts |
-| The number | | Tap the number to copy it (the plain 10 digits) |
-| Two buttons under the main action | | **Copy number** · **Truecaller** (copies the number, then opens Truecaller if installed, else Truecaller's web search; Truecaller has no link that takes a number) |
+| The number | | A copy icon beside the number (gold, "Copy number" for screen readers); tapping the number copies it too (the plain 10 digits). Android 13+ shows its own "Copied"; older phones: Number copied |
+| Buttons under the card | | **Truecaller** (copies the number, then opens Truecaller if installed, else Truecaller's web search; Truecaller has no link that takes a number) · **Call back** beside it after a call from a number not in your contacts |
 | Owner's own name | Raju Sharma (name they gave) | **Their own name: Raju Sharma** (chip) |
 | Name 3+ people have for it | Raju Plumber (popular name) | **5 people know it as "Raju Plumber"** |
 | Main line | Found with Priya, Ravi and 21 others | **12 people** have this number · **You know 3 of them** |
 | You know none | Found with 12 people | 12 people have this number · You don't know any of them |
 | Only you | Only you have this number | No one else on WhoHas has this number yet |
 | No one | Found with no one yet | No one on WhoHas has this number yet |
-| Your own number | Found with … | **23 people have your number** · You know 6 of them |
-| Beside your level | Many people have this number | A box: This number **[Highly popular]** · You **[Not popular]** · **More popular than your number. 2 more people and you catch up.** / **Same level as your number.** / **Your number is ahead of this one.** |
+| Your own number | Found with … | **23 people have your number** · You know 6 of them · **Invite friends** · How popular your number is: [Popular] and its why line |
+| How popular it is (section title, under the buttons) | Many people have this number | A box: This number **[Highly popular]** · You **[Not popular]** · **More popular than your number. 2 more people and you catch up.** / **Same level as your number.** / **Your number is ahead of this one.** |
 | Today | Today: 3 more people · now a Popular number | **+3 today** |
-| Main action (not a contact) | Ask (per person) | **Ask Priya who this is** (WhatsApp), small "Ask" on each person below. Picks someone in your contacts first; a call-log person only when no contact has it. |
+| Asking (not a contact) | Ask (per person) | No big button: a small **Ask** on each person in the card (WhatsApp, else SMS). |
 | Main action (contact not on WhoHas) | Ravi Kumar isn't on Found With yet · Invite | **Ravi Kumar isn't on WhoHas yet** · Their number is with 7 people on WhoHas. Let them know. (With nobody: Tell them about WhoHas, so you can ask each other about unknown callers.) · **Tell Ravi Kumar on WhatsApp** → Told (whole name, never the first word: "Dr." and "Plumber" don't stand alone) |
-| After a missed call | Call back | Call back |
-| List title | People you know who have it | People you know who have it · contacts first, then call log |
+| People you know | People you know who have it | No title: inside the count card, under "You know 3 of them" · contacts first, then call log · first 3, then See all |
 | Each person | Contact · In your call log | **In your contacts** · **In your call log · called you yesterday** / **you called on 12 Nov** (someone only in your call log shows their own WhoHas name, else their number; the last call helps you place them) |
 | Rest | Also have it. They aren't on your phone, so you see only how many. | +9 more people you don't know |
 | See all | See all 14 | See all 14 |
