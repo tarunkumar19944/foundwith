@@ -42,6 +42,12 @@ jobs:
           java-version: "17"
 
       - uses: gradle/actions/setup-gradle@v4
+      # Robolectric downloads Android's own code (about 150 MB) from Maven Central for the unit tests
+      # that run Android code; that download sometimes times out on GitHub. Keep it between runs.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('android/gradle/libs.versions.toml') }}
 
       - name: Sign in to Google Cloud
         id: gcp
