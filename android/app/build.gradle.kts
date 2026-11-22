@@ -20,8 +20,9 @@ val appVersionName: String = providers.gradleProperty("foundwith.versionName").g
 // Google Play requires a privacy policy link inside the app as well as on the store listing.
 // The public address people see (Firebase Hosting in front of the API): /privacy and /delete live there.
 val publicUrl: String = providers.gradleProperty("foundwith.publicUrl").getOrElse("").trim().trimEnd('/')
-val privacyUrl: String = providers.gradleProperty("foundwith.privacyUrl")
-    .getOrElse(if (publicUrl.startsWith("https://")) "$publicUrl/privacy" else "").trim()
+// gradle.properties sets an empty foundwith.privacyUrl, so blank means "not set": use the public address.
+val privacyUrl: String = providers.gradleProperty("foundwith.privacyUrl").getOrElse("").trim()
+    .ifEmpty { if (publicUrl.startsWith("https://")) "$publicUrl/privacy" else "" }
 // The project's shared debug key (CI passes it), so every test APK has the fingerprint registered in
 // Firebase for SMS sign-in. Without it, debug builds use this computer's own debug key.
 val sharedDebugKeystore: String? = providers.gradleProperty("foundwith.debugKeystore").orNull
