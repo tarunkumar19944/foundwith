@@ -4,6 +4,8 @@ Approved by Y on 17 Nov 2026 (with the starting screens below). Replaces every s
 
 **Updated 22 Nov 2026 to the final design (49 screens, as built):** copy any number, press and hold for Copy number / Search in Truecaller / Call back / Open card, levels for your own number (Not popular, Popular, Highly popular) with tags on other numbers, Tell (one person) vs Share in group (a group), notifications for every new or changed thing (no evening summary), and Delete my account in the app and on the web.
 
+**Card order, 22 Nov (Y):** the count first, then who you know, inside the same card; no big "Ask who this is" button (Ask is on each person); a copy icon beside the number instead of a Copy number button; Truecaller and Call back in one row; the level box below them as "How popular it is".
+
 Updated the same night after talking it through: "has" instead of "saved" (call logs count too), contacts before call-log people on a card, honest label text, the **Let them know who has their number** list (Share button), a **Share in group** button on the top line, counts that are always real, sign-in with a SIM in this phone only, charcoal and gold with Atkinson Hyperlegible Next, Updates that list everything found, three tabs (Updates, Contacts, Call log) with the call log's symbols, and Indian numbers only. The screens for all of this are on the WhoHas screens design canvas.
 
 ## The rules
@@ -31,7 +33,7 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 | 50+ people | **Highly popular** · often a business, or someone who calls a lot of people | viral, famous |
 | Telling one person | **Tell Ravi on WhatsApp** → Told | Share (that's for a group) |
 
-**No bare numbers in one-line summaries.** Someone you know only from your call log, with no WhoHas name, still counts ("You know 1 of them") and is listed on the card with their last call, but is never named as a number in "You know …", "Known to …" or the main Ask button.
+**No bare numbers in one-line summaries.** Someone you know only from your call log, with no WhoHas name, still counts ("You know 1 of them") and is listed on the card with their last call, but is never named as a number in "You know …" or "Known to …".
 
 **"Has" means contacts or call log.** WhoHas counts a number when it is in someone's contacts *or* their call log, so never say "saved" for that. Use "save" only for Android's own **Save to contacts** button. Names come only from contacts (a call log entry has no name), so for names say "know it as".
 
