@@ -224,6 +224,9 @@ class PhoneJourneyTest {
         assertFalse("The card said no one has the number, but the notification said someone does",
             exists("No one on WhoHas has this number yet"))
         waitForAny(listOf("person has this number", "people have this number"), 20_000)
+        compose.waitForIdle()
+        device.waitForIdle(2_000)   // let the screen finish moving to the card before the picture
+        Thread.sleep(800)
         shot("14-caller-card")
         back()
     }
