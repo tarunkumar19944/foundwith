@@ -170,7 +170,16 @@ jobs:
           signer=$("$apksigner" verify --print-certs whohas-test.apk | grep -m1 "SHA-1 digest" | awk '{print $NF}')
           echo "Signed with SHA-1 $signer"
           [ "$signer" = "f0d83ac3dce3ae06b642e4f0ffe7526572d6a2a7" ] || { echo "::error::APK isn't signed with the project's debug key"; exit 1; }
-          gh release delete test-build --yes --cleanup-tag 2>/dev/null || true
+          # Keep the tag (moving it to an older commit than main is refused once workflow files
+          # changed since); the title says which build it is.
+          gh release delete test-build --yes 2>/dev/null || true
           gh release create test-build whohas-test.apk whohas-test-contacts-only.apk \
-            --prerelease --target "$GITHUB_SHA" --title "Test build ${GITHUB_SHA::7}" \
+            --prerelease --target main --title "Test build ${GITHUB_SHA::7}" \
             --notes "Latest test build from main (${GITHUB_SHA::7}, build ${{ github.run_number }}). It talks to the live server. On your phone, install whohas-test.apk. whohas-test-contacts-only.apk is the Google Play version, without the call log."
+          # It must be a published release, or the link above is a 404 (a draft was left on 22 Nov).
+          if [ "$(gh release view test-build --json isDraft --jq .isDraft)" = "true" ]; then
+            gh release edit test-build --draft=false
+          fi
+          code=$(curl -s -o /dev/null -w "%{http_code}" -L "https://github.com/$GITHUB_REPOSITORY/releases/download/test-build/whohas-test.apk")
+          [ "$code" = "200" ] || { echo "::error::The download link answers $code"; exit 1; }
+          echo "Download link works: https://github.com/$GITHUB_REPOSITORY/releases/download/test-build/whohas-test.apk"
