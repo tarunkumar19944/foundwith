@@ -75,23 +75,24 @@ class ScreensTest {
     @Test
     fun yourLevelOnHome() {
         shot("01-home-levels") {
-            EmptyHero("+91 98450 31207", onShare = {})
+            EmptyHero("+91 98450 31207")
             HeroCard("+91 98450 31207", 8, "people have it", "You know Priya and Meena", listOf("p" to "Priya", "m" to "Meena"),
-                extra = { LevelBlock(8, onShare = {}) })
-            HeroCard("+91 98450 31207", 23, "people have it", "You know Priya, Meena and 4 more", extra = { LevelBlock(23, onShare = {}) })
+                extra = { LevelBlock(8) })
+            HeroCard("+91 98450 31207", 23, "people have it", "You know Priya, Meena and 4 more", extra = { LevelBlock(23) })
         }
         compose.onNodeWithText("No one on WhoHas has your number yet").assertExists()
-        compose.onNodeWithText("2 more people and you’re Popular").assertExists()
-        compose.onNodeWithText("27 more people and you’re Highly popular").assertExists()
+        compose.onNodeWithText("Share WhoHas so people you know can find you.").assertExists()
+        compose.onNodeWithText("More people means more callers you can recognise.").assertExists()
+        compose.onAllNodesWithText("Share in group").assertCountEquals(0)          // no link inside the card (Y, 22 Nov)
     }
 
     @Test
     fun beforeAllowAndAtTheTop() {
         shot("02-home-before-allow-and-top") {
             HeroCard("+91 98450 31207", 8, "people have it", "Allow contacts to see who they are.", extra = { LevelBlock(8) })
-            HeroCard("+91 98450 31207", 52, "people have it", "You know Priya, Meena and 12 more", extra = { LevelBlock(52, onShare = {}) })
+            HeroCard("+91 98450 31207", 52, "people have it", "You know Priya, Meena and 12 more", extra = { LevelBlock(52) })
         }
-        compose.onNodeWithText("Top level. 52 people have your number").assertExists()
+        compose.onNodeWithText("Highly popular").assertExists()
     }
 
     @Test

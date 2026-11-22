@@ -503,7 +503,7 @@ private fun LazyListScope.updatesTab(
     if (graph.store.levelReachedRecently(System.currentTimeMillis()) && (mine?.total ?: 0) >= app.foundwith.core.Levels.POPULAR_FROM) {
         item(key = "level-up") { LevelUpBanner(mine!!.total, onShareGroup) }
     }
-    item { MineHero(state, mine, onNumber, onShareGroup) }
+    item { MineHero(state, mine, onNumber) }
     if (BuildConfig.CALL_LOG && graph.store.firstNamesSeen && !graph.store.notifAsked && !graph.notifier.canPost()) {
         item { NotificationsCard(onTurnOn = onTurnOnNotifications, onLater = { graph.store.notifAsked = true }) }
     }
@@ -601,11 +601,11 @@ private fun knownColour(card: Card?): androidx.compose.ui.graphics.Color =
 
 /** Your number, big, with who you know, this week's change and your level. */
 @Composable
-private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, onShareGroup: () -> Unit) {
+private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit) {
     val total = mine?.total ?: 0
     val phone = state.profile?.phone
     if (mine == null || total <= 0) {
-        EmptyHero(phone?.let(::shown), onShare = onShareGroup)
+        EmptyHero(phone?.let(::shown))
         return
     }
     val names = state.knownOrdered(mine)
@@ -622,7 +622,7 @@ private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, o
         chip = gained?.let { HolderText.mineUp(it.delta).removeSuffix(" have your number").removeSuffix(" has your number") +
             (newNames.firstOrNull()?.let { n -> " · One is $n" } ?: "") },
         onClick = phone?.let { { onNumber(it) } },
-        extra = { LevelBlock(total, onShare = onShareGroup) },
+        extra = { LevelBlock(total) },
     )
 }
 
@@ -631,7 +631,7 @@ private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit, o
 private fun HeroBefore(state: AppState, line: String?) {
     val total = state.cards?.mine?.total ?: 0
     val phone = state.profile?.phone?.let(::shown)
-    if (total <= 0) EmptyHero(phone, onShare = null)
+    if (total <= 0) EmptyHero(phone)
     else HeroCard(phone, total, countLabel(total), line, extra = { LevelBlock(total) })
 }
 

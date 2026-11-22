@@ -78,7 +78,7 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 
 | Where | Now | New |
 |---|---|---|
-| Your number (before allowing) | Your number · Found with 23 people | Your number · **23 people have it** · Allow contacts to see who they are. · then your level (tag, bar, "2 more people and you're Popular"), no link. At 0: No one on WhoHas has your number yet · Not popular · 10 more people and you're Popular |
+| Your number (before allowing) | Your number · Found with 23 people | Your number · **23 people have it** · Allow contacts to see who they are. · then your level (tag and its line). At 0: No one on WhoHas has your number yet · Not popular |
 | Allow card (Y's words, 17 Nov) | See who knows your contacts · Allow contacts, and each one shows who else has the number. · Allow | **See who has each number** · Allow contacts and call log. Then you can: · ✓ Find out who has your number · ✓ See who has each number on your phone · ✓ Know when something new happens or changes · ✓ After a call, get a notification if someone has the caller's number · **Allow** |
 | Privacy line | Stored encrypted · How it works | No one sees your contact list. If a friend checks a number you have, they see your name. · How WhoHas works |
 | Contacts-only build | (same card) | Allow contacts. Then you can: · ✓ Find out who has your number · ✓ See who has each number on your phone · ✓ Know when something new happens or changes |
@@ -95,12 +95,12 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Offline | No internet · showing what we had at 9:40 pm |
 | Search box | Search a number or name |
 | Your number card | Your number · **23 people have it** · You know Priya, Meena and 4 more · **1 more person · One is Arun** (when it went up this week) |
-| Your level (inside the number card) | **[Not popular]** Share WhoHas so people you know can find you. · bar · **2 more people and you're Popular** · Share in group › · Share in a group so everyone pools their numbers. Then you can find who has any number that calls you. |
-| | **[Popular]** More people means more callers you can recognise. · bar · 27 more people and you're Highly popular · Share in group › · (the same pooling line) |
-| | **[Highly popular]** · Top level. 52 people have your number |
+| Your level (inside the number card) | **[Not popular]** Share WhoHas so people you know can find you. |
+| | **[Popular]** More people means more callers you can recognise. |
+| | **[Highly popular]** (tag only). No bar, no "N more people", no link and no pooling line in the card (Y, 22 Nov: they took too much room); "Share in group" is the top button. |
 | Levels | Not popular: under 10 people · Popular: 10 to 49 · Highly popular: 50 and up. Your own number only; counts are real; never compared with named people. |
 | The day you reach a level (top of Updates, one day) | **You're Popular now** · 10 people have your number. 40 more and you're Highly popular. · Share in group |
-| Nobody yet | No one on WhoHas has your number yet · your level (Not popular · 10 more people and you're Popular) · Share in group › |
+| Nobody yet | No one on WhoHas has your number yet · **[Not popular]** Share WhoHas so people you know can find you. |
 | Press and hold any number (Updates, Contacts, Call log, search) | **+91 90080 11223** · Copy number · Search in Truecaller · Call back · Open card. A tap opens the card. |
 | Copied | Android 13 and later show their own "Copied" box; older phones: Number copied. Always the plain 10 digits. |
 | Notifications off | Notifications are off. You won't know who called. · Turn on |
@@ -272,7 +272,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 |---|---|
 | Top bar, first line next to WhoHas (every tab) | **⤴ Share in group** (solid gold) |
 | Invite friends page | **Share in group** · Adds the most value: the more of your group join, the more callers you can recognise. |
-| Why a group (the value, never a count) | Share in a group so everyone pools their numbers. Then you can find who has any number that calls you. |
+| Why a group (the value, never a count) | Share in a group so everyone pools their numbers. Then you can find who has any number that calls you. (Used in the share message and Invite friends; no longer inside your number's card.) |
 | Share in group vs Tell | **Share in group** is for a group. For one person it is **Tell Ravi on WhatsApp**, and the Invite list buttons read **Tell** and **Told**. |
 | What's shared | A picture of WhoHas in charcoal and gold (a missed call known to Priya, Meena and 10 more; "Unknown number calling?"; a gold band "Get WhoHas · Free on Android · link in the message"), and: Hi all! I'm using WhoHas. When an unknown number calls, it shows which people you know have that number, so you can ask them who it is. The more of us on it, the more callers we can recognise for each other. Get it here: {link} |
 

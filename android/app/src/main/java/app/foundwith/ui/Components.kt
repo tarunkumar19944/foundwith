@@ -643,7 +643,7 @@ fun HeroCard(
 
 /** Your number before anyone has it: "No one on WhoHas has your number yet", then your level. */
 @Composable
-fun EmptyHero(number: String?, onShare: (() -> Unit)?) {
+fun EmptyHero(number: String?) {
     Surface(color = HeroColor, contentColor = MaterialTheme.colorScheme.onSurface, shape = RoundedCornerShape(24.dp),
         border = BorderStroke(1.dp, HeroEdge), modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp)) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -652,7 +652,7 @@ fun EmptyHero(number: String?, onShare: (() -> Unit)?) {
                 if (number != null) Text(number, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text("No one on WhoHas has your number yet", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            LevelBlock(0, onShare = onShare)
+            LevelBlock(0)
         }
     }
 }
@@ -729,47 +729,18 @@ fun rowTag(total: Int?, lowerBound: Boolean = false): (@Composable () -> Unit)? 
     total?.let { app.foundwith.core.Levels.rowTag(it, lowerBound) }?.let { level -> { LevelTag(level) } }
 
 /**
- * Your own level, inside your number's card: the tag and its short line, a bar toward the next
- * level and "27 more people and you're Highly popular". Real counts only. [onShare] adds the gold
- * "Share in group" link and the line on what a group does.
+ * Your own level, inside your number's card: just the tag and its short line (Y, 22 Nov: the bar,
+ * "10 more people and you're Popular", the link and the pooling line took too much room).
  */
 @Composable
-fun LevelBlock(total: Int, modifier: Modifier = Modifier, onShare: (() -> Unit)? = null) {
+fun LevelBlock(total: Int, modifier: Modifier = Modifier) {
     val level = app.foundwith.core.Levels.of(total)
-    val target = app.foundwith.core.Levels.target(level)
-    val from = if (level == app.foundwith.core.Level.POPULAR) app.foundwith.core.Levels.POPULAR_FROM else 0
-    val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    Column(modifier.fillMaxWidth().padding(top = 4.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            LevelTag(level)
-            val why = app.foundwith.core.Levels.why(level)
-            if (why.isNotEmpty()) {
-                Spacer(Modifier.width(10.dp))
-                Text(why, style = MaterialTheme.typography.bodySmall, color = muted, modifier = Modifier.weight(1f))
-            }
-        }
-        if (target == null) {
-            Text(app.foundwith.core.Levels.topLine(total), style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold, color = muted)
-            return@Column
-        }
-        androidx.compose.material3.LinearProgressIndicator(
-            progress = { ((total - from).toFloat() / (target - from)).coerceIn(0f, 1f) },
-            modifier = Modifier.fillMaxWidth().height(8.dp), color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.outlineVariant, strokeCap = androidx.compose.ui.graphics.StrokeCap.Round,
-            gapSize = 0.dp, drawStopIndicator = {})
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(app.foundwith.core.Levels.progress(total).orEmpty(), style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-            if (onShare != null) {
-                Row(Modifier.heightIn(min = 44.dp).clickable(onClick = onShare).padding(start = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Share in group", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(18.dp))
-                }
-            }
-        }
-        if (onShare != null) {
-            Text(app.foundwith.core.Levels.POOL_LINE, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer)
+    Row(modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        LevelTag(level)
+        val why = app.foundwith.core.Levels.why(level)
+        if (why.isNotEmpty()) {
+            Spacer(Modifier.width(10.dp))
+            Text(why, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
         }
     }
 }
