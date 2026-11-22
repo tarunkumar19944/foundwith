@@ -4,6 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import android.os.SystemClock
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.lifecycle.lifecycleScope
@@ -22,6 +24,12 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Always charcoal, so the status and navigation bars always get light icons.
+        // The opening screen stays until the saved counts, contacts and call log are read, so Home
+        // opens as it is, never as a first-time screen for a moment. At most 3 seconds.
+        val opened = SystemClock.uptimeMillis()
+        installSplashScreen().setKeepOnScreenCondition {
+            graph.auth.isSignedIn && !graph.model.state.value.loaded && SystemClock.uptimeMillis() - opened < MAX_OPENING_MS
+        }
         enableEdgeToEdge(SystemBarStyle.dark(android.graphics.Color.TRANSPARENT), SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
         handle(intent)
@@ -69,3 +77,6 @@ class MainActivity : ComponentActivity() {
         if (graph.auth.isSignedIn) graph.model.leftApp()
     }
 }
+
+/** The opening screen never waits longer than this for the saved data. */
+private const val MAX_OPENING_MS = 3_000L

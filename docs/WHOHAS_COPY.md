@@ -305,6 +305,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 | Update needed | Update Found With · This version is too old. Update to keep using it. | **Update WhoHas** · This version is too old. Update from the Play Store. |
 | Suspended | This account is suspended · It broke Found With's rules. If that's a mistake, write to … | **Your account is suspended** · It broke WhoHas rules. If this is a mistake, write to help@… |
 | Generic error | Something went wrong. Try again. | Something went wrong. Try again. |
+| Opening the app (22 Nov) | (a first-time Home flashed for a moment) | No words: the WhoHas icon on charcoal stays until the saved data is read (at most 3 seconds), then Home opens as it is. |
 
 ## Web pages
 

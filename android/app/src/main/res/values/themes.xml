@@ -4,6 +4,14 @@
     <style name="Theme.FoundWith" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/ground</item>
     </style>
+    <!-- The opening screen: the WhoHas icon on charcoal. It stays until the saved data is read, so
+         Home never shows a first-time screen for a moment (MainActivity keeps it on screen). -->
+    <style name="Theme.FoundWith.Starting" parent="Theme.SplashScreen.IconBackground">
+        <item name="windowSplashScreenBackground">@color/ground</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/launcher_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.FoundWith</item>
+    </style>
     <!-- For the screenless activity behind notification buttons. -->
     <style name="Theme.FoundWith.Invisible" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowIsTranslucent">true</item>

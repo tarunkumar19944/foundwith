@@ -83,6 +83,9 @@ fun AppRoot(graph: AppGraph, openNumber: Flow<String?>) {
                 LoginScreen(graph, onDone = { nav.startOver(Routes.HOME) })
             }
             composable(Routes.HOME) {
+                // Until the saved data is read, plain charcoal (the opening screen covers it), never a
+                // first-time Home that then changes.
+                if (!state.loaded) { Box(Modifier.fillMaxSize()); return@composable }
                 HomeScreen(
                     graph,
                     onNumber = { nav.navigate(Routes.number(it)) { launchSingleTop = true } },
