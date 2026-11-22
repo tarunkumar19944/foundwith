@@ -117,6 +117,10 @@ class Settings:
 
     # Phones running an older app than this (versionCode, sent as X-App-Version) are asked to update.
     min_app_version: int = 0
+    # Who runs WhoHas, for the privacy policy (/privacy) and the web pages.
+    publisher_name: str = ""
+    contact_email: str = ""
+
     # The opt-out web page signs people in with Identity Platform's web SDK.
     firebase_web_api_key: str = ""
     firebase_auth_domain: str = ""
@@ -170,6 +174,8 @@ class Settings:
             push_audience=env.get("PUSH_AUDIENCE", ""),
             firebase_web_api_key=env.get("FIREBASE_WEB_API_KEY", ""),
             firebase_auth_domain=env.get("FIREBASE_AUTH_DOMAIN", ""),
+            publisher_name=env.get("PUBLISHER_NAME", "").strip(),
+            contact_email=env.get("CONTACT_EMAIL", "").strip(),
             **values,  # type: ignore[arg-type]
         )
         settings.validate(require_pepper=for_api)

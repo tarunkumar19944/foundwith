@@ -151,3 +151,15 @@ variable "android_sha256" {
   type        = list(string)
   default     = []
 }
+
+variable "publisher_name" {
+  description = "Who runs WhoHas (the Google Play account holder): named in the privacy policy at /privacy."
+  type        = string
+  default     = ""
+}
+
+variable "contact_email" {
+  description = "Public contact address: the privacy policy at /privacy and the Play listing."
+  type        = string
+  default     = ""
+}

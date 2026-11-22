@@ -45,6 +45,8 @@ locals {
     # The opt-out web page (/out) signs people in with Identity Platform's web SDK.
     FIREBASE_WEB_API_KEY = var.firebase_web_api_key != "" ? var.firebase_web_api_key : data.google_firebase_web_app_config.web.api_key
     FIREBASE_AUTH_DOMAIN = "${var.project_id}.firebaseapp.com"
+    PUBLISHER_NAME       = var.publisher_name
+    CONTACT_EMAIL        = var.contact_email
   })
 
   # The audience Cloud Scheduler puts in its token for /internal/push*; the API checks it.

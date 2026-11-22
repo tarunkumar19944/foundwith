@@ -46,6 +46,7 @@ a{color:var(--accent);font-weight:700;text-decoration:none}
 .done{color:var(--ok);font-weight:700}
 .note{margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:14px;line-height:1.6}
 .note b{color:var(--text)}
+h2{font-size:18px;margin:24px 0 6px}ul{margin:8px 0;padding-left:20px;color:var(--muted)}li{margin:6px 0}li b,p b{color:var(--text)}
 [hidden]{display:none!important}
 small{display:block;margin-top:24px;color:var(--muted);font-size:13px}
 """
@@ -333,3 +334,99 @@ async def delete_page(request: Request) -> HTMLResponse:
         "img-src": "'self' data: https://www.gstatic.com https://www.google.com",
     }
     return _page("Delete your account · WhoHas", _DELETE_BODY, nonce=nonce, extra_script=script, csp_extra=csp)
+
+
+# ---------------------------------------------------------------- privacy policy (Google Play needs its address)
+# Plain words, true to what the server and app actually do (checked against the code on 22 Nov 2026):
+# numbers are stored as keyed hashes, saved names encrypted, everything in Mumbai (asia-south1).
+
+PRIVACY_UPDATED = "22 November 2026"
+
+
+def privacy_body(settings) -> str:
+    who = html.escape(settings.publisher_name or "the WhoHas team")
+    email = html.escape(settings.contact_email)
+    write = f'<a href="mailto:{email}">{email}</a>' if email else "the contact address on our Google Play listing"
+    days = settings.inactive_days
+    log_days = settings.lookup_log_days
+    tomb = settings.tombstone_days
+    return f"""
+<div class="logo" aria-hidden="true">W</div>
+<h1>WhoHas privacy policy</h1>
+<p>Last updated {PRIVACY_UPDATED}. WhoHas is run by {who}. Questions or requests: {write}.</p>
+
+<h2>What WhoHas does</h2>
+<p>For any phone number, WhoHas shows how many people on WhoHas have it in their contacts or call log, and which of them you
+know. To do that, it compares the numbers on your phone with the numbers on other WhoHas users' phones.</p>
+
+<h2>What we collect</h2>
+<ul>
+<li><b>Your mobile number</b>, checked by an SMS code sent through Google Firebase.</li>
+<li><b>Your name</b>, if you add one.</li>
+<li><b>Your contacts</b>, after you allow it: each phone number, and the name you saved for it.</li>
+<li><b>Your call log</b> (only in the version of the app that asks for it, after you allow it): the phone numbers. Not call
+times, not call lengths and not recordings.</li>
+<li><b>Numbers you search</b> and numbers WhoHas checks after a call, with the time.</li>
+<li><b>People you block</b>, numbers you hide, and reports you make.</li>
+<li><b>Technical details</b>: a notification token for your phone, the app version, the Android version and the phone's
+brand, and how many calls the app could check (counts only).</li>
+</ul>
+<p>WhoHas never reads your SMS messages, never records calls, and never messages or calls anyone. It does not use
+advertising or sell data.</p>
+
+<h2>How it is stored</h2>
+<p>Phone numbers are stored only as keyed hashes (a one-way code made with a secret key), never as plain numbers. The names
+you saved for numbers are encrypted. Everything is stored on Google Cloud in Mumbai, India, and sent over encrypted
+connections.</p>
+
+<h2>What other people can see</h2>
+<ul>
+<li><b>Counts.</b> Anyone on WhoHas who looks up a number sees how many people on WhoHas have it. You are counted for every
+number in your contacts or call log.</li>
+<li><b>Your name.</b> When someone looks up a number you have, they see your name only if your number is in their contacts
+or call log (so they already know you). Everyone else sees you only as part of the count.</li>
+<li><b>That you have their number.</b> People whose number you have can see that you have it, if your number is in their
+contacts or call log.</li>
+<li><b>Names for a number.</b> If 3 or more people saved the same name for a number, people who look it up see "People know it
+as …". The name you saved is never shown on its own or linked to you.</li>
+</ul>
+<p>You can block someone so you don't see each other, and anyone can remove their own number from WhoHas.</p>
+
+<h2>Who we share it with</h2>
+<p>Only the services that run WhoHas for us: Google Cloud (servers and database) and Google Firebase (sign-in by SMS and
+notifications). We don't share or sell your data to anyone else, except where the law requires it. When you choose to share
+a number or an invite, WhatsApp or the app you pick receives only what you send.</p>
+
+<h2>How long we keep it</h2>
+<ul>
+<li>Your account and its data: until you delete it. Accounts not opened for {days} days are deleted automatically.</li>
+<li>When you delete your account, your number, name, contacts and call log numbers, blocks and settings are removed from
+the live database at once. Other people's counts go down by one.</li>
+<li>Database backups, which may still hold them, are kept for up to 14 days.</li>
+<li>The record of searches and after-call checks (hashed numbers only) is kept for {log_days} days, also after an account is
+deleted, to stop misuse.</li>
+<li>After an account is deleted, a hash of its number and that day's search limits are kept for {tomb} days, so limits
+can't be dodged by deleting and joining again. If the account had been suspended, the suspension is remembered for longer.</li>
+<li>Notification tokens not used for 60 days are deleted.</li>
+</ul>
+
+<h2>Your choices</h2>
+<ul>
+<li>Contacts and call log access are your choice. Without them you can still search numbers.</li>
+<li>Download your data, or delete your account, in the app: Settings › Your data.</li>
+<li>Delete your account without the app: <a href="/delete">Delete my account</a>.</li>
+<li>Not on WhoHas but want your number out: <a href="/out">Remove your number</a>.</li>
+</ul>
+
+<h2>Children</h2>
+<p>WhoHas is for people aged 18 and over.</p>
+
+<h2>Changes</h2>
+<p>If we change this policy, we update it here and change the date at the top. Big changes are shown in the app before they
+apply.</p>
+"""
+
+
+async def privacy_page(request: Request) -> HTMLResponse:
+    settings = request.app.state.settings
+    return _page("Privacy policy · WhoHas", privacy_body(settings))

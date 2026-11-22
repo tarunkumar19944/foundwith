@@ -258,6 +258,19 @@ def test_delete_page_deletes_the_account_and_says_what_goes(db, settings, identi
         assert "What is deleted:" in r.text and "sign up again later" in r.text
 
 
+def test_privacy_page_states_what_is_kept(db, settings, identity):
+    from dataclasses import replace
+    app = create_app(replace(settings, publisher_name="Asha Labs", contact_email="help@example.in"), db=db, verifier=DevVerifier(),
+                     identity=identity, configure_logging=False)
+    with TestClient(app) as client:
+        r = client.get("/privacy")
+        assert r.status_code == 200 and "WhoHas privacy policy" in r.text
+        assert "Asha Labs" in r.text and "mailto:help@example.in" in r.text
+        assert f"{settings.inactive_days} days" in r.text and f"{settings.lookup_log_days} days" in r.text
+        assert "up to 14 days" in r.text and 'href="/delete"' in r.text and 'href="/out"' in r.text
+        assert "keyed hashes" in r.text and "never reads your SMS" in r.text
+
+
 # ---------------------------------------------------------------- live updates
 
 def queue(db):
