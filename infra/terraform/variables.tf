@@ -158,6 +158,12 @@ variable "publisher_name" {
   default     = ""
 }
 
+variable "grievance_officer" {
+  description = "The grievance officer named on /terms (India's IT Rules 2021). Empty: the publisher."
+  type        = string
+  default     = ""
+}
+
 variable "contact_email" {
   description = "Public contact address: the privacy policy at /privacy and the Play listing."
   type        = string

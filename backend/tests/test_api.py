@@ -407,3 +407,16 @@ def test_public_address_for_links_and_a_home_page(db, settings, identity):
         home = c.get("/")
         assert home.status_code == 200 and "Unknown number calling?" in home.text
         assert 'href="/privacy"' in home.text and "found-with" not in home.text
+
+
+def test_terms_page_names_the_grievance_officer(db, settings, identity):
+    import dataclasses
+    named = dataclasses.replace(settings, publisher_name="Tarun Kumar", contact_email="help@example.in",
+                                grievance_officer="Tarun Kumar")
+    app = create_app(named, db=db, verifier=DevVerifier(), identity=identity, configure_logging=False)
+    with TestClient(app) as c:
+        r = c.get("/terms")
+        assert r.status_code == 200 and "Terms of use" in r.text
+        assert "Grievance officer: Tarun Kumar" in r.text and "mailto:help@example.in" in r.text
+        assert "within 24 hours" in r.text and "15 days" in r.text and "Bengaluru" in r.text
+        assert 'href="/terms"' in c.get("/").text

@@ -438,11 +438,91 @@ async def home_page(request: Request) -> HTMLResponse:
         "People you know are shown by name; everyone else is a count. On Android.</p>"
         f'<p><a href="{html.escape(settings.play_store_url)}">Get it on Google Play</a></p>'
         f"{write}"
-        '<p><a href="/privacy">Privacy policy</a> · <a href="/delete">Delete your account</a></p>'
+        '<p><a href="/privacy">Privacy policy</a> · <a href="/terms">Terms of use</a> · '
+        '<a href="/delete">Delete your account</a></p>'
     )
     return _page("WhoHas", body)
 
 
+TERMS_UPDATED = "23 November 2026"
+
+
+def terms_body(settings) -> str:
+    """The terms of use, in the same plain words as the privacy policy. Not legal advice: have a lawyer
+    read them before the public launch."""
+    who = html.escape(settings.publisher_name or "the WhoHas team")
+    email = html.escape(settings.contact_email)
+    officer = html.escape(settings.grievance_officer or settings.publisher_name or "the WhoHas team")
+    write = f'<a href="mailto:{email}">{email}</a>' if email else "the contact address on our Google Play listing"
+    return f"""<h1>Terms of use</h1>
+<p class="note">Updated {TERMS_UPDATED}</p>
+<p>These terms are an agreement between you and {who}, who run WhoHas. By using WhoHas you agree to them
+and to our <a href="/privacy">privacy policy</a>.</p>
+
+<h2>Who can use WhoHas</h2>
+<ul>
+<li>You are 18 or older.</li>
+<li>You sign up with an Indian mobile number that is yours, on your own phone. One account per number.</li>
+<li>You keep your phone and account secure, and tell us if someone else uses your account.</li>
+</ul>
+
+<h2>What WhoHas shows, and its limits</h2>
+<p>WhoHas shows how many people on WhoHas have a number in their contacts or call log, and which of them
+you know. Names come from people's own contacts and from what people chose to share, so they can be
+wrong or out of date. WhoHas does not confirm who anyone is. Use your own judgement before you act on
+what you see, for example before you send money or share details with a caller.</p>
+
+<h2>What you agree not to do</h2>
+<ul>
+<li>Share contacts or a call log that are not from your own phone.</li>
+<li>Use WhoHas to harass, threaten, stalk, spam or cheat anyone, or to find out about a person for any
+unlawful purpose.</li>
+<li>Look up numbers in bulk, use bots or scripts, copy data out of WhoHas, or get around its limits.</li>
+<li>Pretend to be someone else, or sign up with someone else's number.</li>
+<li>Give a name, report or note that is unlawful, obscene, defamatory, hateful, or that harms a child or
+infringes anyone's rights.</li>
+</ul>
+
+<h2>Names and reports</h2>
+<p>The name you give is shown to people who already have your number. You can change it in Settings.
+If a name shown for a number is wrong or offensive, report it from the number's card. We review reports
+and remove names that break these terms.</p>
+
+<h2>Your account</h2>
+<p>You can delete your account at any time in the app (Settings › Your data › Delete my account) or at
+<a href="/delete">Delete your account</a>. We may suspend or close an account that breaks these terms or the
+law. What is kept after that, and for how long, is in the privacy policy.</p>
+
+<h2>The service</h2>
+<p>WhoHas is free and provided "as is". We work to keep it running and correct, but we cannot promise it
+will always be available, complete or free of mistakes. We may change or stop features. If we change
+these terms in a way that matters, we will tell you in the app before the change applies.</p>
+
+<h2>Responsibility</h2>
+<p>As far as the law allows, {who} is not responsible for losses that come from relying on names or counts
+shown in WhoHas, or from how other people use it. Nothing in these terms takes away rights you have under
+Indian law that cannot be taken away.</p>
+
+<h2>Law and courts</h2>
+<p>These terms are governed by the laws of India. The courts at Bengaluru, Karnataka have jurisdiction.</p>
+
+<h2 id="grievance">Grievance officer</h2>
+<p>Under the Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021,
+complaints about WhoHas, or about anything shown in it, go to our grievance officer:</p>
+<ul>
+<li>Grievance officer: {officer}</li>
+<li>Email: {write}</li>
+</ul>
+<p>Write with your mobile number, the number or name the complaint is about, and what happened. We
+acknowledge complaints within 24 hours and resolve them within 15 days.</p>
+"""
+
+
+async def terms_page(request: Request) -> HTMLResponse:
+    settings = request.app.state.settings
+    return _page("Terms of use · WhoHas", terms_body(settings))
+
+
 async def privacy_page(request: Request) -> HTMLResponse:
     settings = request.app.state.settings
-    return _page("Privacy policy · WhoHas", privacy_body(settings))
+    return _page("Privacy policy · WhoHas", privacy_body(settings) + '<p><a href="/terms">Terms of use</a></p>')

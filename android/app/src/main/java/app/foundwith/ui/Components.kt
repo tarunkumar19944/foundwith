@@ -241,6 +241,9 @@ fun Context.email(address: String) {
 
 const val HELP_EMAIL = "help@found-with.app"
 val PRIVACY_URL: String get() = BuildConfig.PRIVACY_URL
+/** The terms of use and their grievance officer section, beside the privacy policy (whohas-app.web.app/terms). */
+val TERMS_URL: String get() = BuildConfig.PUBLIC_URL.takeIf { it.startsWith("https://") }?.plus("/terms").orEmpty()
+val GRIEVANCE_URL: String get() = TERMS_URL.takeIf { it.isNotEmpty() }?.plus("#grievance").orEmpty()
 
 /** The web page that deletes an account without the app (Play's account deletion rule). The API serves it at /delete. */
 val DELETE_URL: String get() = (BuildConfig.PUBLIC_URL.takeIf { it.startsWith("https://") } ?: BuildConfig.API_BASE_URL.trimEnd('/'))

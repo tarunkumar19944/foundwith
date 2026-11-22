@@ -59,6 +59,7 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Contacts-only build | | Example: +91 98450 77120 · You searched this number · Known to Priya, Meena and 10 more · Headline line: **Search it. See which of your people know it.** · **Check any number** · Search a number that called you. See which people you know have it. · **See who has your contacts** · Each contact shows how many people on WhoHas have their number. · (Benefit 3 as above) |
 | Trust line | Never messages or calls your contacts. | WhoHas never messages or calls anyone. |
 | Buttons | Continue · Type your number | **Get started** (opens Android's number picker, which lists the SIMs in this phone) |
+| Under Get started (23 Nov) | | By continuing, you agree to the **Terms of use** and **Privacy policy**. (both links) |
 | Number picker | (Android's own) | Android's sheet with SIM 1 and SIM 2. Picking one goes straight to Enter the code while the code is sent. **None of the above** opens the number screen. |
 | Invited chip | A friend invited you | Priya invited you (name when known, else "A friend invited you") |
 | After sign-in, invited | (none) | **Priya and 2 others invited you** · 8 people on WhoHas have your number (names everyone who tapped Share for this number) |
@@ -263,7 +264,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 | Sign out | Sign out? · Your account stays. Sign in again with your number any time. | **Sign out?** · Your account stays. Sign in again any time with your number. · Sign out · Cancel |
 | Delete | Delete your account? · … | Row: **Delete my account** (red). Dialog: **Delete your account?** · This removes, from WhoHas: • Your number and name • Your contacts and call log numbers • Your blocked list and settings · Other people's counts go down by one. Your phone's own contacts and call log are not touched. You can't undo this. · **Delete my account** · Keep my account (contacts-only: "Your contact numbers", "Your phone's own contacts are not touched") |
 | Blocked page | No one is blocked. | You haven't blocked anyone. |
-| Help | How it works · Contact us · Privacy policy | How WhoHas works · Write to us · **Delete my account without the app** (opens the web page) · Privacy policy |
+| Help | How it works · Contact us · Privacy policy | How WhoHas works · Write to us · **Delete my account without the app** (opens the web page) · Privacy policy · **Terms of use** · **Grievance officer** (opens the officer section of the terms) |
 
 ### How WhoHas works
 
@@ -313,6 +314,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 
 | Page | New |
 |---|---|
+| Terms of use (whohas-app.web.app/terms, 23 Nov) | Who can use WhoHas (18+, your own Indian number, one account) · What WhoHas shows, and its limits (names can be wrong; it doesn't confirm who anyone is) · What you agree not to do (others' contacts, harassment, stalking, spam, bulk lookups or bots, pretending, unlawful names or reports) · Names and reports · Your account · The service ("as is") · Responsibility · Law and courts (India; Bengaluru) · **Grievance officer** (IT Rules 2021): name, email, acknowledged within 24 hours, resolved within 15 days. Linked from the home page, the privacy page, Help and the welcome screen. |
 | Home page (whohas-app.web.app) | **WhoHas** · Unknown number calling? See which of your people have that number, so you can ask them who it is. People you know are shown by name; everyone else is a count. On Android. · Get it on Google Play · Privacy policy · Delete your account |
 | Invite page (whohas-app.web.app/i/CODE) | **Priya invited you to WhoHas** · See who has any number, even when someone unknown calls. · Get it on Google Play · (iPhone) WhoHas is on Android for now. · WhoHas never messages or calls anyone. |
 | Delete my account (whohas-app.web.app/delete) | **Delete your WhoHas account** · You don't need the app. Enter the mobile number you signed up with. We send a code to confirm it is yours. · Send code · **What is deleted:** your number, name, the contact and call log numbers WhoHas holds for you, blocked list and settings. Counts on other people's cards go down by one. What is kept after that, and for how long, is in the privacy policy. → **Enter the code** · **Delete my account** · This can't be undone. You can sign up again later with a fresh start. → **Your account is deleted** (or: No WhoHas account uses this number · use Remove your number). It deletes the account only; the number is not put on the remove list. |

@@ -120,6 +120,8 @@ class Settings:
     # Who runs WhoHas, for the privacy policy (/privacy) and the web pages.
     publisher_name: str = ""
     contact_email: str = ""
+    # The grievance officer named on /terms (IT Rules 2021). Empty: the publisher.
+    grievance_officer: str = ""
     # The public address people see: invite links, /privacy, /delete (Firebase Hosting in front of
     # this service, e.g. https://whohas-app.web.app). Empty: the address the request came to.
     public_url: str = ""
@@ -179,6 +181,7 @@ class Settings:
             firebase_auth_domain=env.get("FIREBASE_AUTH_DOMAIN", ""),
             publisher_name=env.get("PUBLISHER_NAME", "").strip(),
             contact_email=env.get("CONTACT_EMAIL", "").strip(),
+            grievance_officer=env.get("GRIEVANCE_OFFICER", "").strip(),
             public_url=env.get("PUBLIC_URL", "").strip().rstrip("/"),
             **values,  # type: ignore[arg-type]
         )

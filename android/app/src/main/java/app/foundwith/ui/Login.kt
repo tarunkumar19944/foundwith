@@ -58,6 +58,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -366,6 +367,7 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 PrimaryButton("Get started", { openSheet() })
+                AgreeLine()
             }
             LoginStep.TYPE_NUMBER -> {
                 Text("Your mobile number", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
@@ -575,4 +577,21 @@ fun DeletedView(onDone: () -> Unit) {
         Spacer(Modifier.height(48.dp))
         PrimaryButton("Done", onDone)
     }
+}
+
+/** Under Get started: what signing up agrees to, with both pages one tap away. */
+@Composable
+internal fun AgreeLine() {
+    if (TERMS_URL.isBlank() || PRIVACY_URL.isBlank()) return
+    val link = androidx.compose.ui.text.TextLinkStyles(
+        androidx.compose.ui.text.SpanStyle(color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold))
+    val text = androidx.compose.ui.text.buildAnnotatedString {
+        append("By continuing, you agree to the ")
+        withLink(androidx.compose.ui.text.LinkAnnotation.Url(TERMS_URL, link)) { append("Terms of use") }
+        append(" and ")
+        withLink(androidx.compose.ui.text.LinkAnnotation.Url(PRIVACY_URL, link)) { append("Privacy policy") }
+        append(".")
+    }
+    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
 }

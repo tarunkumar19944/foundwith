@@ -47,6 +47,7 @@ locals {
     FIREBASE_AUTH_DOMAIN = "${var.project_id}.firebaseapp.com"
     PUBLISHER_NAME       = var.publisher_name
     CONTACT_EMAIL        = var.contact_email
+    GRIEVANCE_OFFICER    = var.grievance_officer
     PUBLIC_URL           = "https://${var.public_site_id}.web.app"
   })
 
