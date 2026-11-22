@@ -38,6 +38,7 @@ import app.foundwith.ui.LevelBlock
 import app.foundwith.ui.LevelTag
 import app.foundwith.ui.LevelUpBanner
 import app.foundwith.ui.CardButtons
+import app.foundwith.ui.YourNumberBar
 import app.foundwith.ui.CopyNumberButton
 import app.foundwith.ui.NumberMenu
 import app.foundwith.ui.WhCard
@@ -88,6 +89,19 @@ class ScreensTest {
         compose.onAllNodesWithText("Share WhoHas so people you know can find you.").assertCountEquals(2)
         compose.onNodeWithText("More people means more callers you can recognise.").assertExists()
         compose.onAllNodesWithText("Share in group").assertCountEquals(0)          // no link inside the card (Y, 22 Nov)
+    }
+
+    @Test
+    fun yourNumberAboveTheTabs() {
+        shot("09-your-number-bar") {
+            YourNumberBar(total = 23, up = 1, onClick = {})
+            YourNumberBar(total = 1, up = 0, onClick = {})
+            YourNumberBar(total = 0, up = 0, onClick = {})
+        }
+        compose.onNodeWithText("+1").assertExists()
+        compose.onNodeWithText("No one on WhoHas has your number yet").assertExists()
+        compose.onNodeWithText("Popular").assertExists()
+        compose.onAllNodesWithText("Not popular").assertCountEquals(2)
     }
 
     @Test

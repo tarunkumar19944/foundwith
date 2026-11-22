@@ -96,7 +96,7 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Top bar | **WhoHas** · *Live · just now* (green dot) · **⤴ Share in group** (solid gold, on every Home screen) · Settings |
 | Offline | No internet · showing what we had at 9:40 pm |
 | Search box | Search a number or name |
-| Your number card | Your number · **23 people have it** · You know Priya, Meena and 4 more · **1 more person · One is Arun** (when it went up this week) |
+| Your number (22 Nov: fixed just above the tabs, the same on Call log, Contacts and Updates; a tap opens your own card) | 👤 **23** people have your number · **+1** (green, when it went up this week) · [Popular] › · at 0: No one on WhoHas has your number yet · [Not popular] |
 | Your level (inside the number card) | **[Not popular]** Share WhoHas so people you know can find you. |
 | | **[Popular]** More people means more callers you can recognise. |
 | | **[Highly popular]** (tag only). No bar, no "N more people", no link and no pooling line in the card (Y, 22 Nov: they took too much room); "Share in group" is the top button. |

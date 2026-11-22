@@ -262,6 +262,14 @@ fun HomeScreen(
                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
+                Column {
+                // Your number stays here, the same on every tab; only the list above changes.
+                val mine = state.cards?.mine
+                YourNumberBar(
+                    total = mine?.total ?: 0,
+                    up = mine?.ref?.let { state.changes.changes[it] }?.delta?.takeIf { it > 0 } ?: 0,
+                    onClick = state.profile?.phone?.let { phone -> { onNumber(phone) } },
+                )
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     // Call log · Contacts · Updates (Y, 22 Nov 2026). Updates carries a gold badge with
                     // how many new things haven't been seen there yet.
@@ -283,6 +291,7 @@ fun HomeScreen(
                                 Icon(Icons.Filled.Notifications, contentDescription = null)
                             }
                         })
+                }
                 }
             }
         },
@@ -577,7 +586,6 @@ private fun LazyListScope.updatesTab(
     if (graph.store.levelReachedRecently(System.currentTimeMillis()) && (mine?.total ?: 0) >= app.foundwith.core.Levels.POPULAR_FROM) {
         item(key = "level-up") { LevelUpBanner(mine!!.total, onShareGroup) }
     }
-    item { MineHero(state, mine, onNumber) }
     if (BuildConfig.CALL_LOG && graph.store.firstNamesSeen && !graph.store.notifAsked && !graph.notifier.canPost()) {
         item { NotificationsCard(onTurnOn = onTurnOnNotifications, onLater = { graph.store.notifAsked = true }) }
     }
@@ -672,33 +680,6 @@ private fun FoundContactRow(state: AppState, contact: SavedNumber, onNumber: (St
 @Composable
 private fun knownColour(card: Card?): androidx.compose.ui.graphics.Color =
     if ((card?.knownTotal ?: 0) > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-
-/** Your number, big, with who you know, this week's change and your level. */
-@Composable
-private fun MineHero(state: AppState, mine: Card?, onNumber: (String) -> Unit) {
-    val total = mine?.total ?: 0
-    val phone = state.profile?.phone
-    if (mine == null || total <= 0) {
-        EmptyHero(phone?.let(::shown))
-        return
-    }
-    val names = state.knownOrdered(mine)
-    val gained = state.changes.changes[mine.ref]?.takeIf { it.delta > 0 }
-    val newNames = state.changes.gains[mine.ref]?.ids.orEmpty()
-        .mapNotNull { id -> mine.known.firstOrNull { it.id == id }?.let { state.personName(it) } }
-        .filterNot { Naming.looksLikeNumber(it) }
-    HeroCard(
-        number = phone?.let(::shown),
-        count = total,
-        countLabel = countLabel(total),
-        line = HolderText.youKnowNames(names, mine.knownTotal) ?: "None of them are in your phone yet",
-        people = mine.known.map { it.id to state.personName(it) }.filterNot { Naming.looksLikeNumber(it.second) }.take(4),
-        chip = gained?.let { HolderText.mineUp(it.delta).removeSuffix(" have your number").removeSuffix(" has your number") +
-            (newNames.firstOrNull()?.let { n -> " · One is $n" } ?: "") },
-        onClick = phone?.let { { onNumber(it) } },
-        extra = { LevelBlock(total) },
-    )
-}
 
 /** Your number before the person allows anything, or while names are being found: the count and your level, no link. */
 @Composable

@@ -120,6 +120,8 @@ class PhoneJourneyTest {
         waitFor("Updates", 120_000)
         // The notification and name cards wait until names have shown; put both off.
         repeat(2) { if (exists("Later")) runCatching { tap("Later") } }
+        // Your number sits above the tabs, the same on every tab (Y, 22 Nov).
+        waitForAny(listOf("have your number", "has your number", "No one on WhoHas has your number yet"), 30_000)
         shot("06-ready")
     }
 

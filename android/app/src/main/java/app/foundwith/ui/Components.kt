@@ -77,7 +77,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.foundwith.BuildConfig
+import androidx.compose.ui.semantics.semantics
 import app.foundwith.core.HolderText
+import app.foundwith.core.Levels
 import app.foundwith.core.ShownName
 
 /** A ViewModel built from the app's objects; survives rotation like any other. */
@@ -681,6 +683,44 @@ fun NumberMenu(e164: String, name: String, onOpen: () -> Unit, onDismiss: () -> 
         MenuRow("Search in Truecaller") { context.searchInTruecaller(e164); onDismiss() }
         MenuRow("Call back") { context.dial(e164); onDismiss() }
         MenuRow("Open card") { onDismiss(); onOpen() }
+    }
+}
+
+/**
+ * Your number, fixed just above the tabs and the same on Call log, Contacts and Updates (Y, 22 Nov 2026):
+ * how many people have it, this week's rise and your level. A tap opens your own card.
+ */
+@Composable
+fun YourNumberBar(total: Int, up: Int, onClick: (() -> Unit)?) {
+    val gold = MaterialTheme.colorScheme.primary
+    androidx.compose.material3.Surface(color = MaterialTheme.colorScheme.primaryContainer) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.fillMaxWidth()
+                .then(if (onClick != null) Modifier.clickable(onClickLabel = "Open your number", onClick = onClick) else Modifier)
+                .then(Modifier.semantics(mergeDescendants = true) {})
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+        ) {
+            androidx.compose.material3.Icon(Icons.Filled.Person, contentDescription = null, tint = gold,
+                modifier = Modifier.size(20.dp))
+            Text(
+                if (total <= 0) androidx.compose.ui.text.AnnotatedString("No one on WhoHas has your number yet")
+                else androidx.compose.ui.text.buildAnnotatedString {
+                    pushStyle(androidx.compose.ui.text.SpanStyle(color = gold, fontWeight = FontWeight.Bold))
+                    append(HolderText.grouped(total))
+                    pop()
+                    append(if (total == 1) " person has your number" else " people have your number")
+                },
+                color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
+                maxLines = 2, modifier = Modifier.weight(1f),
+            )
+            if (up > 0) Text("+${HolderText.grouped(up)}", color = LiveGreen, fontWeight = FontWeight.Bold)
+            LevelTag(Levels.of(total))
+            if (onClick != null) androidx.compose.material3.Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
