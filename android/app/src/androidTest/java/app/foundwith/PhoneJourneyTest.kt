@@ -55,7 +55,8 @@ import org.junit.runners.MethodSorters
  * Instrumentation arguments (Test Lab: --environment-variables):
  *   fwCode    the code of the test number (required; from Secret Manager, never in the repo)
  *   fwNumber  the test number to sign in with, 10 digits (default 9000000010)
- *   fwCaller  a number whose owner is on Found With with a name (default +919000000009)
+ *   fwCaller  a number someone on WhoHas has, not in this phone's contacts (default +919000000077,
+ *             which the live server's "Test Caller" account has: tests/live/phone_fixture.py)
  *
  * Every device in a run signs in as the same test account at the same time, so the checks are
  * about what the app shows and does, not about exact counts. The numbers it saves (+91 90000 0007x)
@@ -169,9 +170,11 @@ class PhoneJourneyTest {
     }
 
     @Test
-    fun step06_aMissedCallFromSomeoneOnFoundWithIsNotified() {
+    fun step06_aMissedCallFromANumberSomeoneHasIsNotified() {
+        // Since 22 Nov 2026 a call is told only when someone on WhoHas has the number, so the
+        // caller is a number "Test Caller" has; a name alone (with nobody having it) stays silent.
         assumeTrue("contactsOnly build has no call log", BuildConfig.CALL_LOG)
-        val caller = args.getString("fwCaller") ?: "+919000000009"
+        val caller = args.getString("fwCaller") ?: "+919000000077"
         addCall(InstrumentationRegistry.getInstrumentation().targetContext, caller, CallLog.Calls.MISSED_TYPE, System.currentTimeMillis())
         // Coming back to the app checks calls at once (the call-log trigger would too, a little later).
         compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
@@ -183,7 +186,7 @@ class PhoneJourneyTest {
             val extras = sbn.notification.extras
             val text = listOf(Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT)
                 .joinToString(" ") { extras.getCharSequence(it)?.toString().orEmpty() }
-            "Test Caller" in text || "00009" in text
+            caller.takeLast(5) in text
         }
         var note: StatusBarNotification? = null
         val until = System.currentTimeMillis() + 120_000
@@ -204,10 +207,12 @@ class PhoneJourneyTest {
                 manager.activeNotifications.map { it.notification.extras.getCharSequence(Notification.EXTRA_TITLE) })
         }
         val text = note.notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty()
-        assertTrue("The note should give the caller's own name: $text", text.contains("Their own name: Test Caller"))
+        assertTrue("The note should say who has the number: $text", text.contains("on WhoHas") || text.startsWith("Known to"))
+        val buttons = note.notification.actions.orEmpty().map { it.title.toString() }
+        assertTrue("Copy number and Truecaller buttons: $buttons", buttons == listOf("Copy number", "Truecaller"))
         // Tapping it opens the caller's card.
         note.notification.contentIntent.send()
-        waitFor("Test Caller", 30_000)
+        waitFor(caller.takeLast(5), 30_000)
         shot("14-caller-card")
         back()
     }
@@ -219,10 +224,10 @@ class PhoneJourneyTest {
         waitFor("Your data")
         shot("15-settings")
         for ((row, inside) in listOf(
-            "Notifications" to "Daily summary",
+            "Notifications" to "Changes to your numbers",
             "Your data" to "Download my data",
             "Help" to "How WhoHas works",
-            "Invite friends" to "Share in a group",
+            "Invite friends" to "Share in group",
         )) {
             tap(row)
             waitFor(inside)
