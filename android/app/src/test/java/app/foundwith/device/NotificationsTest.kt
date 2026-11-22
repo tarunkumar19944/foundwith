@@ -1,5 +1,6 @@
 package app.foundwith.device
 
+import app.foundwith.ui.TruecallerRoute
 import app.foundwith.ui.searchInTruecaller
 import app.foundwith.data.LookupResult
 import kotlinx.coroutines.runBlocking
@@ -174,17 +175,17 @@ class NotificationsTest {
 
     @Test
     fun truecallerOpensItsSearchWhenItAcceptsTheNumber() {
-        val app = context as android.app.Application
-        val pm = org.robolectric.Shadows.shadowOf(app.packageManager)
+        val application = context as android.app.Application
+        val pm = org.robolectric.Shadows.shadowOf(application.packageManager)
         // No Truecaller: its website search.
-        assertEquals(app.foundwith.ui.TruecallerRoute.WEBSITE, context.searchInTruecaller("+919845077120"))
-        assertEquals("https://www.truecaller.com/search/in/9845077120", org.robolectric.Shadows.shadowOf(app).nextStartedActivity.dataString)
+        assertEquals(TruecallerRoute.WEBSITE, context.searchInTruecaller("+919845077120"))
+        assertEquals("https://www.truecaller.com/search/in/9845077120", org.robolectric.Shadows.shadowOf(application).nextStartedActivity.dataString)
         // Truecaller with a "search with Truecaller" text action: that, with the number.
         val search = android.content.ComponentName("com.truecaller", "com.truecaller.SearchText")
         pm.addActivityIfNotPresent(search)
         pm.addIntentFilterForActivity(search, android.content.IntentFilter(android.content.Intent.ACTION_PROCESS_TEXT).apply { addDataType("text/plain") })
-        assertEquals(app.foundwith.ui.TruecallerRoute.SEARCH, context.searchInTruecaller("+919845077120"))
-        val started = org.robolectric.Shadows.shadowOf(app).nextStartedActivity
+        assertEquals(TruecallerRoute.SEARCH, context.searchInTruecaller("+919845077120"))
+        val started = org.robolectric.Shadows.shadowOf(application).nextStartedActivity
         assertEquals(android.content.Intent.ACTION_PROCESS_TEXT, started.action)
         assertEquals("com.truecaller", started.`package`)
         assertEquals("9845077120", started.getStringExtra(android.content.Intent.EXTRA_PROCESS_TEXT))
