@@ -36,6 +36,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
@@ -704,7 +705,7 @@ fun CardButtons(e164: String, callBack: Boolean) {
         if (callBack) {
             androidx.compose.material3.OutlinedButton(onClick = { context.dial(e164) }, modifier = Modifier.weight(1f).height(48.dp),
                 shape = RoundedCornerShape(24.dp)) {
-                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.Call, contentDescription = null)
+                androidx.compose.material3.Icon(Icons.Filled.Call, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("Call back", maxLines = 1)
             }
