@@ -180,6 +180,8 @@ Order on screen (22 Nov 2026): who it is, with a copy icon beside the number →
 | You know none | Found with 12 people | 12 people have this number · You don't know any of them |
 | Only you | Only you have this number | No one else on WhoHas has this number yet |
 | No one | Found with no one yet | No one on WhoHas has this number yet |
+| While looking it up | (said "No one…" until the answer came) | ⟳ **Checking…** (a card opened from a call's notification shows the notification's count straight away, with no second lookup) |
+| Couldn't look it up | | **Couldn't check this number** · under the number: No internet. Connect and try again. / Today's searches are over. Try again tomorrow. (never "No one has it") |
 | Your own number | Found with … | **23 people have your number** · You know 6 of them · **Invite friends** · How popular your number is: [Popular] and its why line |
 | How popular it is (section title, under the buttons) | Many people have this number | A box: This number **[Highly popular]** · You **[Not popular]** · **More popular than your number. 2 more people and you catch up.** / **Same level as your number.** / **Your number is ahead of this one.** |
 | Today | Today: 3 more people · now a Popular number | **+3 today** |

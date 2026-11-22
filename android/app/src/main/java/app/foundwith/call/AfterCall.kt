@@ -182,6 +182,9 @@ object AfterCall {
                                    baseline: Map<String, Int>, blocked: Set<String>): CallerInfo {
         val graph = context.graph
         val result = graph.api.lookup(e164, "call")
+        // The card opened from the notification shows this same result, without looking again.
+        graph.lookups[e164] = result
+        runCatching { graph.store.saveCallLookup(e164, result) }
         val names = (result.known).map { holder ->
             val label = holder.contactRef?.let { graph.store.index().byRef[it] }
             Naming.person(label?.name, holder.name, label?.e164)

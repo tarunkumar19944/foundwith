@@ -1,5 +1,7 @@
 package app.foundwith.device
 
+import app.foundwith.data.LookupResult
+import kotlinx.coroutines.runBlocking
 import android.Manifest
 import android.app.Application
 import android.app.NotificationManager
@@ -145,5 +147,18 @@ class NotificationsTest {
         assertFalse(store.levelReachedRecently(System.currentTimeMillis()))
         store.levelReachedAt = System.currentTimeMillis() - 1000
         assertTrue(store.levelReachedRecently(System.currentTimeMillis()))
+    }
+
+    @Test
+    fun aCallsLookupIsKeptForItsCardForOneDay() = runBlocking {
+        val store = LocalStore(context)
+        val now = 1_800_000_000_000L
+        assertNull(store.callLookup("+917760934418", now))
+        store.saveCallLookup("+917760934418", LookupResult(ref = "r", number = "+917760934418", total = 1), now)
+        assertEquals(1, store.callLookup("+917760934418", now + 60_000)?.result?.total)    // what the notification said
+        assertNull(store.callLookup("+917760934418", now + 25 * 3_600_000L))                // gone after a day
+        for (i in 0 until 55) store.saveCallLookup("+9177600%05d".format(i), LookupResult(ref = "r$i", number = "x", total = i), now + i)
+        assertNull(store.callLookup("+917760000004", now + 100))                            // only the last 50 are kept
+        assertEquals(54, store.callLookup("+917760000054", now + 100)?.result?.total)
     }
 }

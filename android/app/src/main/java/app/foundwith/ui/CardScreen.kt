@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -85,6 +86,9 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var looked by remember { mutableStateOf(graph.lookups[e164]) }
+    // True from the first frame while the number is being looked up, so the card never says
+    // "No one has this number" before the answer is in.
+    var checking by remember { mutableStateOf(!state.isMine(e164) && state.cardFor(e164) == null && looked == null) }
     var problem by remember { mutableStateOf<String?>(null) }
     var showMeaning by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
@@ -100,15 +104,25 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
     // A number with no card yet (nobody else has it, or it was never on this phone): ask once,
     // for its name and whether its owner is on WhoHas.
     LaunchedEffect(e164) {
-        if (mine || state.cardFor(e164) != null || looked != null) return@LaunchedEffect
+        if (mine || state.cardFor(e164) != null || looked != null) { checking = false; return@LaunchedEffect }
+        // Opened from a call's notification: show what the notification said, without looking again.
+        val kept = graph.store.callLookup(e164)
+        if (kept != null) {
+            graph.lookups[e164] = kept.result
+            looked = kept.result
+            checking = false
+            if (System.currentTimeMillis() - kept.at <= KEPT_FRESH_MS) return@LaunchedEffect
+        }
         try {
             val result: LookupResult = graph.api.lookup(e164, if (onPhone) "call" else "search")
             graph.lookups[e164] = result
             looked = result
         } catch (e: OfflineException) {
-            problem = "No internet. This shows what WhoHas knew last."
+            problem = if (looked != null) "No internet. This shows what WhoHas knew last." else "No internet. Connect and try again."
         } catch (e: ApiException) {
             problem = if (e.code == "quota_exceeded") "Today's searches are over. Try again tomorrow." else e.message
+        } finally {
+            checking = false
         }
     }
 
@@ -206,7 +220,17 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                 WhCard(padding = 4.dp) {
                     Column(Modifier.fillMaxWidth().clickable { showMeaning = true }.padding(14.dp),
                         verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (total <= 0) {
+                        if (card == null && !mine && (checking || problem != null)) {
+                            // Still looking, or the look failed: never claim that no one has it.
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (checking) {
+                                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                                    Spacer(Modifier.width(10.dp))
+                                }
+                                Text(if (checking) "Checking…" else "Couldn't check this number",
+                                    style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                            }
+                        } else if (total <= 0) {
                             Text(when {
                                 mine -> "No one on WhoHas has your number yet"
                                 saved -> HolderText.NO_ONE_ELSE
@@ -380,3 +404,6 @@ private fun MeaningRow(title: String, text: String) {
         Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+/** A lookup kept from a call's notification is shown as it is for 30 minutes; after that the card refreshes it. */
+private const val KEPT_FRESH_MS = 30 * 60 * 1000L

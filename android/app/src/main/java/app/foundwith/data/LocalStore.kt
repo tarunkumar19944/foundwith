@@ -13,6 +13,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.builtins.MapSerializer
+import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -80,6 +82,10 @@ private data class SnapshotFile(val contacts: List<String> = emptyList(), @Seria
  * Small settings live in SharedPreferences; cards, labels and the sync snapshot in JSON files
  * written atomically.
  */
+/** A lookup kept for a call's card, with when it was made. */
+@Serializable
+data class SavedLookup(val at: Long, val result: LookupResult)
+
 class LocalStore(context: Context) {
     private val dir = File(context.filesDir, "foundwith").apply { mkdirs() }
     private val prefs = context.getSharedPreferences("foundwith", Context.MODE_PRIVATE)
@@ -325,9 +331,27 @@ class LocalStore(context: Context) {
 
     suspend fun clearSnapshot() = lock.withLock { withContext(Dispatchers.IO) { File(dir, "snapshot.json").delete() } }
 
+    /**
+     * The lookup made for a call's notification, so tapping the notification opens the card with the
+     * same count straight away instead of looking the number up again. The last 50, for one day.
+     */
+    suspend fun callLookup(e164: String, now: Long = System.currentTimeMillis()): SavedLookup? =
+        read(CALL_LOOKUPS, savedLookups)?.get(e164)?.takeIf { now - it.at in 0..CALL_LOOKUP_KEEP_MS }
+
+    suspend fun saveCallLookup(e164: String, result: LookupResult, now: Long = System.currentTimeMillis()) {
+        val kept = read(CALL_LOOKUPS, savedLookups).orEmpty().filter { (k, v) -> k != e164 && now - v.at in 0..CALL_LOOKUP_KEEP_MS }
+        val all = (kept.entries.sortedBy { it.value.at }.map { it.key to it.value } + (e164 to SavedLookup(now, result))).takeLast(MAX_CALL_LOOKUPS)
+        write(CALL_LOOKUPS, savedLookups, all.toMap())
+    }
+
+    private val savedLookups = MapSerializer(String.serializer(), SavedLookup.serializer())
+
     private companion object {
         private const val MAX_TOLD = 200
         const val MAX_HANDLED = 1000
+        const val CALL_LOOKUPS = "call_lookups.json"
+        const val MAX_CALL_LOOKUPS = 50
+        const val CALL_LOOKUP_KEEP_MS = 24 * 60 * 60 * 1000L
     }
 
     /** Forget everything: used when the person signs out or deletes their account. */
