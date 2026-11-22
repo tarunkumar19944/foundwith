@@ -337,7 +337,6 @@ fun HelpScreen(onBack: () -> Unit, onHowItWorks: () -> Unit) {
         SettingRow(Icons.Filled.Email, "Write to us", HELP_EMAIL) { context.email(HELP_EMAIL) }
         if (DELETE_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Delete my account without the app") { context.openUrl(DELETE_URL) }
         if (PRIVACY_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Privacy policy") { context.openUrl(PRIVACY_URL) }
-        if (PRIVACY_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Terms") { context.openUrl(PRIVACY_URL.replace("privacy", "terms")) }
         Text("Version ${BuildConfig.VERSION_NAME}", style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(20.dp))
     }
