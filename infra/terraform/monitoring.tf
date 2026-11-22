@@ -2,7 +2,7 @@
 
 resource "google_monitoring_notification_channel" "email" {
   count        = var.alert_email == "" ? 0 : 1
-  display_name = "Found With alerts"
+  display_name = "WhoHas alerts"
   type         = "email"
   labels = {
     email_address = var.alert_email
@@ -15,7 +15,7 @@ locals {
 }
 
 resource "google_monitoring_uptime_check_config" "api" {
-  display_name = "Found With API ready"
+  display_name = "WhoHas API ready"
   timeout      = "10s"
   period       = "300s"
 
@@ -36,7 +36,7 @@ resource "google_monitoring_uptime_check_config" "api" {
 }
 
 resource "google_monitoring_alert_policy" "api_down" {
-  display_name          = "Found With API is down"
+  display_name          = "WhoHas API is down"
   combiner              = "OR"
   notification_channels = local.alert_channels
 
@@ -59,7 +59,7 @@ resource "google_monitoring_alert_policy" "api_down" {
 }
 
 resource "google_monitoring_alert_policy" "api_errors" {
-  display_name          = "Found With API server errors"
+  display_name          = "WhoHas API server errors"
   combiner              = "OR"
   notification_channels = local.alert_channels
 
@@ -81,7 +81,7 @@ resource "google_monitoring_alert_policy" "api_errors" {
 }
 
 resource "google_monitoring_alert_policy" "api_latency" {
-  display_name          = "Found With API is slow"
+  display_name          = "WhoHas API is slow"
   combiner              = "OR"
   notification_channels = local.alert_channels
 
@@ -103,7 +103,7 @@ resource "google_monitoring_alert_policy" "api_latency" {
 }
 
 resource "google_monitoring_alert_policy" "db_cpu" {
-  display_name          = "Found With database CPU high"
+  display_name          = "WhoHas database CPU high"
   combiner              = "OR"
   notification_channels = local.alert_channels
 
@@ -134,7 +134,7 @@ resource "google_logging_metric" "lookup_latency" {
     metric_kind  = "DELTA"
     value_type   = "DISTRIBUTION"
     unit         = "ms"
-    display_name = "Found With lookup latency"
+    display_name = "WhoHas lookup latency"
   }
 
   value_extractor = "EXTRACT(jsonPayload.latency_ms)"
@@ -148,27 +148,59 @@ resource "google_logging_metric" "lookup_latency" {
   }
 }
 
+# How many lookups were made: the slow-lookup alert needs real traffic before it can fire.
+resource "google_logging_metric" "lookup_count" {
+  name   = "found_with/lookup_count"
+  filter = google_logging_metric.lookup_latency.filter
+
+  metric_descriptor {
+    metric_kind  = "DELTA"
+    value_type   = "INT64"
+    unit         = "1"
+    display_name = "WhoHas lookups"
+  }
+}
+
+# Fires only when lookups are really slow AND there are enough of them for the 95th percentile to
+# mean something. With a handful of lookups, one slightly slow one used to fire it (22 Nov 2026:
+# two lookups, 283 ms and 59 ms, read as 317 ms through the histogram buckets).
 resource "google_monitoring_alert_policy" "lookup_latency" {
-  display_name          = "Found With lookups are slow"
-  combiner              = "OR"
+  display_name          = "WhoHas lookups are slow"
+  combiner              = "AND"
   notification_channels = local.alert_channels
 
   documentation {
-    content = "The incoming-call panel has a few seconds to show anything. Check Cloud SQL CPU and connections, and whether instances are cold-starting (api_min_instances)."
+    content = "Lookups have been slow (95th percentile above 800 ms) with real traffic (more than 30 lookups in 5 minutes) for 10 minutes. The notification after a call waits for a lookup. Check Cloud SQL CPU and connections, and whether instances are cold-starting (api_min_instances)."
   }
 
   conditions {
-    display_name = "95th percentile lookup above 300 ms for 10 minutes"
+    display_name = "95th percentile lookup above 800 ms for 10 minutes"
     condition_threshold {
       filter          = "metric.type = \"logging.googleapis.com/user/${google_logging_metric.lookup_latency.name}\" AND resource.type = \"cloud_run_revision\""
       comparison      = "COMPARISON_GT"
-      threshold_value = 300
+      threshold_value = 800
       duration        = "600s"
 
       aggregations {
         alignment_period     = "300s"
         per_series_aligner   = "ALIGN_PERCENTILE_95"
         cross_series_reducer = "REDUCE_MAX"
+      }
+    }
+  }
+
+  conditions {
+    display_name = "More than 30 lookups in 5 minutes"
+    condition_threshold {
+      filter          = "metric.type = \"logging.googleapis.com/user/${google_logging_metric.lookup_count.name}\" AND resource.type = \"cloud_run_revision\""
+      comparison      = "COMPARISON_GT"
+      threshold_value = 30
+      duration        = "600s"
+
+      aggregations {
+        alignment_period     = "300s"
+        per_series_aligner   = "ALIGN_SUM"
+        cross_series_reducer = "REDUCE_SUM"
       }
     }
   }
