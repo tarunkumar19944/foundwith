@@ -229,6 +229,7 @@ jobs:
             gcloud storage cp "$device/**.png" "$dir/" >/dev/null 2>&1 || true
           done
           (cd "$out" && zip -qr "$RUNNER_TEMP/screens.zip" .) || exit 0
-          gh release delete test-screens --yes --cleanup-tag 2>/dev/null || true
-          gh release create test-screens "$RUNNER_TEMP/screens.zip" --prerelease --target "$GITHUB_SHA" \
+          # Keep the tag: re-creating it on an older commit than main is refused when workflow files changed since.
+          gh release delete test-screens --yes 2>/dev/null || true
+          gh release create test-screens "$RUNNER_TEMP/screens.zip" --prerelease --target main \
             --title "Phone test screenshots ${GITHUB_SHA::7}" --notes "Screenshots from the latest phone tests (run $GITHUB_RUN_ID), one folder per device."
