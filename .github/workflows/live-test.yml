@@ -45,3 +45,18 @@ jobs:
           gcloud secrets versions access latest --project=whohas-prod-515506 --secret=found-with-test-accounts > "$RUNNER_TEMP/live.json"
           rm -f "$GOOGLE_APPLICATION_CREDENTIALS"
           python3 tests/live/e2e.py "$RUNNER_TEMP/live.json"
+
+      - name: Public pages on whohas-app.web.app
+        run: |
+          set -eu
+          base=https://whohas-app.web.app
+          check() {  # path, words the page must contain
+            body=$(curl -fsS --max-time 30 "$base$1") || { echo "::error::$base$1 didn't load"; exit 1; }
+            echo "$body" | grep -q "$2" || { echo "::error::$base$1 doesn't say: $2"; exit 1; }
+            echo "ok  $base$1"
+          }
+          check / "Unknown number calling?"
+          check /privacy "Privacy policy"
+          check /delete "Delete your WhoHas account"
+          check /i/ABCDEFGH "invited"
+          if curl -fsS --max-time 30 "$base/" | grep -qi "found-with"; then echo "::error::home page still says found-with"; exit 1; fi
