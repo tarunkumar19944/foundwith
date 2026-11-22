@@ -71,7 +71,7 @@ jobs:
           -Pfoundwith.versionCode=${{ github.run_number }}
           -Pfoundwith.versionName=1.0.${{ github.run_number }}
           -Pfoundwith.apiUrl=$API_URL
-          -Pfoundwith.privacyUrl=$API_URL/privacy
+          -Pfoundwith.publicUrl=https://whohas-app.web.app
           -Pwhohas.uploadKeystore=$RUNNER_TEMP/upload.jks
           -Pwhohas.uploadPassword=$UPLOAD_PASSWORD
 

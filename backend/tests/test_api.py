@@ -393,3 +393,17 @@ def test_invite_link_circle_and_redeem(client):
     again = client.post("/v1/me/invite/redeem", json={"code": code}, headers=as_user(RAVI))
     assert again.status_code == 409 and error_code(again) == "invite_rejected"
     assert client.get("/v1/me/circle", headers=as_user(ARJUN)).json()["members"] == 1
+
+
+def test_public_address_for_links_and_a_home_page(db, settings, identity):
+    """Invite links use the public address (whohas-app.web.app) when one is set; / is a home page."""
+    import dataclasses
+    public = dataclasses.replace(settings, public_url="https://whohas-app.web.app")
+    app = create_app(public, db=db, verifier=DevVerifier(), identity=identity, configure_logging=False)
+    with TestClient(app) as c:
+        join(c, ARJUN, "Arjun Rao", contacts=[RAVI])
+        link = c.get("/v1/me/circle", headers=as_user(ARJUN)).json()["invite"]["link"]
+        assert link.startswith("https://whohas-app.web.app/i/")
+        home = c.get("/")
+        assert home.status_code == 200 and "Unknown number calling?" in home.text
+        assert 'href="/privacy"' in home.text and "found-with" not in home.text

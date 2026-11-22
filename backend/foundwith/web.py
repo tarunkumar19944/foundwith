@@ -128,7 +128,7 @@ _OUT_BODY = """
   <h1 class="done">Done. Your number is removed.</h1>
   <p>People on WhoHas won't see who has it, now or later.</p>
 </section>
-<section id="s-off" hidden><h1>This page isn't ready yet</h1><p>Write to help@found-with.app to remove your number.</p></section>
+<section id="s-off" hidden><h1>This page isn't ready yet</h1><p>Write to us at the contact address on our Google Play listing to remove your number.</p></section>
 <div id="recaptcha"></div>
 """
 
@@ -257,7 +257,7 @@ _DELETE_BODY = """
   <h1>No WhoHas account uses this number</h1>
   <p>There is nothing to delete. To stop your number showing to people on WhoHas, use <a href="/out">Remove your number</a>.</p>
 </section>
-<section id="s-off" hidden><h1>This page isn't ready yet</h1><p>Write to help@found-with.app to delete your account.</p></section>
+<section id="s-off" hidden><h1>This page isn't ready yet</h1><p>Write to us at the contact address on our Google Play listing to delete your account.</p></section>
 <div id="recaptcha"></div>
 """
 
@@ -425,6 +425,22 @@ can't be dodged by deleting and joining again. If the account had been suspended
 <p>If we change this policy, we update it here and change the date at the top. Big changes are shown in the app before they
 apply.</p>
 """
+
+
+async def home_page(request: Request) -> HTMLResponse:
+    """The public home page (whohas-app.web.app/): what WhoHas is, and where to read more."""
+    settings = request.app.state.settings
+    email = html.escape(settings.contact_email)
+    write = f'<p>Questions: <a href="mailto:{email}">{email}</a></p>' if email else ""
+    body = (
+        "<h1>WhoHas</h1>"
+        "<p>Unknown number calling? See which of your people have that number, so you can ask them who it is. "
+        "People you know are shown by name; everyone else is a count. On Android.</p>"
+        f'<p><a href="{html.escape(settings.play_store_url)}">Get it on Google Play</a></p>'
+        f"{write}"
+        '<p><a href="/privacy">Privacy policy</a> · <a href="/delete">Delete your account</a></p>'
+    )
+    return _page("WhoHas", body)
 
 
 async def privacy_page(request: Request) -> HTMLResponse:

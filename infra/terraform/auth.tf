@@ -34,6 +34,7 @@ resource "google_identity_platform_config" "auth" {
   # auth_extra_domains only while testing a web page locally.
   authorized_domains = concat(
     ["${var.project_id}.firebaseapp.com", "${var.project_id}.web.app",
+      "${var.public_site_id}.web.app", "${var.public_site_id}.firebaseapp.com",
     trimprefix(google_cloud_run_v2_service.api.uri, "https://")],
     var.auth_extra_domains,
   )

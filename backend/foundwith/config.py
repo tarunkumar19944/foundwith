@@ -120,6 +120,9 @@ class Settings:
     # Who runs WhoHas, for the privacy policy (/privacy) and the web pages.
     publisher_name: str = ""
     contact_email: str = ""
+    # The public address people see: invite links, /privacy, /delete (Firebase Hosting in front of
+    # this service, e.g. https://whohas-app.web.app). Empty: the address the request came to.
+    public_url: str = ""
 
     # The opt-out web page signs people in with Identity Platform's web SDK.
     firebase_web_api_key: str = ""
@@ -176,6 +179,7 @@ class Settings:
             firebase_auth_domain=env.get("FIREBASE_AUTH_DOMAIN", ""),
             publisher_name=env.get("PUBLISHER_NAME", "").strip(),
             contact_email=env.get("CONTACT_EMAIL", "").strip(),
+            public_url=env.get("PUBLIC_URL", "").strip().rstrip("/"),
             **values,  # type: ignore[arg-type]
         )
         settings.validate(require_pepper=for_api)

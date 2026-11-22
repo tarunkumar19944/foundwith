@@ -205,7 +205,9 @@ async def get_holders(request: Request, svc: Service, ident: Identity, user: Row
 
 
 async def get_circle(request: Request, svc: Service, ident: Identity, user: Row) -> Response:
-    return JSONResponse(await svc.circle(user, str(request.base_url)))
+    # Invite links use the public address (whohas-app.web.app), not this service's own.
+    base = request.app.state.settings.public_url or str(request.base_url)
+    return JSONResponse(await svc.circle(user, base))
 
 
 async def redeem_invite(request: Request, svc: Service, ident: Identity, user: Row) -> Response:
@@ -475,6 +477,7 @@ def create_app(settings: Settings | None = None, *, db: Database | None = None, 
         Route("/out", web.opt_out_page, methods=["GET"]),
         Route("/delete", web.delete_page, methods=["GET"]),
         Route("/privacy", web.privacy_page, methods=["GET"]),
+        Route("/", web.home_page, methods=["GET"]),
         Route("/v1/me/device", signed_in(put_device), methods=["PUT"]),
         Route("/v1/me/device", signed_in(delete_device, allow_suspended=True), methods=["DELETE"]),
         Route("/v1/me/data", signed_in(get_my_data, allow_suspended=True), methods=["GET"]),

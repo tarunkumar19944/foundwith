@@ -164,6 +164,12 @@ variable "contact_email" {
   default     = ""
 }
 
+variable "public_site_id" {
+  description = "Firebase Hosting site for the public address: invite links, /privacy, /delete (whohas.web.app is taken)."
+  type        = string
+  default     = "whohas-app"
+}
+
 variable "android_package" {
   description = "The Android app ID (applicationId). Permanent once uploaded to Google Play; must match android/app/build.gradle.kts."
   type        = string

@@ -110,7 +110,7 @@ jobs:
       - name: Build debug APKs
         env:
           API_URL: ${{ vars.FOUNDWITH_API_URL || 'https://found-with-api-lg62ek6lma-el.a.run.app' }}
-        run: ./gradlew --no-daemon assembleFullDebug assembleContactsOnlyDebug -Pfoundwith.versionCode=${{ github.run_number }} ${API_URL:+-Pfoundwith.apiUrl=$API_URL} ${DEBUG_KEYSTORE:+-Pfoundwith.debugKeystore=$DEBUG_KEYSTORE}
+        run: ./gradlew --no-daemon assembleFullDebug assembleContactsOnlyDebug -Pfoundwith.versionCode=${{ github.run_number }} -Pfoundwith.publicUrl=https://whohas-app.web.app ${API_URL:+-Pfoundwith.apiUrl=$API_URL} ${DEBUG_KEYSTORE:+-Pfoundwith.debugKeystore=$DEBUG_KEYSTORE}
 
       - name: Lint (report only)
         continue-on-error: true
@@ -141,7 +141,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: found-with-debug-apks
+          name: whohas-debug-apks
           path: android/app/build/outputs/apk/**/*.apk
           retention-days: 14
 
@@ -156,21 +156,21 @@ jobs:
           if-no-files-found: ignore
 
       # A stable download link for phones: the latest main build, replaced on every push.
-      # https://github.com/<owner>/<repo>/releases/download/test-build/found-with-test.apk
+      # https://github.com/<owner>/<repo>/releases/download/test-build/whohas-test.apk
       - name: Publish test build
         if: success() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          cp "$(find app/build/outputs/apk/full -name '*.apk' | head -1)" found-with-test.apk
-          cp "$(find app/build/outputs/apk/contactsOnly -name '*.apk' | head -1)" found-with-test-contacts-only.apk
+          cp "$(find app/build/outputs/apk/full -name '*.apk' | head -1)" whohas-test.apk
+          cp "$(find app/build/outputs/apk/contactsOnly -name '*.apk' | head -1)" whohas-test-contacts-only.apk
           # Refuse to publish an APK that SMS sign-in would reject.
           apksigner="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)/apksigner"
-          signer=$("$apksigner" verify --print-certs found-with-test.apk | grep -m1 "SHA-1 digest" | awk '{print $NF}')
+          signer=$("$apksigner" verify --print-certs whohas-test.apk | grep -m1 "SHA-1 digest" | awk '{print $NF}')
           echo "Signed with SHA-1 $signer"
           [ "$signer" = "f0d83ac3dce3ae06b642e4f0ffe7526572d6a2a7" ] || { echo "::error::APK isn't signed with the project's debug key"; exit 1; }
           gh release delete test-build --yes --cleanup-tag 2>/dev/null || true
-          gh release create test-build found-with-test.apk found-with-test-contacts-only.apk \
+          gh release create test-build whohas-test.apk whohas-test-contacts-only.apk \
             --prerelease --target "$GITHUB_SHA" --title "Test build ${GITHUB_SHA::7}" \
-            --notes "Latest test build from main (${GITHUB_SHA::7}, build ${{ github.run_number }}). It talks to the live server. On your phone, install found-with-test.apk. found-with-test-contacts-only.apk is the Google Play version, without the call log."
+            --notes "Latest test build from main (${GITHUB_SHA::7}, build ${{ github.run_number }}). It talks to the live server. On your phone, install whohas-test.apk. whohas-test-contacts-only.apk is the Google Play version, without the call log."

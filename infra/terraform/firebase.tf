@@ -59,6 +59,36 @@ data "google_firebase_web_app_config" "web" {
 # falls back to (a reCAPTCHA check) when Google Play can't vouch for the app, as with test builds
 # installed from a link. Enabling the Hosting API creates it (terraform import it if so). Its home
 # page is web/hosting/index.html.
+# The public address people see: https://whohas-app.web.app. Every path goes to the API service,
+# which serves the home page (/), invite links (/i/CODE), /privacy, /delete and /out.
+resource "google_firebase_hosting_site" "public" {
+  provider   = google-beta
+  project    = var.project_id
+  site_id    = var.public_site_id
+  depends_on = [google_firebase_project.main, google_project_service.firebase]
+}
+
+resource "google_firebase_hosting_version" "public" {
+  provider = google-beta
+  site_id  = google_firebase_hosting_site.public.site_id
+  config {
+    rewrites {
+      glob = "**"
+      run {
+        service_id = google_cloud_run_v2_service.api.name
+        region     = var.region
+      }
+    }
+  }
+}
+
+resource "google_firebase_hosting_release" "public" {
+  provider     = google-beta
+  site_id      = google_firebase_hosting_site.public.site_id
+  version_name = google_firebase_hosting_version.public.name
+  message      = "Every path to the WhoHas API"
+}
+
 resource "google_firebase_hosting_site" "default" {
   provider   = google-beta
   project    = var.project_id

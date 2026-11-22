@@ -18,7 +18,10 @@ val devSignIn: Boolean = providers.gradleProperty("foundwith.devSignIn").getOrEl
 val appVersionCode: Int = providers.gradleProperty("foundwith.versionCode").getOrElse("1").toInt()
 val appVersionName: String = providers.gradleProperty("foundwith.versionName").getOrElse("1.0.0")
 // Google Play requires a privacy policy link inside the app as well as on the store listing.
-val privacyUrl: String = providers.gradleProperty("foundwith.privacyUrl").getOrElse("").trim()
+// The public address people see (Firebase Hosting in front of the API): /privacy and /delete live there.
+val publicUrl: String = providers.gradleProperty("foundwith.publicUrl").getOrElse("").trim().trimEnd('/')
+val privacyUrl: String = providers.gradleProperty("foundwith.privacyUrl")
+    .getOrElse(if (publicUrl.startsWith("https://")) "$publicUrl/privacy" else "").trim()
 // The project's shared debug key (CI passes it), so every test APK has the fingerprint registered in
 // Firebase for SMS sign-in. Without it, debug builds use this computer's own debug key.
 val sharedDebugKeystore: String? = providers.gradleProperty("foundwith.debugKeystore").orNull
@@ -59,6 +62,7 @@ android {
 
         buildConfigField("String", "API_BASE_URL", "\"$apiUrl\"")
         buildConfigField("String", "PRIVACY_URL", "\"$privacyUrl\"")
+        buildConfigField("String", "PUBLIC_URL", "\"$publicUrl\"")
         // The consent text in the app is written for this version of the server's terms.
         buildConfigField("String", "CONSENT_VERSION", "\"2026-11-16\"")
         buildConfigField("boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString())
