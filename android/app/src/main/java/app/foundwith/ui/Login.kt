@@ -1,10 +1,8 @@
 package app.foundwith.ui
 
 import android.app.Activity
-import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -48,7 +46,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -64,7 +61,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.foundwith.AppGraph
@@ -72,9 +68,6 @@ import app.foundwith.BuildConfig
 import app.foundwith.core.PhoneNumbers
 import com.google.android.gms.auth.api.identity.GetPhoneNumberHintIntentRequest
 import com.google.android.gms.auth.api.identity.Identity
-import com.google.android.gms.auth.api.phone.SmsRetriever
-import com.google.android.gms.common.api.CommonStatusCodes
-import com.google.android.gms.common.api.Status
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.FirebaseTooManyRequestsException
@@ -85,22 +78,36 @@ import com.google.firebase.auth.PhoneAuthProvider
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.draw.alpha
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 
 /** Where sign-in stands. Each has its own screen. */
-enum class LoginStep { WELCOME, CHECKING, TYPE_NUMBER, NOT_HERE, CODE, TOO_MANY, NO_INTERNET }
+enum class LoginStep { WELCOME, TYPE_NUMBER, CODE, TOO_MANY, NO_INTERNET }
 
 /**
- * Sign-in works only with a SIM that's in this phone (agreed 17 Nov 2026). Android's own sheet
- * offers the SIMs in the phone; the SMS code is then accepted only when this phone reads it
- * itself, silently through Firebase or through Android's "Allow WhoHas to read this message?".
- * So the SMS has to land here. Typing a code by hand is allowed only in test builds and for the
- * one number Google Play's reviewers use ([BuildConfig.REVIEW_NUMBER]).
+ * Sign-in (22 Nov 2026): tapping a number in Android's sheet goes straight to "Enter the code"
+ * while the code is sent. No "Allow WhoHas to read this message?" prompt: the code fills in by
+ * itself when Google reads the SMS silently (Firebase's SMS Retriever), or from the keyboard's
+ * "From Messages" suggestion (Android's SMS-code autofill), or the person types it. After
+ * [CHECK_AFTER_MS] with no code, a gold "Check your messages for the code" box shows.
  */
 class LoginViewModel(private val graph: AppGraph) : ViewModel() {
     var step by mutableStateOf(LoginStep.WELCOME)
         private set
     var number by mutableStateOf("")
     var code by mutableStateOf("")
+        private set
     var error by mutableStateOf<String?>(null)
         private set
     var e164 by mutableStateOf<String?>(null)
@@ -109,11 +116,11 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
         private set
     var busy by mutableStateOf(false)
         private set
-    /** Waiting for the SMS on this phone through Android's consent prompt (up to 5 minutes). */
-    var listening by mutableStateOf(false)
+    /** Signing in with a full code (filled in or typed). */
+    var signingIn by mutableStateOf(false)
         private set
-    /** Goes up with every code sent, so the prompt starts listening afresh for each SMS. */
-    var listenRound by mutableIntStateOf(0)
+    /** No code yet [CHECK_AFTER_MS] after it was sent: show "Check your messages for the code". */
+    var checkMessages by mutableStateOf(false)
         private set
     /** The sheet opens by itself once, on the first screen. */
     var sheetShown = false
@@ -121,19 +128,18 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
     private var verificationId: String? = null
     private var resendToken: PhoneAuthProvider.ForceResendingToken? = null
     private var onSignedIn: (() -> Unit)? = null
+    private var checkTimer: Job? = null
+    /** Goes up with every code sent, so a late answer about an earlier send is ignored. */
+    private var round = 0
 
     fun bind(done: () -> Unit) {
         onSignedIn = done
     }
 
-    /** A code may be typed by hand only in test builds and for Play's review number. */
-    private fun canType(number: String?): Boolean =
-        BuildConfig.DEBUG || (BuildConfig.REVIEW_NUMBER.isNotBlank() && number == BuildConfig.REVIEW_NUMBER)
-
     /** The sheet was closed, offered no number, or the person wants a different one. */
     fun typeNumber() {
         error = null
-        listening = false
+        checkTimer?.cancel()
         step = LoginStep.TYPE_NUMBER
     }
 
@@ -161,26 +167,33 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
             step = LoginStep.TYPE_NUMBER
             return
         }
-        step = LoginStep.CHECKING
+        // Straight to the code screen: the code is sent meanwhile.
+        round += 1
+        code = ""
+        signingIn = false
+        checkMessages = false
+        checkTimer?.cancel()
+        verificationId = null
         busy = true
-        // Listen before sending: the SMS can arrive within a second or two. Firebase's own silent
-        // read needs an app code in the SMS that India's SMS often lacks; Android's "Allow WhoHas
-        // to read this message?" prompt works with any SMS that lands on this phone.
-        listenRound += 1
-        listening = true
-        graph.auth.sendCode(activity, parsed, resendToken, callbacks)
+        step = LoginStep.CODE
+        graph.auth.sendCode(activity, parsed, resendToken, Callbacks(round))
     }
 
-    private val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+    private inner class Callbacks(private val sent: Int) : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+        private val current get() = sent == round
+
         override fun onVerificationCompleted(credential: PhoneAuthCredential) {
-            // This phone read the code from the SMS itself (or Google checked the number on this phone).
-            listening = false
+            if (!current) return
+            // Google read the code from the SMS on this phone (or checked the number on this phone):
+            // show the code in the boxes, then sign in.
+            credential.smsCode?.let { code = it.take(CODE_LENGTH) }
             signIn { graph.auth.signIn(credential) }
         }
 
         override fun onVerificationFailed(e: FirebaseException) {
+            if (!current) return
             busy = false
-            listening = false
+            checkTimer?.cancel()
             when {
                 e is FirebaseTooManyRequestsException -> step = LoginStep.TOO_MANY
                 e is FirebaseNetworkException -> step = LoginStep.NO_INTERNET
@@ -198,23 +211,21 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
         }
 
         override fun onCodeSent(id: String, token: PhoneAuthProvider.ForceResendingToken) {
+            if (!current) return
             busy = false
             verificationId = id
             resendToken = token
             startResendTimer()
-            if (canType(e164)) {
-                // Test builds and the review number may also type the code (test numbers get no SMS).
-                // Android's prompt keeps listening meanwhile, so a real SMS still fills it in.
-                viewModelScope.launch {
-                    delay(if (BuildConfig.DEBUG) 6000 else 0)
-                    if (step == LoginStep.CHECKING) step = LoginStep.CODE
-                }
+            checkTimer = viewModelScope.launch {
+                delay(CHECK_AFTER_MS)
+                if (step == LoginStep.CODE && !signingIn) checkMessages = true
             }
+            // Typed (or filled in) before the send finished: check it now.
+            if (code.length == CODE_LENGTH) verifyCode()
         }
 
         override fun onCodeAutoRetrievalTimeOut(id: String) {
-            if (step != LoginStep.CHECKING) return
-            step = if (canType(e164)) LoginStep.CODE else LoginStep.NOT_HERE
+            if (current && step == LoginStep.CODE && !signingIn) checkMessages = true
         }
     }
 
@@ -228,32 +239,18 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
         }
     }
 
-    /** The code, read from an SMS that arrived on this phone (Android's consent prompt). */
-    fun codeFromThisPhone(digits: String) {
-        val id = verificationId ?: return
-        listening = false
-        code = digits
-        signIn { graph.auth.signInWithCode(id, digits) }
+    /** Every change to the code boxes: typed, pasted, or filled in from the SMS by the keyboard or Android. */
+    fun codeChanged(value: String) {
+        if (signingIn) return
+        code = value.filter { it.isDigit() }.take(CODE_LENGTH)
+        if (code.isNotEmpty()) error = null
+        if (code.length == CODE_LENGTH) verifyCode()
     }
 
-    /** Typed by hand: test builds and the review number only. */
-    fun verifyCode() {
-        val id = verificationId ?: return
-        if (!canType(e164)) return
-        val digits = code.filter { it.isDigit() }
-        if (digits.length != 6) {
-            error = "Enter the 6-digit code."
-            return
-        }
+    private fun verifyCode() {
+        val id = verificationId ?: return        // still sending: checked in onCodeSent
+        val digits = code
         signIn { graph.auth.signInWithCode(id, digits) }
-    }
-
-    fun changeNumber() {
-        code = ""
-        verificationId = null
-        error = null
-        listening = false
-        step = LoginStep.TYPE_NUMBER
     }
 
     fun tryAgain(activity: Activity?) {
@@ -262,36 +259,43 @@ class LoginViewModel(private val graph: AppGraph) : ViewModel() {
     }
 
     private fun signIn(block: suspend () -> Unit) {
-        busy = true
+        if (signingIn) return
+        signingIn = true
+        checkMessages = false
         viewModelScope.launch {
             try {
                 block()
+                checkTimer?.cancel()
                 finish()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: FirebaseAuthInvalidCredentialsException) {
                 error = "Wrong code. Check the SMS and try again."
-                step = if (canType(e164)) LoginStep.CODE else LoginStep.NOT_HERE
+                code = ""
             } catch (e: FirebaseTooManyRequestsException) {
                 step = LoginStep.TOO_MANY
             } catch (e: FirebaseNetworkException) {
                 step = LoginStep.NO_INTERNET
             } catch (e: Exception) {
                 error = withDetail("Something went wrong. Try again.", e)
-                step = if (canType(e164)) LoginStep.CODE else LoginStep.NOT_HERE
+                code = ""
             } finally {
-                busy = false
+                signingIn = false
             }
         }
     }
 
     private fun finish() {
-        listening = false
         viewModelScope.launch {
             // The account is created straight away, with no name; Home asks for the name later.
             runCatching { graph.model.refresh() }
             onSignedIn?.invoke()
         }
+    }
+
+    companion object {
+        const val CODE_LENGTH = 6
+        const val CHECK_AFTER_MS = 10_000L
     }
 }
 
@@ -324,42 +328,6 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
             vm.sheetShown = true
             openSheet()
         }
-    }
-
-    // Android's own "Allow WhoHas to read this message?" for the sign-in SMS. The SMS must land on
-    // this phone, so only a SIM in this phone can sign in.
-    val consent = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val message = result.data?.getStringExtra(SmsRetriever.EXTRA_SMS_MESSAGE).orEmpty()
-            Regex("""(?<!\d)(\d{6})(?!\d)""").find(message)?.groupValues?.get(1)?.let { vm.codeFromThisPhone(it) }
-        }
-    }
-    DisposableEffect(vm.listening, vm.listenRound, activity) {
-        val host = activity
-        if (!vm.listening || host == null) return@DisposableEffect onDispose {}
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(c: Context?, intent: Intent?) {
-                if (intent?.action != SmsRetriever.SMS_RETRIEVED_ACTION) return
-                @Suppress("DEPRECATION")
-                val status = intent.extras?.get(SmsRetriever.EXTRA_STATUS) as? Status ?: return
-                if (status.statusCode != CommonStatusCodes.SUCCESS) return
-                val ask: Intent? = if (Build.VERSION.SDK_INT >= 33) {
-                    intent.getParcelableExtra(SmsRetriever.EXTRA_CONSENT_INTENT, Intent::class.java)
-                } else {
-                    @Suppress("DEPRECATION") intent.getParcelableExtra(SmsRetriever.EXTRA_CONSENT_INTENT)
-                }
-                // Only ever open Google Play services' own prompt, and never pass on URI grants.
-                val target = ask?.resolveActivity(host.packageManager)
-                val grants = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-                if (ask != null && target?.packageName == "com.google.android.gms" && (ask.flags and grants) == 0) {
-                    runCatching { consent.launch(ask) }
-                }
-            }
-        }
-        runCatching { SmsRetriever.getClient(host).startSmsUserConsent(null) }
-        ContextCompat.registerReceiver(host, receiver, IntentFilter(SmsRetriever.SMS_RETRIEVED_ACTION),
-            SmsRetriever.SEND_PERMISSION, null, ContextCompat.RECEIVER_EXPORTED)
-        onDispose { runCatching { host.unregisterReceiver(receiver) } }
     }
 
     Column(
@@ -397,44 +365,10 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 PrimaryButton("Get started", { openSheet() })
-                Text("Use the number of a SIM in this phone.", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
-            }
-            LoginStep.CHECKING -> {
-                Text("Checking your SIM", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("We sent an SMS to ${vm.e164?.let { shown(it) }.orEmpty()}. WhoHas reads the code on this phone by itself.",
-                    style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Box(Modifier.fillMaxWidth().padding(vertical = 24.dp), contentAlignment = Alignment.Center) {
-                    Box(Modifier.size(120.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(Modifier.size(72.dp), strokeWidth = 4.dp)
-                        Icon(Icons.Filled.Email, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                    }
-                }
-                WhCard(Modifier.padding(horizontal = 0.dp)) {
-                    Row(verticalAlignment = Alignment.Top) {
-                        Icon(Icons.Filled.Info, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(10.dp))
-                        Text("If Android asks, tap Allow so WhoHas can read that one SMS.", style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-                ResendRow(vm, onResend = { vm.sendCode(activity) }, onChange = { openSheet() })
-            }
-            LoginStep.NOT_HERE -> {
-                Text("The code didn't reach this phone", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("WhoHas works only with a SIM that's in this phone. Check that the SIM for " +
-                    "${vm.e164?.let { shown(it) }.orEmpty()} is in this phone, then send the code again.",
-                    style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                ErrorText(vm.error)
-                PrimaryButton("Send again", { vm.sendCode(activity) }, enabled = !vm.busy && vm.resendIn == 0)
-                if (vm.resendIn > 0) Text("Send again in 0:${vm.resendIn.toString().padStart(2, '0')}",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.align(Alignment.CenterHorizontally))
-                OutlinedButton(onClick = { openSheet() }, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(26.dp)) {
-                    Text("Use another number")
-                }
             }
             LoginStep.TYPE_NUMBER -> {
                 Text("Your mobile number", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Text("Use the number of a SIM in this phone. We'll send it an SMS to check.",
+                Text("We'll send an SMS with a 6-digit code.",
                     style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(value = "+91", onValueChange = {}, enabled = false, modifier = Modifier.width(72.dp))
@@ -453,25 +387,20 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
                 PrimaryButton("Send code", { vm.sendCode(activity) }, enabled = !vm.busy)
             }
             LoginStep.CODE -> {
-                Text("Enter the 6-digit code", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Text("Enter the code", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Sent to ${vm.e164?.let { shown(it) }.orEmpty()}", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(onClick = { vm.changeNumber() }) { Text("Change number") }
+                    Text("Sent by SMS to ${vm.e164?.let { shown(it) }.orEmpty()} · ", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Change", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable { openSheet() }.padding(vertical = 12.dp))
                 }
-                OutlinedTextField(
-                    value = vm.code,
-                    onValueChange = { v -> vm.code = v.filter { it.isDigit() }.take(6); if (vm.code.length == 6) vm.verifyCode() },
-                    placeholder = { Text("6-digit code") },
-                    isError = vm.error != null,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                ErrorText(vm.error)
+                CodeBoxes(vm.code, enabled = !vm.signingIn, error = vm.error != null, onChange = vm::codeChanged)
+                CodeStatus(vm)
                 if (vm.resendIn > 0) {
-                    Text("Send again in 0:${vm.resendIn.toString().padStart(2, '0')}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Send again in 0:${vm.resendIn.toString().padStart(2, '0')}", style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    PrimaryButton("Send code again", { vm.sendCode(activity) }, enabled = !vm.busy)
+                    Text("Send code again", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable(enabled = !vm.busy && !vm.signingIn) { vm.sendCode(activity) }.padding(vertical = 12.dp))
                 }
             }
             LoginStep.TOO_MANY -> {
@@ -485,16 +414,96 @@ fun LoginScreen(graph: AppGraph, onDone: () -> Unit) {
     }
 }
 
+/**
+ * Six boxes over one number field. The field is marked as the SMS code for Android's autofill, so
+ * the keyboard or Google's autofill can offer the code from the SMS; a full code signs in at once.
+ */
+@OptIn(androidx.compose.ui.ExperimentalComposeUiApi::class)
 @Composable
-private fun ResendRow(vm: LoginViewModel, onResend: () -> Unit, onChange: () -> Unit) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        if (vm.resendIn > 0) {
-            Text("Send again in 0:${vm.resendIn.toString().padStart(2, '0')}", color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f))
-        } else {
-            TextButton(onClick = onResend, enabled = !vm.busy, modifier = Modifier.weight(1f)) { Text("Send code again") }
+internal fun CodeBoxes(code: String, enabled: Boolean, error: Boolean, onChange: (String) -> Unit) {
+    val focus = remember { FocusRequester() }
+    val autofill = androidx.compose.ui.platform.LocalAutofill.current
+    val node = remember {
+        androidx.compose.ui.autofill.AutofillNode(
+            autofillTypes = listOf(androidx.compose.ui.autofill.AutofillType.SmsOtpCode),
+            onFill = { onChange(it) },
+        )
+    }
+    androidx.compose.ui.platform.LocalAutofillTree.current += node
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    val gold = MaterialTheme.colorScheme.primary
+    val red = MaterialTheme.colorScheme.error
+    androidx.compose.foundation.text.BasicTextField(
+        value = code,
+        onValueChange = onChange,
+        enabled = enabled,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword, imeAction = ImeAction.Done),
+        modifier = Modifier.fillMaxWidth().focusRequester(focus)
+            .onGloballyPositioned { node.boundingBox = it.boundsInWindow() }
+            .onFocusChanged { state ->
+                autofill?.run { if (state.isFocused) requestAutofillForNode(node) else cancelAutofillForNode(node) }
+            }
+            .semantics { contentDescription = "6-digit code" },
+        decorationBox = { inner ->
+            Box {
+                // The real field sits underneath, invisible: the boxes show what's in it.
+                Box(Modifier.size(1.dp).alpha(0f)) { inner() }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    for (i in 0 until LoginViewModel.CODE_LENGTH) {
+                        val digit = code.getOrNull(i)?.toString().orEmpty()
+                        val current = i == code.length && enabled
+                        val edge = when {
+                            error -> red
+                            digit.isNotEmpty() || current -> gold
+                            else -> MaterialTheme.colorScheme.outlineVariant
+                        }
+                        Box(
+                            Modifier.weight(1f).height(58.dp)
+                                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(14.dp))
+                                .border(2.dp, edge, RoundedCornerShape(14.dp)),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (digit.isNotEmpty()) Text(digit, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                            else if (current) Box(Modifier.width(2.dp).height(26.dp).background(gold))
+                        }
+                    }
+                }
+            }
+        },
+    )
+}
+
+/** The line under the boxes: waiting, signing in, a wrong code, or the gold "Check your messages" box. */
+@Composable
+private fun CodeStatus(vm: LoginViewModel) = CodeStatus(vm.signingIn, vm.error, vm.checkMessages)
+
+@Composable
+internal fun CodeStatus(signingIn: Boolean, error: String?, checkMessages: Boolean) {
+    val muted = MaterialTheme.colorScheme.onSurfaceVariant
+    when {
+        signingIn -> Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+            Spacer(Modifier.width(10.dp))
+            Text("Signing you in…", color = muted)
         }
-        TextButton(onClick = onChange) { Text("Change number", fontWeight = FontWeight.Bold) }
+        error != null -> Text(error, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+        checkMessages -> Surface(
+            color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.primary,
+            shape = RoundedCornerShape(14.dp), border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary),
+            modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
+        ) {
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Email, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.width(10.dp))
+                Text("Check your messages for the code", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+        else -> Row(verticalAlignment = Alignment.CenterVertically) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+            Spacer(Modifier.width(10.dp))
+            Text("Waiting for the SMS. The code fills in by itself.", color = muted)
+        }
     }
 }
 

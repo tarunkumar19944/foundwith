@@ -23,6 +23,8 @@ import app.foundwith.core.Level
 import app.foundwith.core.NameSource
 import app.foundwith.core.ShownName
 import app.foundwith.ui.Avatar
+import app.foundwith.ui.CodeBoxes
+import app.foundwith.ui.CodeStatus
 import app.foundwith.ui.CompareBox
 import app.foundwith.ui.DeletedView
 import app.foundwith.ui.EmptyHero
@@ -150,5 +152,25 @@ class ScreensTest {
         shot("07-account-deleted") { Column(Modifier.padding(horizontal = 24.dp)) { DeletedView {} } }
         compose.onNodeWithText("Your account is deleted").assertExists()
         compose.onNodeWithText("Your number, name, contacts and call log numbers are gone from WhoHas.").assertExists()
+    }
+
+    @Test
+    fun signInCode() {
+        shot("08-sign-in-code") {
+            Column(Modifier.padding(horizontal = 24.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Text("Enter the code", style = MaterialTheme.typography.headlineSmall)
+                CodeBoxes("", enabled = true, error = false) {}
+                CodeStatus(signingIn = false, error = null, checkMessages = false)
+                CodeBoxes("482913", enabled = false, error = false) {}
+                CodeStatus(signingIn = true, error = null, checkMessages = false)
+                CodeBoxes("", enabled = true, error = false) {}
+                CodeStatus(signingIn = false, error = null, checkMessages = true)
+                CodeBoxes("", enabled = true, error = true) {}
+                CodeStatus(signingIn = false, error = "Wrong code. Check the SMS and try again.", checkMessages = false)
+            }
+        }
+        compose.onNodeWithText("Check your messages for the code").assertExists()
+        compose.onNodeWithText("Waiting for the SMS. The code fills in by itself.").assertExists()
+        compose.onNodeWithText("Signing you in…").assertExists()
     }
 }

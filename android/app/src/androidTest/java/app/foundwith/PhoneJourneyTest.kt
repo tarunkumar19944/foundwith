@@ -101,7 +101,7 @@ class PhoneJourneyTest {
         field().performTextInput(args.getString("fwNumber") ?: "9000000010")
         shot("02-number")
         tap("Send code")
-        waitFor("Enter the 6-digit code", 90_000)
+        waitFor("Enter the code", 90_000)
         shot("03-code")
         field().performTextInput(code!!)
         assertTrue("Home didn't open after the code", onHome(90_000))

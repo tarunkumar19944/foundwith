@@ -56,23 +56,23 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Benefit 3 | | **See who has your number** · Find out how many people have your number, and when it goes up. |
 | Contacts-only build | | Example: +91 98450 77120 · You searched this number · Known to Priya, Meena and 10 more · Headline line: **Search it. See which of your people know it.** · **Check any number** · Search a number that called you. See which people you know have it. · **See who has your contacts** · Each contact shows how many people on WhoHas have their number. · (Benefit 3 as above) |
 | Trust line | Never messages or calls your contacts. | WhoHas never messages or calls anyone. |
-| Buttons | Continue · Type your number | **Get started** (opens Android's number picker, which lists the SIMs in this phone) · under it: Use the number of a SIM in this phone. |
-| Number picker | (Android's own) | Android's sheet with SIM 1 and SIM 2. Picking one sends the code straight away. **None of the above** opens the number screen. |
+| Buttons | Continue · Type your number | **Get started** (opens Android's number picker, which lists the SIMs in this phone) |
+| Number picker | (Android's own) | Android's sheet with SIM 1 and SIM 2. Picking one goes straight to Enter the code while the code is sent. **None of the above** opens the number screen. |
 | Invited chip | A friend invited you | Priya invited you (name when known, else "A friend invited you") |
 | After sign-in, invited | (none) | **Priya and 2 others invited you** · 8 people on WhoHas have your number (names everyone who tapped Share for this number) |
 | After deleting | Your account is deleted. | A screen of its own: ✓ **Your account is deleted** · Your number, name, contacts and call log numbers are gone from WhoHas. · **Done** (contacts-only: Your number, name and contact numbers are gone from WhoHas.) |
-| Number screen (only after None of the above) | Your mobile number | **Your mobile number** · Use the number of a SIM in this phone. We'll send it an SMS to check. · Send code |
+| Number screen (only after None of the above) | Your mobile number | **Your mobile number** · We'll send an SMS with a 6-digit code. · Send code |
 | Wrong number | 10 digits, starting with 6, 7, 8 or 9. | Enter a 10-digit mobile number starting with 6, 7, 8 or 9. |
-| Sending | Checking +91 98450 31207 · Reading the code from the SMS… | Sending a code to +91 98450 31207… |
-| Code screen | Enter the code · Sent to … · Change | **Checking your SIM** · We sent an SMS to +91 98450 31207. WhoHas reads the code on this phone by itself. · If Android asks, tap **Allow** so WhoHas can read that one SMS. · Send again in 0:25 · Change number. No boxes to type the code. |
-| Code didn't reach (after 60 seconds) | (none) | **The code didn't reach this phone** · WhoHas works only with a SIM that's in this phone. Check that the SIM for +91 98450 31207 is in this phone, then send the code again. · Send again · Use another number |
-| Wrong code (test builds and the Play review number only) | That code doesn't match. Check the SMS. | Wrong code. Check the SMS and try again. |
+| Code screen (22 Nov) | Enter the code · Sent to … · Change | **Enter the code** · Sent by SMS to +91 98450 31207 · **Change** · six boxes, keyboard open · ⟳ Waiting for the SMS. The code fills in by itself. · Send again in 0:25 |
+| Code filled in | | the boxes fill with the code · ⟳ Signing you in… (no tap needed) |
+| No code after 10 seconds | | gold box: ✉ **Check your messages for the code** (the boxes stay ready to type) |
+| Wrong code | That code doesn't match. Check the SMS. | Wrong code. Check the SMS and try again. (red, under the boxes) |
 | Resend | Resend in 0:25 · Resend code | Send again in 0:25 · Send code again |
 | Too many tries | Too many tries · For safety, wait a while and try again. | Too many tries · Wait 15 minutes and try again. |
 | Couldn't send | We couldn't send the code. Try again. | Couldn't send the code. Try again in a minute. |
 | No internet | No internet · Connect and try again. | No internet · Connect and try again. |
 
-**Only a SIM in this phone.** The code is accepted only when this phone reads the SMS itself: first silently (Google Play services' SMS Retriever, through Firebase), else through Android's own "Allow WhoHas to read this message?" prompt, which starts listening before the code is sent, in every build. That proves the SIM is in this phone, because the SMS has to land here. A code typed by hand is not accepted, except in test builds and for the one number given to Google Play's reviewers. WhoHas keeps listening for 5 minutes, so an SMS that comes after the "didn't reach" screen still signs the person in.
+**The code fills in by itself (Y, 22 Nov).** No "Allow WhoHas to read this message?" prompt. Google reads the code silently when it can (Firebase's SMS Retriever); otherwise the keyboard or Google's autofill offers the code from the SMS (the field is marked as an SMS code); otherwise the person types it, helped by the gold "Check your messages for the code" box after 10 seconds. Typing is allowed for everyone, so sign-in no longer proves the SIM is in this phone (the 17 Nov rule): the SMS to that number is still needed.
 
 ## First time on Home
 
