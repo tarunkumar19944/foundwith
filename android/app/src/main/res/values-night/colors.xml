@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Facebook-style dark grey when the phone is in dark mode. -->
+    <color name="ink">#FFE4E6EB</color>
+    <color name="ground">#FF18191A</color>
+</resources>

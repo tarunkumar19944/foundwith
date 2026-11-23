@@ -39,7 +39,7 @@ object CallIcons {
     }
 }
 
-/** The symbol for a call, in the colour of its kind: red missed or rejected, green received, gold called, grey unanswered. */
+/** The symbol for a call, in the colour of its kind: red missed or rejected, green received, blue called, grey unanswered. */
 @Composable
 fun CallKindIcon(call: CallEvent, size: Dp = 40.dp) {
     val (icon, tint) = when (call.type) {

@@ -102,7 +102,7 @@ enum class LoginStep { WELCOME, TYPE_NUMBER, CODE, TOO_MANY, NO_INTERNET }
  * while the code is sent. No "Allow WhoHas to read this message?" prompt: the code fills in by
  * itself when Google reads the SMS silently (Firebase's SMS Retriever), or from the keyboard's
  * "From Messages" suggestion (Android's SMS-code autofill), or the person types it. After
- * [CHECK_AFTER_MS] with no code, a gold "Check your messages for the code" box shows.
+ * [CHECK_AFTER_MS] with no code, a blue "Check your messages for the code" box shows.
  */
 class LoginViewModel(private val graph: AppGraph) : ViewModel() {
     var step by mutableStateOf(LoginStep.WELCOME)
@@ -434,7 +434,7 @@ internal fun CodeBoxes(code: String, enabled: Boolean, error: Boolean, onChange:
     }
     androidx.compose.ui.platform.LocalAutofillTree.current += node
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    val gold = MaterialTheme.colorScheme.primary
+    val blue = MaterialTheme.colorScheme.primary
     val red = MaterialTheme.colorScheme.error
     androidx.compose.foundation.text.BasicTextField(
         value = code,
@@ -458,7 +458,7 @@ internal fun CodeBoxes(code: String, enabled: Boolean, error: Boolean, onChange:
                         val current = i == code.length && enabled
                         val edge = when {
                             error -> red
-                            digit.isNotEmpty() || current -> gold
+                            digit.isNotEmpty() || current -> blue
                             else -> MaterialTheme.colorScheme.outlineVariant
                         }
                         Box(
@@ -468,7 +468,7 @@ internal fun CodeBoxes(code: String, enabled: Boolean, error: Boolean, onChange:
                             contentAlignment = Alignment.Center,
                         ) {
                             if (digit.isNotEmpty()) Text(digit, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                            else if (current) Box(Modifier.width(2.dp).height(26.dp).background(gold))
+                            else if (current) Box(Modifier.width(2.dp).height(26.dp).background(blue))
                         }
                     }
                 }
@@ -477,7 +477,7 @@ internal fun CodeBoxes(code: String, enabled: Boolean, error: Boolean, onChange:
     )
 }
 
-/** The line under the boxes: waiting, signing in, a wrong code, or the gold "Check your messages" box. */
+/** The line under the boxes: waiting, signing in, a wrong code, or the blue "Check your messages" box. */
 @Composable
 private fun CodeStatus(vm: LoginViewModel) = CodeStatus(vm.signingIn, vm.error, vm.checkMessages)
 

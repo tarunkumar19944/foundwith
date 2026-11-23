@@ -368,7 +368,7 @@ class AppModel(private val graph: AppGraph) {
      * Counts already told about after a call are left out.
      */
     private fun notifyChanges(old: ChangeLog, updated: ChangeLog, mine: Card?, cards: List<Card>, index: NumberIndex) {
-        // The person is looking at Updates: the gold dots show what changed, no notification needed.
+        // The person is looking at Updates: the blue dots show what changed, no notification needed.
         if (!graph.store.notifyChanges || graph.inFront) return
         val contacts = _state.value.contactsByE164
         fun e164(ref: String) = index.byRef[ref]?.e164

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ink">#FFE7E8EC</color>
-    <color name="ground">#FF14151A</color>
-    <color name="launcher_background">#FF1D1F26</color>
+    <!-- Facebook-style light page (the opening screen and the window behind Compose). -->
+    <color name="ink">#FF050505</color>
+    <color name="ground">#FFF0F2F5</color>
+    <!-- The icon's background: Facebook blue. -->
+    <color name="launcher_background">#FF0862F5</color>
 </resources>

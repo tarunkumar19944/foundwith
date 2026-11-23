@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Only the window before Compose draws; every screen is styled in ui/Theme.kt (always charcoal). -->
-    <style name="Theme.FoundWith" parent="android:Theme.Material.NoActionBar">
+    <!-- Only the window before Compose draws; every screen is styled in ui/Theme.kt (light, or dark
+         grey when the phone is in dark mode: values-night). -->
+    <style name="Theme.FoundWith" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/ground</item>
     </style>
-    <!-- The opening screen: the WhoHas icon on charcoal. It stays until the saved data is read, so
+    <!-- The opening screen: the WhoHas icon on the page colour. It stays until the saved data is read, so
          Home never shows a first-time screen for a moment (MainActivity keeps it on screen). -->
     <style name="Theme.FoundWith.Starting" parent="Theme.SplashScreen.IconBackground">
         <item name="windowSplashScreenBackground">@color/ground</item>

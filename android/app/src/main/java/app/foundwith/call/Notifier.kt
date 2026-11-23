@@ -26,6 +26,9 @@ import app.foundwith.core.Alert
  *  - "Your level": you reached Popular or Highly popular, or you are close. At most one nudge a week.
  * One notification per number: a second call from the same number updates it. There is no daily summary.
  */
+/** Facebook-style blue for the small icon and app name in notifications (same as the app). */
+private const val ACCENT = 0xFF0862F5.toInt()
+
 class Notifier(private val context: Context) {
 
     fun createChannels() {
@@ -70,6 +73,7 @@ class Notifier(private val context: Context) {
         val channel = if (note.alert == Alert.SOUND) CALLS_SOUND else CALLS_QUIET
         val notification = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_stat_found_with)
+            .setColor(ACCENT)
             .setContentTitle(note.title)
             .setContentText(note.text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(note.text))
@@ -102,6 +106,7 @@ class Notifier(private val context: Context) {
         val pending = PendingIntent.getActivity(context, 1, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val builder = NotificationCompat.Builder(context, CHANGES)
             .setSmallIcon(R.drawable.ic_stat_found_with)
+            .setColor(ACCENT)
             .setContentTitle(title)
             .setSilent(true)
             .setAutoCancel(true)
@@ -120,6 +125,7 @@ class Notifier(private val context: Context) {
         val pending = PendingIntent.getActivity(context, 2, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val notification = NotificationCompat.Builder(context, LEVEL)
             .setSmallIcon(R.drawable.ic_stat_found_with)
+            .setColor(ACCENT)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
@@ -144,6 +150,7 @@ class Notifier(private val context: Context) {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val builder = NotificationCompat.Builder(context, JOINED)
             .setSmallIcon(R.drawable.ic_stat_found_with)
+            .setColor(ACCENT)
             .setContentTitle(title)
             .setSilent(true)
             .setAutoCancel(true)

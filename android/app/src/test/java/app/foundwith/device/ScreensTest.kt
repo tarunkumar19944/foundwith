@@ -42,6 +42,7 @@ import app.foundwith.BuildConfig
 import app.foundwith.ui.AllowCard
 import app.foundwith.ui.CardButtons
 import app.foundwith.ui.YourNumberBar
+import app.foundwith.ui.PrimaryButton
 import app.foundwith.ui.CopyNumberButton
 import app.foundwith.ui.NumberMenu
 import app.foundwith.ui.WhCard
@@ -64,9 +65,9 @@ import org.robolectric.annotation.GraphicsMode
 class ScreensTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    private fun shot(name: String, content: @Composable () -> Unit) {
+    private fun shot(name: String, dark: Boolean = false, content: @Composable () -> Unit) {
         compose.setContent {
-            FoundWithTheme {
+            FoundWithTheme(dark = dark) {
                 Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
                     Column(Modifier.padding(vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) { content() }
                 }
@@ -112,6 +113,20 @@ class ScreensTest {
         compose.onNodeWithText("No one on WhoHas has your number yet").assertExists()
         compose.onNodeWithText("Popular").assertExists()
         compose.onAllNodesWithText("Not popular").assertCountEquals(2)
+    }
+
+    @Test
+    fun darkModeLooksTheSame() {
+        // The phone in dark mode: Facebook-style dark grey, same layout (Y, 23 Nov 2026).
+        shot("11-dark-mode", dark = true) {
+            YourNumberBar(total = 23, up = 1, onClick = {})
+            WhCard { CompareBox(Level.POPULAR, 23) }
+            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                CardButtons("+917760934418", callBack = true)
+                PrimaryButton("Agree and allow", {})
+            }
+        }
+        compose.onNodeWithText("Agree and allow").assertExists()
     }
 
     @Test

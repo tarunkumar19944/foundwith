@@ -23,14 +23,15 @@ class MainActivity : ComponentActivity() {
     private val openNumber = MutableStateFlow<String?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Always charcoal, so the status and navigation bars always get light icons.
         // The opening screen stays until the saved counts, contacts and call log are read, so Home
         // opens as it is, never as a first-time screen for a moment. At most 3 seconds.
         val opened = SystemClock.uptimeMillis()
         installSplashScreen().setKeepOnScreenCondition {
             graph.auth.isSignedIn && !graph.model.state.value.loaded && SystemClock.uptimeMillis() - opened < MAX_OPENING_MS
         }
-        enableEdgeToEdge(SystemBarStyle.dark(android.graphics.Color.TRANSPARENT), SystemBarStyle.dark(android.graphics.Color.TRANSPARENT))
+        // Dark icons on the light theme, light icons when the phone is in dark mode.
+        enableEdgeToEdge(SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT),
+            SystemBarStyle.auto(android.graphics.Color.TRANSPARENT, android.graphics.Color.TRANSPARENT))
         super.onCreate(savedInstanceState)
         handle(intent)
         lifecycleScope.launch { graph.model.load() }

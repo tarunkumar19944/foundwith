@@ -272,7 +272,7 @@ fun HomeScreen(
                     onClick = state.profile?.phone?.let { phone -> { onNumber(phone) } },
                 )
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    // Call log · Contacts · Updates (Y, 22 Nov 2026). Updates carries a gold badge with
+                    // Call log · Contacts · Updates (Y, 22 Nov 2026). Updates carries a blue badge with
                     // how many new things haven't been seen there yet.
                     if (BuildConfig.CALL_LOG) {
                         NavigationBarItem(selected = tab == Tab.CALLS, onClick = { pick(Tab.CALLS) }, label = { Text("Call log") }, colors = tabColors,
@@ -285,7 +285,7 @@ fun HomeScreen(
                         modifier = Modifier.semantics { if (unseen > 0) stateDescription = "$unseen new" },
                         icon = {
                             BadgedBox(badge = {
-                                if (unseen > 0) Badge(containerColor = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
+                                if (unseen > 0) Badge(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError) {
                                     Text(if (unseen > 99) "99+" else unseen.toString(), fontWeight = FontWeight.Bold)
                                 }
                             }) {
@@ -306,7 +306,7 @@ fun HomeScreen(
                         Wordmark()
                         if (state.setup != Setup.NOT_ALLOWED || state.cards != null) LiveStatus(state.cards?.savedAt, state.offline)
                     }
-                    // Share in group: solid gold, on every Home screen (22 Nov 2026).
+                    // Share in group: solid blue, on every Home screen (22 Nov 2026).
                     Button(
                         onClick = shareGroup,
                         shape = RoundedCornerShape(22.dp),
@@ -682,7 +682,7 @@ private fun FoundContactRow(state: AppState, contact: SavedNumber, onNumber: (St
     )
 }
 
-/** Gold when you know someone who has the number, grey when it's only a count. */
+/** Blue when you know someone who has the number, grey when it's only a count. */
 @Composable
 private fun knownColour(card: Card?): androidx.compose.ui.graphics.Color =
     if ((card?.knownTotal ?: 0) > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
@@ -696,7 +696,7 @@ private fun HeroBefore(state: AppState, line: String?) {
     else HeroCard(phone, total, countLabel(total), line, extra = { LevelBlock(total) })
 }
 
-/** One number under New: what changed, with the gold dot. */
+/** One number under New: what changed, with the blue dot. */
 @Composable
 private fun NewRow(state: AppState, entry: UpdateEntry, onNumber: (String) -> Unit) {
     val e164 = entry.e164 ?: return
