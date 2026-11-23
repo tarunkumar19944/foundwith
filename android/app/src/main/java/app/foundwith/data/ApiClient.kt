@@ -104,7 +104,7 @@ class ApiClient(private val baseUrl: String, private val auth: AuthManager) {
             if (consentVersion != null) put("consent_version", consentVersion)
         }))
 
-    /** [contacts] are snapshot entries (see [ContactEntry]): each goes with the name it is saved under. */
+    /** [contacts] are snapshot entries (see [ContactEntry]); only the numbers are sent, names stay on the phone. */
     suspend fun syncNumbers(contacts: Collection<String>, callLog: Collection<String>): SyncResult =
         decode(send("PUT", "/v1/me/numbers", buildJsonObject {
             put("contacts", contactEntries(contacts))
