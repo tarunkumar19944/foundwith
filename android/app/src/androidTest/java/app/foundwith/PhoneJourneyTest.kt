@@ -40,6 +40,7 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import java.io.File
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.BeforeClass
@@ -222,9 +223,9 @@ class PhoneJourneyTest {
         device.openNotification()
         device.waitForIdle(2_000)
         shotDevice("13-notification")
-        // Close the shade (and One UI's one-time tutorial) for the next steps, but only when it is
+        // Close the shade (and One UI's one-time tutorial) for the next steps, but only while it is
         // open: on a Samsung tablet it closed by itself, and Back then closed WhoHas (gta9pwifi, 23 Nov).
-        if (device.currentPackageName == "com.android.systemui") device.pressBack()
+        closeShade()
         if (note == null) {
             // The shared test account can use up its daily call lookups when the tests run many
             // times in a day; that's the server's limit working, not the app failing.
@@ -255,6 +256,7 @@ class PhoneJourneyTest {
         Thread.sleep(800)
         shot("14-caller-card")
         back()
+        assertAppOnScreen()
     }
 
     @Test
@@ -262,6 +264,7 @@ class PhoneJourneyTest {
         // 23 Nov 2026: the bar above the tabs opens your own card, with how far the next level is,
         // what grows your count, Share in group and Invite friends.
         assertTrue(onHome(30_000))
+        assertAppOnScreen()
         // The bar shows once Home has loaded (Settings is there a moment earlier).
         val bar = hasText("your number", substring = true) and hasClickAction()
         try {
@@ -274,6 +277,10 @@ class PhoneJourneyTest {
         compose.waitForIdle()
         waitForAny(listOf("you’re Popular", "you’re Highly popular", "Top level"), 20_000)
         waitFor("Invite friends")
+        compose.waitForIdle()
+        device.waitForIdle(2_000)   // let the screen finish moving to the card before the picture
+        Thread.sleep(800)
+        assertAppOnScreen()
         shot("14b-your-card")
         back()
         assertTrue(onHome(10_000))
@@ -282,6 +289,7 @@ class PhoneJourneyTest {
     @Test
     fun step07_settingsPagesOpen() {
         assertTrue(onHome(30_000))
+        assertAppOnScreen()
         compose.onNode(hasContentDescription("Settings")).performClick()
         waitFor("Your data")
         shot("15-settings")
@@ -349,6 +357,34 @@ class PhoneJourneyTest {
     }
 
     /** False also while something else (a system sheet) is over the app. */
+    /**
+     * Closes the notification shade, and One UI's one-time "Notifications / Quick settings" tip
+     * over it (its OK), pressing Back only while the shade is in front (23 Nov 2026: on Galaxy
+     * A14 5G, A16 and Z Flip6 one Back closed only the tip, and the shade covered the later steps).
+     */
+    private fun closeShade() {
+        repeat(4) {
+            if (device.currentPackageName != "com.android.systemui") return
+            val ok = device.findObject(By.pkg("com.android.systemui").text("OK"))
+            if (ok != null) ok.click() else device.pressBack()
+            device.waitForIdle(1_000)
+            Thread.sleep(500)
+        }
+    }
+
+    /**
+     * WhoHas is what's on the screen, not covered by the shade: Compose's checks read the app's own
+     * screen tree, so they pass even under the shade; this makes such a step fail instead.
+     */
+    private fun assertAppOnScreen() {
+        val until = System.currentTimeMillis() + 10_000
+        while (device.currentPackageName != PACKAGE && System.currentTimeMillis() < until) {
+            closeShade()
+            Thread.sleep(500)
+        }
+        assertEquals("WhoHas isn't the app on screen", PACKAGE, device.currentPackageName)
+    }
+
     private fun exists(text: String): Boolean = runCatching {
         compose.onAllNodes(hasText(text, substring = true), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
     }.getOrDefault(false)
