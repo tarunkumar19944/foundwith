@@ -367,6 +367,7 @@ async def test_invite_is_recorded_once_per_number(db, people, service):
 
     # Deleting and re-creating the account doesn't earn it again: it's kept by number.
     await service.delete_account(ravi)
+    assert (await service.circle(arjun, "https://x"))["invite"]["joined"] == 0    # gone from the inviter's list
     ravi2 = await service.register(People.ident(RAVI, "uid-ravi-2"), "Ravi Kumar")
     with pytest.raises(ApiError) as recreated:
         await service.redeem_invite(ravi2, code)

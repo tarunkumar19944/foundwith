@@ -117,12 +117,23 @@ fun SettingsScreen(graph: AppGraph, onBack: () -> Unit, onPage: (String) -> Unit
     val notesOn = remember(tick, state) { graph.notifier.canPost() }
 
     Page(onBack, "Settings") {
+        // Before the person agreed on Home's Allow card (what WhoHas sends), these go back to that card
+        // instead of asking Android directly: Play wants the notice first.
+        val agreed = graph.store.syncEnabledHint
         SettingRow(Icons.Filled.Person, "Contacts", if (contactsOn) "On" else "Off", contactsOn) {
-            if (contactsOn) context.openAppSettings() else permission(Manifest.permission.READ_CONTACTS)
+            when {
+                contactsOn -> context.openAppSettings()
+                !agreed -> onBack()
+                else -> permission(Manifest.permission.READ_CONTACTS)
+            }
         }
         if (BuildConfig.CALL_LOG) {
             SettingRow(Icons.Filled.Call, "Call log", if (callsOn) "On" else "Off", callsOn) {
-                if (callsOn) context.openAppSettings() else permission(Manifest.permission.READ_CALL_LOG)
+                when {
+                    callsOn -> context.openAppSettings()
+                    !agreed -> onBack()
+                    else -> permission(Manifest.permission.READ_CALL_LOG)
+                }
             }
         }
         SettingRow(Icons.Filled.Notifications, "Notifications", if (notesOn) "On" else "Off", notesOn) { onPage("notifications") }

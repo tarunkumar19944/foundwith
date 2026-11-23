@@ -99,7 +99,7 @@ async def test_main_flows_through_asyncpg(db, pg_conninfo, identity):
         await service.save_device(ravi, "fcm-token-ravi-" + "x" * 20)
         assert (await push.dispatch(database, push.LogSender()))["people"] >= 0
         assert (await push.send_wakeups(database, push.LogSender()))["sent"] == 2
-        await service.record_health("xiaomi", 14, dt.date(2026, 11, 16), 10, 7)
+        await service.record_health("xiaomi", 14, dt.datetime.now(dt.timezone.utc).date(), 10, 7)
         assert await admin.run(database, ["health", "3650"])
         await service.forget_device(ravi, "fcm-token-ravi-" + "x" * 20)
 

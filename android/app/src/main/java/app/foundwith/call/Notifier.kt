@@ -13,6 +13,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import app.foundwith.MainActivity
 import app.foundwith.R
+import app.foundwith.graph
 import app.foundwith.core.AfterCallNote
 import app.foundwith.core.Alert
 
@@ -63,6 +64,7 @@ class Notifier(private val context: Context) {
         val open = Intent(context, MainActivity::class.java)
             .setAction(ACTION_OPEN_NUMBER)
             .putExtra(EXTRA_NUMBER, note.number)
+            .putExtra(EXTRA_KEY, context.graph.store.openKey)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pending = PendingIntent.getActivity(context, note.number.hashCode(), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -137,6 +139,7 @@ class Notifier(private val context: Context) {
         val open = Intent(context, MainActivity::class.java)
             .setAction(ACTION_OPEN_NUMBER)
             .putExtra(EXTRA_NUMBER, e164)
+            .putExtra(EXTRA_KEY, context.graph.store.openKey)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pending = PendingIntent.getActivity(context, ("j" + e164).hashCode(), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -166,6 +169,7 @@ class Notifier(private val context: Context) {
         const val ACTION_TRUECALLER = "app.foundwith.TRUECALLER"
         const val ACTION_SHARE_GROUP = "app.foundwith.SHARE_GROUP"
         const val EXTRA_NUMBER = "number"
+        const val EXTRA_KEY = "key"
         private const val TAG_CALL = "call"
         private const val TAG_CHANGES = "changes"
         private const val TAG_LEVEL = "level"

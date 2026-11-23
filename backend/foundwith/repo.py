@@ -367,7 +367,19 @@ async def owners(conn: Conn, viewer_id: int, hmacs: Sequence[bytes],
 
 # ---------------------------------------------------------------- Tell ("I'm on WhoHas, and 7 more people there have your number")
 
+TELLS_PER_DAY = 30
+
+
 async def record_tell(conn: Conn, teller_id: int, number_hmac: bytes) -> None:
+    """At most TELLS_PER_DAY new numbers a day per person, so nobody can mark thousands of numbers as
+    "told by me" (each would see their name on joining). A repeat Tell only refreshes the time."""
+    recent = await conn.fetchval(
+        """SELECT count(*) FROM tells WHERE teller_id = $1 AND told_at > now() - interval '1 day'
+             AND number_hmac <> $2::bytea""", teller_id, number_hmac)
+    exists = await conn.fetchval(
+        "SELECT EXISTS (SELECT 1 FROM tells WHERE teller_id = $1 AND number_hmac = $2::bytea)", teller_id, number_hmac)
+    if recent >= TELLS_PER_DAY and not exists:
+        return
     await conn.execute(
         """INSERT INTO tells (teller_id, number_hmac) VALUES ($1, $2::bytea)
            ON CONFLICT (teller_id, number_hmac) DO UPDATE SET told_at = now()""",
@@ -552,8 +564,9 @@ async def redeem_invite(conn: Conn, phone_hmac: bytes, inviter_id: int) -> bool:
 async def invite_joined(conn: Conn, user_id: int, limit: int = 200) -> list[bytes]:
     """Numbers that joined through this person's invite, newest first."""
     rows = await conn.fetch(
-        """SELECT phone_hmac FROM invite_redemptions WHERE inviter_id = $1
-           ORDER BY redeemed_at DESC LIMIT $2""", user_id, limit)
+        """SELECT r.phone_hmac FROM invite_redemptions r
+           WHERE r.inviter_id = $1 AND EXISTS (SELECT 1 FROM users u WHERE u.phone_hmac = r.phone_hmac)
+           ORDER BY r.redeemed_at DESC LIMIT $2""", user_id, limit)
     return [bytes(r["phone_hmac"]) for r in rows]
 
 
@@ -746,6 +759,13 @@ async def purge_lookup_log(conn: Conn, days: int) -> int:
 
 
 async def purge_tombstones(conn: Conn, days: int, suspended_days: int) -> int:
+    # A deleted account's invite record lives as long as its tombstone (it stops the same number
+    # being counted twice for whoever invited it), then goes with it.
+    await conn.execute(
+        """DELETE FROM invite_redemptions r
+           WHERE NOT EXISTS (SELECT 1 FROM users u WHERE u.phone_hmac = r.phone_hmac)
+             AND NOT EXISTS (SELECT 1 FROM account_tombstones t WHERE t.phone_hmac = r.phone_hmac
+                             AND t.deleted_at >= now() - ($1::int * interval '1 day'))""", days)
     return _count(await conn.execute(
         """DELETE FROM account_tombstones
            WHERE (suspended_at IS NULL AND deleted_at < now() - ($1::int * interval '1 day'))

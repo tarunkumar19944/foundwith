@@ -52,7 +52,16 @@ class SyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(c
         val graph = applicationContext.graph
         return try {
             val phoneAllowed = graph.book.hasContactsPermission() || graph.book.hasCallLogPermission()
-            if (!graph.auth.isSignedIn || !phoneAllowed || !graph.store.syncEnabledHint) {
+            if (!graph.auth.isSignedIn || !graph.store.syncEnabledHint) return true
+            if (!phoneAllowed) {
+                // Contacts and call log both turned off in Android settings: send the now-empty phone
+                // once, so the server drops what it holds (Settings promises this), then stay quiet.
+                val held = graph.store.snapshot()
+                if (held != null && (held.contacts.isNotEmpty() || held.callLog.isNotEmpty())) {
+                    val outcome = graph.sync.fullSync()
+                    Log.i(TAG, "sync $mode: phone access off, cleared ${outcome.stats}")
+                    runCatching { graph.model.refresh() }
+                }
                 return true
             }
             val full = mode == MODE_FULL ||

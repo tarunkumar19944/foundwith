@@ -200,10 +200,14 @@ def test_health_is_kept_by_brand_only(db, settings, identity):
     with TestClient(app) as client:
         h = {"Authorization": f"Bearer dev:{ARJUN}"}
         client.post("/v1/me", json={}, headers=h)
-        day = {"day": "2026-11-16", "brand": "xiaomi", "android": 14, "calls_seen": 10, "calls_checked": 6}
+        import datetime as dt
+        today = dt.datetime.now(dt.timezone.utc).date()
+        day = {"day": today.isoformat(), "brand": "xiaomi", "android": 14, "calls_seen": 10, "calls_checked": 6}
         assert client.post("/v1/me/health", json=day, headers=h).status_code == 204
         assert client.post("/v1/me/health", json={**day, "calls_seen": 4, "calls_checked": 9}, headers=h).status_code == 204
         assert client.post("/v1/me/health", json={**day, "brand": "Xiaomi; DROP"}, headers=h).status_code == 422
+        # A day far from today is accepted but not kept (it would never be purged).
+        assert client.post("/v1/me/health", json={**day, "day": "2099-01-01"}, headers=h).status_code == 204
         rows, _ = db.conn.run("SELECT * FROM device_health")
         assert [(r["brand"], r["phones"], r["calls_seen"], r["calls_checked"]) for r in rows] == [("xiaomi", 2, 14, 10)]
         assert set(rows[0]) == {"day", "brand", "android", "phones", "calls_seen", "calls_checked"}   # nobody in it

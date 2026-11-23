@@ -28,7 +28,7 @@ import secrets
 import uuid
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from . import repo
@@ -1022,7 +1022,11 @@ class Service:
     # ---------- phone health by brand
 
     async def record_health(self, brand: str, android: int, day: Any, calls_seen: int, calls_checked: int) -> None:
-        """One phone's day: calls it saw and how many WhoHas checked. Stored by brand only."""
+        """One phone's day: calls it saw and how many WhoHas checked. Stored by brand only. Only
+        yesterday, today or tomorrow (time zones), so odd dates can't pile up unpurged."""
+        today = datetime.now(timezone.utc).date()
+        if not (today - timedelta(days=1) <= day <= today + timedelta(days=1)):
+            return
         async with self.db.acquire() as conn:
             await repo.add_health(conn, day, brand, android, calls_seen, min(calls_checked, calls_seen))
 

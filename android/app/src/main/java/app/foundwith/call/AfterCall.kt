@@ -90,7 +90,9 @@ object AfterCall {
     /** Handles every call not yet handled. Returns false when some call needs a network retry. */
     suspend fun check(context: Context): Boolean = lock.withLock {
         val graph = context.graph
-        if (!graph.auth.isSignedIn || !graph.book.hasCallLogPermission()) return@withLock true
+        // Only after the person agreed on the Allow card (Play's disclosure rule), even if the call
+        // log permission was granted some other way.
+        if (!graph.auth.isSignedIn || !graph.store.syncEnabledHint || !graph.book.hasCallLogPermission()) return@withLock true
         val now = System.currentTimeMillis()
         val (handledIds, lateAt, healthNow) = graph.store.callState()
         val handled = handledIds.toMutableSet()

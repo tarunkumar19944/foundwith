@@ -48,7 +48,10 @@ class MainActivity : ComponentActivity() {
 
     private fun handle(intent: Intent?) {
         when (intent?.action) {
-            Notifier.ACTION_OPEN_NUMBER -> openNumber.value = intent.getStringExtra(Notifier.EXTRA_NUMBER)
+            // Only WhoHas's own notifications carry the key (this activity is exported as the launcher).
+            Notifier.ACTION_OPEN_NUMBER -> if (intent.getStringExtra(Notifier.EXTRA_KEY) == graph.store.openKey) {
+                openNumber.value = intent.getStringExtra(Notifier.EXTRA_NUMBER)
+            }
             Notifier.ACTION_OPEN_UPDATES -> openNumber.value = UPDATES
         }
     }
@@ -63,6 +66,10 @@ class MainActivity : ComponentActivity() {
         if (!graph.auth.isSignedIn) return
         // Repairs background work if Android or an update cleared it. Cheap and idempotent.
         if (graph.store.syncEnabledHint) Scheduling.scheduleAll(this)
+        // Contacts and call log both turned off since last time: clear them from the server now.
+        if (graph.store.syncEnabledHint && !graph.book.hasContactsPermission() && !graph.book.hasCallLogPermission()) {
+            Scheduling.syncNow(this)
+        }
         // Catch up on calls the phone didn't let WhoHas check, and on anything new.
         AfterCall.runNow(this)
         lifecycleScope.launch {

@@ -217,7 +217,8 @@ class AppModel(private val graph: AppGraph) {
     /** Best effort: a Tell that doesn't reach the server only loses the "invited you" line. */
     suspend fun recordTell(e164: String) {
         graph.store.markTold(e164)
-        runCatching { api.recordTell(e164) }
+        // Sent to the server only once the person agreed on the Allow card.
+        if (store.syncEnabledHint) runCatching { api.recordTell(e164) }
     }
 
     suspend fun setName(name: String): String? = try {

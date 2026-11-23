@@ -15,11 +15,11 @@ resource "google_identity_platform_config" "auth" {
     }
   }
 
-  # Logs every sign-in request with its error, in Cloud Logging (resource "identitytoolkit_project"),
-  # so a failed sign-in can be explained from the server side.
+  # Request logging is off: its entries hold people's phone numbers in plain text, which the privacy
+  # policy rules out. Turn it on for a short while only to explain a failed sign-in, then off again.
   monitoring {
     request_logging {
-      enabled = true
+      enabled = false
     }
   }
 

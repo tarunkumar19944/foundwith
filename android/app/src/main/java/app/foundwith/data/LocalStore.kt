@@ -102,6 +102,16 @@ class LocalStore(context: Context) {
         get() = prefs.getString("dev_phone", null)
         set(value) { prefs.edit().putString("dev_phone", value).apply() }
 
+    /**
+     * A random key put in WhoHas's own "open this number" notifications. MainActivity is exported (it's
+     * the launcher), so it opens a number only when the key matches: another app can't make it look
+     * numbers up and use the person's daily searches.
+     */
+    val openKey: String
+        get() = prefs.getString("open_key", null) ?: java.util.UUID.randomUUID().toString().also {
+            prefs.edit().putString("open_key", it).apply()
+        }
+
     /** Whether the person has sync on, as last seen from the server (used before the first network call). */
     var syncEnabledHint: Boolean
         get() = prefs.getBoolean("sync_enabled", false)

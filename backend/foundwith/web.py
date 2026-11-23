@@ -340,7 +340,7 @@ async def delete_page(request: Request) -> HTMLResponse:
 # Plain words, true to what the server and app actually do (checked against the code on 22 Nov 2026):
 # numbers are stored as keyed hashes, saved names encrypted, everything in Mumbai (asia-south1).
 
-PRIVACY_UPDATED = "22 November 2026"
+PRIVACY_UPDATED = "23 November 2026"
 
 
 def privacy_body(settings) -> str:
@@ -368,15 +368,19 @@ know. To do that, it compares the numbers on your phone with the numbers on othe
 times, not call lengths and not recordings.</li>
 <li><b>Numbers you search</b> and numbers WhoHas checks after a call, with the time.</li>
 <li><b>People you block</b>, numbers you hide, and reports you make.</li>
+<li><b>Numbers you tell about WhoHas</b> (Tell), so that person sees who told them when they join, and whether
+someone joined through your invite link.</li>
 <li><b>Technical details</b>: a notification token for your phone, the app version, the Android version and the phone's
 brand, and how many calls the app could check (counts only).</li>
 </ul>
-<p>WhoHas never reads your SMS messages, never records calls, and never messages or calls anyone. It does not use
+<p>WhoHas never reads your SMS messages (only the sign-in code is filled in for you, by Google's sign-in), never
+records calls, and never messages or calls anyone. It does not use
 advertising or sell data.</p>
 
 <h2>How it is stored</h2>
-<p>Phone numbers are stored only as keyed hashes (a one-way code made with a secret key), never as plain numbers. The names
-you saved for numbers are encrypted. Everything is stored on Google Cloud in Mumbai, India, and sent over encrypted
+<p>In WhoHas's database, phone numbers are stored only as keyed hashes (a one-way code made with a secret key), never
+as plain numbers. Your own number is also kept by Google Firebase, which signs you in with it. The names you saved for
+numbers are encrypted. Everything is stored on Google Cloud in Mumbai, India, and sent over encrypted
 connections.</p>
 
 <h2>What other people can see</h2>
@@ -385,6 +389,8 @@ connections.</p>
 number in your contacts or call log.</li>
 <li><b>Your name.</b> When someone looks up a number you have, they see your name only if your number is in their contacts
 or call log (so they already know you). Everyone else sees you only as part of the count.</li>
+<li><b>Your WhoHas name, on your own number.</b> Anyone on WhoHas who looks up your number sees the name you
+chose in WhoHas ("Their own name"), if you added one. You can change or remove it in Settings.</li>
 <li><b>That you have their number.</b> People whose number you have can see that you have it, if your number is in their
 contacts or call log.</li>
 <li><b>Names for a number.</b> If 3 or more people saved the same name for a number, people who look it up see "People know it
@@ -406,7 +412,9 @@ the live database at once. Other people's counts go down by one.</li>
 <li>The record of searches and after-call checks (hashed numbers only) is kept for {log_days} days, also after an account is
 deleted, to stop misuse.</li>
 <li>After an account is deleted, a hash of its number and that day's search limits are kept for {tomb} days, so limits
-can't be dodged by deleting and joining again. If the account had been suspended, the suspension is remembered for longer.</li>
+can't be dodged by deleting and joining again; if you had joined through someone's invite, that record is kept for the
+same time. If the account had been suspended, the suspension is remembered for longer.</li>
+<li>Tells you made are deleted after 90 days.</li>
 <li>Notification tokens not used for 60 days are deleted.</li>
 </ul>
 
@@ -484,7 +492,8 @@ infringes anyone's rights.</li>
 </ul>
 
 <h2>Names and reports</h2>
-<p>The name you give is shown to people who already have your number. You can change it in Settings.
+<p>The name you give is shown to anyone on WhoHas who looks up your number, and to people who have your number when you
+show up as someone they know. You can change it in Settings.
 If a name shown for a number is wrong or offensive, report it from the number's card. We review reports
 and remove names that break these terms.</p>
 

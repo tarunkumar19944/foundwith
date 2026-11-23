@@ -9,10 +9,12 @@ object DataNotice {
         if (callLog) {
             "WhoHas sends the numbers from your contacts and call log, and the names you saved, to its server, " +
                 "to match them with other people on WhoHas. No call times, messages or recordings. " +
-                "People who already have your number see your name when they check a number you have."
+                "People who already have your number see your name when they check a number you have. " +
+                "A name you saved is shown to others only when 3 or more people saved the same name for that number."
         } else {
             "WhoHas sends the numbers from your contacts, and the names you saved, to its server, " +
                 "to match them with other people on WhoHas. " +
-                "People who already have your number see your name when they check a number you have."
+                "People who already have your number see your name when they check a number you have. " +
+                "A name you saved is shown to others only when 3 or more people saved the same name for that number."
         }
 }

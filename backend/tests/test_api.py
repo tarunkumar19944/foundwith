@@ -420,3 +420,15 @@ def test_terms_page_names_the_grievance_officer(db, settings, identity):
         assert "Grievance officer: Tarun Kumar" in r.text and "mailto:help@example.in" in r.text
         assert "within 24 hours" in r.text and "15 days" in r.text and "Bengaluru" in r.text
         assert 'href="/terms"' in c.get("/").text
+
+
+def test_tells_are_capped_per_day(client, db):
+    """Nobody can mark thousands of numbers as told."""
+    from foundwith import repo
+    join(client, ARJUN, "Arjun Rao")
+    for i in range(repo.TELLS_PER_DAY + 5):
+        client.post("/v1/tells", json={"number": f"+9198450{i:05d}"}, headers=as_user(ARJUN))
+    rows, _ = db.conn.run("SELECT count(*) AS n FROM tells")
+    assert rows[0]["n"] == repo.TELLS_PER_DAY
+    # A repeat Tell of a number already told still goes through (it only refreshes the time).
+    assert client.post("/v1/tells", json={"number": "+919845000000"}, headers=as_user(ARJUN)).status_code == 204
