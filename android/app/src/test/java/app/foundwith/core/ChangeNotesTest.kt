@@ -24,4 +24,16 @@ class ChangeNotesTest {
         assertEquals(emptyList<ChangeItem>(), ChangeNotes.items(old, old, null))
         assertEquals(emptyList<ChangeItem>(), ChangeNotes.items(null, old, null))
     }
+
+    @Test
+    fun eachChangeIsItsOwnNotification() {
+        val items = listOf(ChangeItem.MineUp(1, 23), ChangeItem.CountUp("a", 2, 14), ChangeItem.NowKnown("b", listOf("Kiran Sir")),
+            ChangeItem.NowKnown("a", listOf("Meena")))
+        val notes = ChangeNotes.each(items, label = { "L$it" }, holders = { it })
+        assertEquals(3, notes.size)                                     // "a" twice: one notification
+        assertEquals(ChangeNotes.One(null, "1 more person has your number", "Now 23"), notes[0])
+        assertEquals("La", notes[1].title)
+        assertEquals("Now known to Meena · 2 more people have this number · now 14", notes[1].text)
+        assertEquals(ChangeNotes.One("b", "Lb", "Now known to Kiran Sir"), notes[2])
+    }
 }

@@ -168,17 +168,17 @@ fun NotificationsScreen(graph: AppGraph, onBack: () -> Unit, onFix: () -> Unit) 
             }
         }
         if (BuildConfig.CALL_LOG) {
-            ToggleRow("Calls from unknown numbers", "A missed call from a number not in your contacts, when someone has it.", unknown) {
+            ToggleRow("Calls from unknown numbers", "A missed call from a number not in your contacts, when someone has it. Pops up, with sound.", unknown) {
                 unknown = it; graph.store.notifyUnknownCalls = it
             }
-            ToggleRow("Other calls", "Received and dialled calls, quietly, when something is new.", other) {
+            ToggleRow("Other calls", "Received and dialled calls, when something is new. Pops up, no sound.", other) {
                 other = it; graph.store.notifyOtherCalls = it
             }
         }
-        ToggleRow("Changes to your numbers", "Someone new has your number, or a count went up.", changes) {
+        ToggleRow("Changes to your numbers", "Each time more people have a number, or someone you know has a caller's number. Pops up, no sound.", changes) {
             changes = it; graph.store.notifyChanges = it
         }
-        ToggleRow("Friends who join", "Someone in your contacts joins WhoHas.", joined) {
+        ToggleRow("Friends who join", "Someone in your contacts joins WhoHas. Pops up, no sound.", joined) {
             joined = it; graph.store.notifyJoined = it
         }
         ToggleRow("Your level", "When you reach Popular or Highly popular, or are close.", level) {

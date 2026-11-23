@@ -149,6 +149,22 @@ class LocalStore(context: Context) {
         get() = prefs.getLong("updates_seen", 0L).takeIf { it > 0 } ?: lastOpenedAt
         set(value) { prefs.edit().putLong("updates_seen", value).apply() }
 
+    /**
+     * When each number's card was last opened (E.164 -> millis, 23 Nov 2026): a change older than
+     * that is no longer marked new anywhere. Kept for 8 days, at most 500 numbers.
+     */
+    fun seenNumbers(): Map<String, Long> = prefs.getStringSet("seen_numbers", emptySet()).orEmpty().mapNotNull { entry ->
+        val (number, at) = entry.split('@').takeIf { it.size == 2 } ?: return@mapNotNull null
+        at.toLongOrNull()?.let { number to it }
+    }.toMap()
+
+    fun markSeen(e164: String, at: Long = System.currentTimeMillis()): Map<String, Long> {
+        val kept = seenNumbers().filterKeys { it != e164 }.filterValues { at - it < 8L * 24 * 3600_000 }
+            .entries.sortedByDescending { it.value }.take(499).associate { it.key to it.value } + (e164 to at)
+        prefs.edit().putStringSet("seen_numbers", kept.map { "${it.key}@${it.value}" }.toSet()).apply()
+        return kept
+    }
+
     /** When each number was last told from the Tell card or the Invite page (E.164 -> millis). */
     fun toldAt(): Map<String, Long> = prefs.getStringSet("told", emptySet()).orEmpty().mapNotNull { entry ->
         val (number, at) = entry.split('@').takeIf { it.size == 2 } ?: return@mapNotNull null

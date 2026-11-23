@@ -64,4 +64,17 @@ class UpdatesOrderTest {
         assertEquals(emptyList<UpdateItem>(), UpdatesOrder.newSince(items, seenAt = 300))
         assertEquals(emptyList<UpdateItem>(), UpdatesOrder.newSince(items, seenAt = 0))   // never looked: nothing marked
     }
+
+    @Test
+    fun openingANumbersCardClearsItsMarkOnly() {
+        val items = UpdatesOrder.order(
+            found = listOf(raju, priya, caller),
+            events = listOf(UpdateEvent(raju, 100, UpdateWhat.COUNT_UP), UpdateEvent(priya, 300, UpdateWhat.JOINED),
+                UpdateEvent(caller, 200, UpdateWhat.CALL)),
+        )
+        // Priya's card was opened at 310: she is no longer new; Raju and the caller still are.
+        assertEquals(listOf(caller, raju), UpdatesOrder.newSince(items, seenAt = 50, seen = mapOf(priya to 310L)).map { it.e164 })
+        // A change after the card was opened is new again.
+        assertEquals(listOf(priya, caller, raju), UpdatesOrder.newSince(items, seenAt = 50, seen = mapOf(priya to 250L)).map { it.e164 })
+    }
 }

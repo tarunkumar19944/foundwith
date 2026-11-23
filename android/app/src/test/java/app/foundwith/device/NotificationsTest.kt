@@ -49,14 +49,16 @@ class NotificationsTest {
 
     @Test
     fun fiveChannelsAndNoDailySummary() {
-        assertEquals(setOf("callers", "calls_other", "changes", "joined", "level"), manager.notificationChannels.map { it.id }.toSet())
+        assertEquals(setOf("callers", "calls_other", "number_changes", "friends_joined", "level"), manager.notificationChannels.map { it.id }.toSet())
         assertEquals(NotificationManager.IMPORTANCE_HIGH, manager.getNotificationChannel("callers").importance)
-        // Other calls pop up on the screen at once too, but make no sound (23 Nov 2026).
-        val other = manager.getNotificationChannel("calls_other")
-        assertEquals(NotificationManager.IMPORTANCE_HIGH, other.importance)
-        assertNull(other.sound)
-        assertFalse(other.shouldVibrate())
-        for (quiet in listOf("changes", "joined", "level")) {
+        // Other calls, changes and joins pop up on the screen at once too, but make no sound (23 Nov 2026).
+        for (id in listOf("calls_other", "number_changes", "friends_joined")) {
+            val channel = manager.getNotificationChannel(id)
+            assertEquals(id, NotificationManager.IMPORTANCE_HIGH, channel.importance)
+            assertNull(id, channel.sound)
+            assertFalse(id, channel.shouldVibrate())
+        }
+        for (quiet in listOf("level")) {
             assertEquals(quiet, NotificationManager.IMPORTANCE_LOW, manager.getNotificationChannel(quiet).importance)
         }
     }
@@ -86,13 +88,20 @@ class NotificationsTest {
     }
 
     @Test
-    fun changesAreOneNotificationWithOpenUpdates() {
-        notifier.postChanges("2 changes on WhoHas", "1 more person has your number. +91 98450 77120 is now known to Meena.")
-        notifier.postChanges("3 changes on WhoHas", "And more.")
-        val n = posted().single()
-        assertEquals("changes", n.channelId)
-        assertEquals("3 changes on WhoHas", n.extras.getString("android.title"))
-        assertEquals(listOf("Open Updates"), n.actions.map { it.title.toString() })
+    fun everyChangeIsItsOwnNotificationAndASecondChangeToANumberReplacesIt() {
+        notifier.postChange("+919845011111", "Raju Plumber", "2 more people have this number · now 14")
+        notifier.postChange("+919008011223", "+91 90080 11223", "Now known to Kiran Sir")
+        notifier.postChange("+919845011111", "Raju Plumber", "1 more person has this number · now 15")
+        notifier.postChange(null, "1 more person has your number", "Now 23")
+        val all = posted()
+        assertEquals(3, all.size)
+        assertTrue(all.all { it.channelId == "number_changes" })
+        assertEquals(listOf("Raju Plumber", "+91 90080 11223", "1 more person has your number").sorted(),
+            all.map { it.extras.getString("android.title") }.sorted())
+        assertTrue(all.any { it.extras.getString("android.text") == "1 more person has this number · now 15" })
+        // Opening Raju's card takes his notification away.
+        notifier.cancelNumber("+919845011111")
+        assertEquals(2, posted().size)
     }
 
     @Test

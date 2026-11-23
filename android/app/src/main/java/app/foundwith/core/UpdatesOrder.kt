@@ -42,11 +42,16 @@ object UpdatesOrder {
     }
 
     /**
-     * Rows with something after [seenAt]: the count on the Updates tab, and the rows under New.
-     * Before Updates was ever looked at ([seenAt] 0) nothing is marked new, or every call would be.
+     * Rows with something after [seenAt] that hasn't been seen on the number's own card since
+     * ([seen]: number -> when its card was last opened): the count on the Updates tab, the rows
+     * under New, and the marks in Call log and Contacts (Y, 23 Nov 2026). Before Updates was ever
+     * looked at ([seenAt] 0) nothing is marked new, or every call would be.
      */
-    fun newSince(items: List<UpdateItem>, seenAt: Long): List<UpdateItem> =
-        if (seenAt <= 0L) emptyList() else items.takeWhile { (it.at ?: Long.MIN_VALUE) > seenAt }
+    fun newSince(items: List<UpdateItem>, seenAt: Long, seen: Map<String, Long> = emptyMap()): List<UpdateItem> =
+        if (seenAt <= 0L) emptyList() else items.filter { isNew(it, seenAt, seen[it.e164]) }
+
+    fun isNew(item: UpdateItem, seenAt: Long, seenNumber: Long?): Boolean =
+        seenAt > 0L && (item.at ?: Long.MIN_VALUE) > maxOf(seenAt, seenNumber ?: 0L)
 
     private fun later(e: UpdateEvent, than: UpdateEvent?): Boolean =
         than == null || e.at > than.at || (e.at == than.at && e.what.ordinal < than.what.ordinal)

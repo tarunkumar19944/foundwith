@@ -59,6 +59,8 @@ data class AppState(
     val dotsSince: Long = 0L,
     /** Updates newer than this count on the Updates tab's badge: when Updates was last looked at. */
     val updatesSeenAt: Long = 0L,
+    /** When each number's card was last opened: its change is no longer marked new (23 Nov 2026). */
+    val seenNumbers: Map<String, Long> = emptyMap(),
     val loaded: Boolean = false,
 ) {
     val cardsByRef: Map<String, Card> by lazy(LazyThreadSafetyMode.NONE) {
@@ -111,6 +113,7 @@ class AppModel(private val graph: AppGraph) {
                 lateCalls = lateAt.count { t -> t >= weekAgo },
                 dotsSince = store.updatesSeenAt,
                 updatesSeenAt = store.updatesSeenAt,
+                seenNumbers = store.seenNumbers(),
                 loaded = true,
             )
         }
@@ -275,10 +278,23 @@ class AppModel(private val graph: AppGraph) {
         _state.update { it.copy(dotsSince = before, updatesSeenAt = now) }
     }
 
-    /** Left Updates (another tab, or the app went away): what came in while it was open was seen too. */
+    /**
+     * Left Updates (another tab, or the app went away): what came in while it was open was seen too,
+     * and the marks in Call log and Contacts go (23 Nov 2026).
+     */
     fun leftUpdates(now: Long = System.currentTimeMillis()) {
         store.updatesSeenAt = now
-        _state.update { it.copy(updatesSeenAt = now) }
+        _state.update { it.copy(updatesSeenAt = now, dotsSince = now) }
+    }
+
+    /**
+     * A number's card was opened: its change has been seen. It is no longer marked new in Updates,
+     * Call log or Contacts, the count goes down by one, and its notifications go (23 Nov 2026).
+     */
+    fun sawNumber(e164: String, now: Long = System.currentTimeMillis()) {
+        val seen = store.markSeen(e164, now)
+        _state.update { it.copy(seenNumbers = seen) }
+        graph.notifier.cancelNumber(e164)
     }
 
     fun dismissFix() {
@@ -364,8 +380,8 @@ class AppModel(private val graph: AppGraph) {
     }
 
     /**
-     * New or changed since the last refresh becomes one silent notification ("2 changes on WhoHas").
-     * Counts already told about after a call are left out.
+     * Every change since the last refresh gets its own notification (Y, 23 Nov 2026), which pops up
+     * without sound and opens that number's card. Counts already told about after a call are left out.
      */
     private fun notifyChanges(old: ChangeLog, updated: ChangeLog, mine: Card?, cards: List<Card>, index: NumberIndex) {
         // The person is looking at Updates: the blue dots show what changed, no notification needed.
@@ -383,11 +399,14 @@ class AppModel(private val graph: AppGraph) {
             val label = h.contactRef?.let { index.byRef[it] }
             holderNames[h.id] = Naming.person(label?.name, h.name, label?.e164)
         }
-        val note = ChangeNotes.build(items,
+        val notes = ChangeNotes.each(items,
             label = { ref -> e164(ref)?.let { contacts[it]?.shownName ?: PhoneNumbers.display(it) } ?: "A number" },
-            saved = { ref -> e164(ref)?.let { contacts.containsKey(it) } == true },
-            holders = { ids -> ids.mapNotNull { holderNames[it] }.filterNot { Naming.looksLikeNumber(it) } }) ?: return
-        graph.notifier.postChanges(note.title, note.text)
+            holders = { ids -> ids.mapNotNull { holderNames[it] }.filterNot { Naming.looksLikeNumber(it) } })
+        val myNumber = _state.value.profile?.phone
+        for (note in notes) {
+            val number = if (note.ref == null) myNumber else e164(note.ref)
+            graph.notifier.postChange(number, note.title, note.text)
+        }
     }
 
     /** Your own level: told when you reach a new one, and nudged at most once a week when close. */

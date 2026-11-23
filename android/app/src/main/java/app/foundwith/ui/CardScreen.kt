@@ -51,6 +51,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.foundwith.AppGraph
+import app.foundwith.core.UpdateWhat
+import app.foundwith.core.UpdatesOrder
 import app.foundwith.core.AskOrder
 import app.foundwith.core.CallType
 import app.foundwith.core.Naming
@@ -140,6 +142,19 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
     val people = card?.let { AskOrder.order(state.knownPeople(it)) }.orEmpty()
     val askMode = !saved && !mine
 
+    // Opened while the number was marked new (23 Nov 2026): what changed stays on top for this
+    // visit, and from now on the change counts as seen (marks, the red count, its notification).
+    val opened = remember(e164) {
+        if (mine) null
+        else updateItems(state).firstOrNull { it.e164 == e164 }
+            ?.takeIf { UpdatesOrder.isNew(it, state.dotsSince, state.seenNumbers[e164]) }
+            ?.let { item -> state.changeLine(item, state.markSince(e164))?.let { item to it } }
+    }
+    val newPeople = remember(e164) {
+        if (opened?.second?.what == UpdateWhat.NOW_KNOWN) card?.ref?.let { state.changes.gains[it]?.ids }.orEmpty().toSet() else emptySet()
+    }
+    LaunchedEffect(e164) { graph.model.sawNumber(e164) }
+
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
@@ -197,6 +212,19 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                 }
             }
             ErrorText(problem)
+        }
+
+        opened?.let { (item, change) ->
+            Surface(color = newRowTint(), shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Row(Modifier.padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                    NewDot()
+                    Spacer(Modifier.width(8.dp))
+                    Text(change.text + ((item.change?.at ?: item.at)?.let { " · " + whenText(it) } ?: ""),
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
+                        color = if (change.what == UpdateWhat.JOINED) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary)
+                }
+            }
         }
 
         when {
@@ -265,11 +293,13 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                         for ((person, why) in shownPeople) {
                             // Someone only in the call log: the last call helps you place them.
                             val last = if (person.inContacts) null else person.e164?.let { state.lastCall(it) }
-                            val line = when {
+                            val where = when {
                                 last == null -> why.hint
                                 last.type == CallType.OUTGOING -> "In your call log · you called ${dayText(last.at)}"
                                 else -> "In your call log · called you ${dayText(last.at)}"
                             }
+                            // Someone you know who now has it: "New" (23 Nov 2026).
+                            val line = if (person.id in newPeople) "New · $where" else where
                             NumberRow(
                                 leading = { if (Naming.looksLikeNumber(person.name)) IconAvatar(Icons.Filled.Call, 36.dp) else Avatar(person.id, person.name, 36.dp) },
                                 name = ShownName(person.name, NameSource.CONTACT),

@@ -140,6 +140,9 @@ fun HomeScreen(
     onFix: () -> Unit,
 ) {
     val state by graph.model.state.collectAsStateWithLifecycle()
+    // Every number in Updates, and the ones marked new (in Updates, Call log and Contacts alike).
+    val updates = remember(state) { updateItems(state) }
+    val marks = remember(updates, state.dotsSince, state.seenNumbers) { state.marked(updates) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     // Call log first (Y, 22 Nov 2026): the app opens on it; Contacts in the contacts-only build.
@@ -267,15 +270,15 @@ fun HomeScreen(
                     onClick = state.profile?.phone?.let { phone -> { onNumber(phone) } },
                 )
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    // Call log · Contacts · Updates (Y, 22 Nov 2026). Updates carries a blue badge with
-                    // how many new things haven't been seen there yet.
+                    // Call log · Contacts · Updates (Y, 22 Nov 2026). Updates carries a red badge with
+                    // how many numbers changed that haven't been seen there or on their card yet.
                     if (BuildConfig.CALL_LOG) {
                         NavigationBarItem(selected = tab == Tab.CALLS, onClick = { pick(Tab.CALLS) }, label = { Text("Call log") }, colors = tabColors,
                             icon = { Icon(Icons.Filled.Call, contentDescription = null) })
                     }
                     NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { pick(Tab.CONTACTS) }, label = { Text("Contacts") }, colors = tabColors,
                         icon = { Icon(Icons.Filled.Person, contentDescription = null) })
-                    val unseen = if (tab == Tab.UPDATES) 0 else UpdatesOrder.newSince(updateItems(state), state.updatesSeenAt).size
+                    val unseen = if (tab == Tab.UPDATES) 0 else UpdatesOrder.newSince(updates, state.updatesSeenAt, state.seenNumbers).size
                     NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { pick(Tab.UPDATES) }, label = { Text("Updates") }, colors = tabColors,
                         modifier = Modifier.semantics { if (unseen > 0) stateDescription = "$unseen new" },
                         icon = {
@@ -350,9 +353,9 @@ fun HomeScreen(
                 Setup.FINDING -> item { FindingCard(state, failed = false) {} }
                 Setup.FIND_FAILED -> item { FindingCard(state, failed = true) { scope.launch { graph.model.retryFinding() } } }
                 Setup.READY -> when (tab) {
-                    Tab.UPDATES -> updatesTab(graph, state, onNumber, onInvite, shareGroup, turnOnNotifications)
-                    Tab.CONTACTS -> contactsTab(graph, state, onNumber, onAllow = { ask(Manifest.permission.READ_CONTACTS) })
-                    Tab.CALLS -> callsTab(graph, state, onNumber, onAllow = { ask(Manifest.permission.READ_CALL_LOG) })
+                    Tab.UPDATES -> updatesTab(graph, state, updates, onNumber, onInvite, shareGroup, turnOnNotifications)
+                    Tab.CONTACTS -> contactsTab(graph, state, marks, onNumber, onAllow = { ask(Manifest.permission.READ_CONTACTS) })
+                    Tab.CALLS -> callsTab(graph, state, marks, onNumber, onAllow = { ask(Manifest.permission.READ_CALL_LOG) })
                 }
             }
         }
@@ -553,6 +556,7 @@ internal fun updateItems(state: AppState): List<UpdateItem> {
 private fun LazyListScope.updatesTab(
     graph: AppGraph,
     state: AppState,
+    all: List<UpdateItem>,
     onNumber: (String) -> Unit,
     onInvite: () -> Unit,
     onShareGroup: () -> Unit,
@@ -565,11 +569,11 @@ private fun LazyListScope.updatesTab(
     if (BuildConfig.CALL_LOG && graph.store.firstNamesSeen && !graph.store.notifAsked && !graph.notifier.canPost()) {
         item { NotificationsCard(onTurnOn = onTurnOnNotifications, onLater = { graph.store.notifAsked = true }) }
     }
-    val all = updateItems(state)
-    val news = UpdatesOrder.newSince(all, state.dotsSince)
-    val earlier = all.drop(news.size)
+    val news = UpdatesOrder.newSince(all, state.dotsSince, state.seenNumbers)
+    val newNumbers = news.mapTo(HashSet()) { it.e164 }
+    val earlier = all.filter { it.e164 !in newNumbers }
     if (news.isNotEmpty()) {
-        item(key = "h:new") { SectionLabel("New") }
+        item(key = "h:new") { NewHeading(news.size) }
         itemsIndexed(news, key = { _, it -> "u:" + it.e164 }) { i, it ->
             InGroup(first = i == 0, last = i == news.lastIndex, tint = true) { UpdateRow(state, it, isNew = true, onNumber) }
         }
@@ -603,9 +607,51 @@ private fun InGroup(first: Boolean, last: Boolean, tint: Boolean, content: @Comp
     }
 }
 
+/** "New" over the new rows, with how many in a red count (23 Nov 2026). */
+@Composable
+private fun NewHeading(count: Int) {
+    Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("New", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.width(6.dp))
+        Badge(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError) {
+            Text(if (count > 99) "99+" else count.toString())
+        }
+    }
+}
+
+/** What changed for a number, in words, and which kind of change it was. */
+internal data class ChangeLine(val text: String, val what: UpdateWhat)
+
+/**
+ * The words for a number's latest change (23 Nov 2026), when that change is why the number is on
+ * top or is newer than [since]: "Joined WhoHas · has your number", "2 more people have it · now 14",
+ * "Now known to Kiran Sir". Null when its latest news is only a call.
+ */
+internal fun AppState.changeLine(item: UpdateItem, since: Long): ChangeLine? {
+    val change = item.change?.takeIf { it == item.latest || it.at > since } ?: return null
+    val card = cardFor(item.e164)
+    val ref = card?.ref
+    val text = when (change.what) {
+        UpdateWhat.COUNT_UP -> ref?.let { changes.changes[it] }?.let { HolderText.crossed(it.before, it.now) ?: HolderText.change(it.now, it.delta) }
+        UpdateWhat.JOINED -> if (cards?.mine?.known?.any { it.contactRef == ref } == true) "Joined WhoHas · has your number" else "Joined WhoHas"
+        UpdateWhat.NOW_KNOWN -> ref?.let { changes.gains[it] }?.ids.orEmpty()
+            .firstNotNullOfOrNull { id -> card?.known?.firstOrNull { it.id == id }?.let { personName(it) } }
+            ?.let { "Now known to $it" }
+        UpdateWhat.CALL -> null
+    } ?: return null
+    return ChangeLine(text, change.what)
+}
+
+/** Since when a number's change counts as new: when Updates was last looked at, or its card last opened. */
+internal fun AppState.markSince(e164: String): Long = maxOf(dotsSince, seenNumbers[e164] ?: 0L)
+
+/** The numbers marked new, by number: light blue with the dot in Updates, Call log and Contacts. */
+internal fun AppState.marked(items: List<UpdateItem>): Map<String, UpdateItem> =
+    UpdatesOrder.newSince(items, dotsSince, seenNumbers).associateBy { it.e164 }
+
 /** Facebook's light blue for unseen rows, a shade lighter so green and red text stay readable (dark grey-blue in dark mode). */
 @Composable
-private fun newRowTint(): androidx.compose.ui.graphics.Color =
+internal fun newRowTint(): androidx.compose.ui.graphics.Color =
     if (MaterialTheme.colorScheme.background.luminance() < 0.5f) androidx.compose.ui.graphics.Color(0xFF1F2B3B)
     else androidx.compose.ui.graphics.Color(0xFFEDF5FF)
 
@@ -619,16 +665,9 @@ private fun UpdateRow(state: AppState, item: UpdateItem, isNew: Boolean, onNumbe
     val saved = state.isSaved(e164)
     val call = if (saved) null else state.lastCall(e164)
     val at = item.at
-    // What changed, when that is why the number is up here, or it is new since Updates was last open.
-    val change = item.change?.takeIf { it == item.latest || it.at > state.dotsSince }
-    val changeText: String? = when (change?.what) {
-        UpdateWhat.COUNT_UP -> ref?.let { state.changes.changes[it] }?.let { HolderText.crossed(it.before, it.now) ?: HolderText.change(it.now, it.delta) }
-        UpdateWhat.JOINED -> if (state.cards?.mine?.known?.any { it.contactRef == ref } == true) "Joined WhoHas · has your number" else "Joined WhoHas"
-        UpdateWhat.NOW_KNOWN -> ref?.let { state.changes.gains[it] }?.ids.orEmpty()
-            .firstNotNullOfOrNull { id -> card?.known?.firstOrNull { it.id == id }?.let { state.personName(it) } }
-            ?.let { "Now known to $it" }
-        else -> null
-    }
+    // What changed, when that is why the number is up here, or it is new since it was last seen.
+    val change = state.changeLine(item, state.markSince(e164))
+    val changeText = change?.text
     // When the latest change happened, on the right; under New in blue, with the dot.
     val time: (@Composable () -> Unit)? = if (at == null) null else {
         {
@@ -646,7 +685,7 @@ private fun UpdateRow(state: AppState, item: UpdateItem, isNew: Boolean, onNumbe
         subColor = if (call != null) callKindColour(call) else MaterialTheme.colorScheme.onSurfaceVariant,
         line = changeText ?: if (saved) state.lineFor(card, onYourPhone = true) else state.callerLine(card, onYourPhone = false),
         lineColor = when {
-            changeText != null && change?.what == UpdateWhat.JOINED -> MaterialTheme.colorScheme.tertiary
+            change?.what == UpdateWhat.JOINED -> MaterialTheme.colorScheme.tertiary
             changeText != null -> MaterialTheme.colorScheme.primary
             else -> knownColour(card)
         },
@@ -757,7 +796,7 @@ private fun NameCard(graph: AppGraph) {
 
 // ---------------------------------------------------------------- Call log
 
-private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, onNumber: (String) -> Unit, onAllow: () -> Unit) {
+private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, marks: Map<String, UpdateItem>, onNumber: (String) -> Unit, onAllow: () -> Unit) {
     if (!graph.book.hasCallLogPermission()) {
         item {
             if (graph.store.denials(Manifest.permission.READ_CALL_LOG) >= 2) {
@@ -773,14 +812,21 @@ private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, onNumber: (
         return
     }
     val now = System.currentTimeMillis()
+    // A number marked new is marked on its latest call only.
+    val markedCalls = HashMap<Long, UpdateItem>()
+    val markedNumbers = HashSet<String>()
+    for (call in state.calls.sortedByDescending { it.at }) {
+        val mark = call.e164?.let { marks[it] } ?: continue
+        if (markedNumbers.add(mark.e164)) markedCalls[call.id] = mark
+    }
     state.calls.groupBy { dayHeading(it.at, now) }.forEach { (day, calls) ->
         item(key = "day:$day") { SectionLabel(day) }
-        items(calls, key = { "c:" + it.id }) { call -> CallRow(state, call, onNumber) }
+        items(calls, key = { "c:" + it.id }) { call -> CallRow(state, call, markedCalls[call.id], onNumber) }
     }
 }
 
 @Composable
-private fun CallRow(state: AppState, call: CallEvent, onNumber: (String) -> Unit) {
+private fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, onNumber: (String) -> Unit) {
     val sub = callLine(call, withDay = false)
     val e164 = call.e164
     if (e164 == null) {
@@ -802,21 +848,42 @@ private fun CallRow(state: AppState, call: CallEvent, onNumber: (String) -> Unit
     }
     val card = state.cardFor(e164)
     val blocked = state.refFor(e164)?.let { it in state.blockedRefs } == true
-    InfoRow(
-        leading = { CallKindIcon(call) },
-        name = state.nameFor(e164, card),
-        sub = sub, subColor = callKindColour(call),
-        line = if (blocked) "Blocked" else state.callerLine(card, onYourPhone = state.isSaved(e164)),
-        lineColor = if (blocked) MaterialTheme.colorScheme.onSurfaceVariant else knownColour(card),
-        onClick = { onNumber(e164) },
-        e164 = e164,
-        tag = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
-    )
+    // Marked new (23 Nov 2026): light blue, the dot, and what changed.
+    val change = mark?.let { state.changeLine(it, state.markSince(e164)) }
+    Marked(mark != null) {
+        InfoRow(
+            leading = { CallKindIcon(call) },
+            name = state.nameFor(e164, card),
+            sub = sub, subColor = callKindColour(call),
+            line = when {
+                blocked -> "Blocked"
+                change != null -> change.text
+                else -> state.callerLine(card, onYourPhone = state.isSaved(e164))
+            },
+            lineColor = when {
+                blocked -> MaterialTheme.colorScheme.onSurfaceVariant
+                change?.what == UpdateWhat.JOINED -> MaterialTheme.colorScheme.tertiary
+                change != null -> MaterialTheme.colorScheme.primary
+                else -> knownColour(card)
+            },
+            isNew = mark != null,
+            onClick = { onNumber(e164) },
+            e164 = e164,
+            tag = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+        )
+    }
+}
+
+/** A row marked new: on light blue (the same as New in Updates). */
+@Composable
+private fun Marked(marked: Boolean, content: @Composable () -> Unit) {
+    if (!marked) { content(); return }
+    Surface(color = newRowTint(), contentColor = MaterialTheme.colorScheme.onSurface, modifier = Modifier.fillMaxWidth()) { content() }
 }
 
 // ---------------------------------------------------------------- Contacts: everyone in your phone, A to Z
 
-private fun LazyListScope.contactsTab(graph: AppGraph, state: AppState, onNumber: (String) -> Unit, onAllow: () -> Unit) {
+private fun LazyListScope.contactsTab(graph: AppGraph, state: AppState, marks: Map<String, UpdateItem>, onNumber: (String) -> Unit, onAllow: () -> Unit) {
     if (!graph.book.hasContactsPermission()) {
         item {
             if (graph.store.denials(Manifest.permission.READ_CONTACTS) >= 2) {
@@ -837,12 +904,12 @@ private fun LazyListScope.contactsTab(graph: AppGraph, state: AppState, onNumber
     all.groupBy { c -> (c.shownName ?: c.raw).trim().firstOrNull()?.takeIf { it.isLetter() }?.uppercaseChar()?.toString() ?: "#" }
         .forEach { (letter, people) ->
             item(key = "letter:$letter") { SectionLabel(letter) }
-            items(people, key = { "k:" + (it.e164 ?: ("raw:" + it.raw)) }) { c -> ContactRow(state, c, onNumber) }
+            items(people, key = { "k:" + (it.e164 ?: ("raw:" + it.raw)) }) { c -> ContactRow(state, c, c.e164?.let { marks[it] }, onNumber) }
         }
 }
 
 @Composable
-private fun ContactRow(state: AppState, contact: SavedNumber, onNumber: (String) -> Unit) {
+private fun ContactRow(state: AppState, contact: SavedNumber, mark: UpdateItem?, onNumber: (String) -> Unit) {
     val context = LocalContext.current
     val e164 = contact.e164
     if (e164 == null) {
@@ -858,13 +925,22 @@ private fun ContactRow(state: AppState, contact: SavedNumber, onNumber: (String)
     val name = state.nameFor(e164, card)
     val total = card?.total ?: 0
     // No Share or Tell pill on these rows (22 Nov 2026): tapping opens the card, which has "Tell … on WhatsApp".
-    InfoRow(
-        leading = { Avatar(e164, name.text) },
-        name = name,
-        line = state.lineFor(card, onYourPhone = true),
-        lineColor = knownColour(card),
-        onClick = { onNumber(e164) },
-        e164 = e164,
-        tag = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
-    )
+    // Marked new (23 Nov 2026): light blue, the dot, and what changed.
+    val change = mark?.let { state.changeLine(it, state.markSince(e164)) }
+    Marked(mark != null) {
+        InfoRow(
+            leading = { Avatar(e164, name.text) },
+            name = name,
+            line = change?.text ?: state.lineFor(card, onYourPhone = true),
+            lineColor = when {
+                change?.what == UpdateWhat.JOINED -> MaterialTheme.colorScheme.tertiary
+                change != null -> MaterialTheme.colorScheme.primary
+                else -> knownColour(card)
+            },
+            isNew = mark != null,
+            onClick = { onNumber(e164) },
+            e164 = e164,
+            tag = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),
+        )
+    }
 }

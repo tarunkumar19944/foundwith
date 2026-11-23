@@ -22,8 +22,9 @@ import app.foundwith.core.Alert
  *  - "Calls from unknown numbers" (with sound): a missed call from a number not in your contacts, when someone has it.
  *  - "Other calls (no sound)": every other call WhoHas tells about, received or dialled. It pops up
  *    on the screen like the first kind (23 Nov 2026: so it's seen at once), but makes no sound.
- *  - "Changes to your numbers": a new person has your number, a count went up. Merged into one.
- *  - "Friends who join": someone in your contacts joined WhoHas. No sound.
+ *  - "Changes to your numbers": a new person has your number, a count went up, someone you know
+ *    now has a caller's number. One notification per number (23 Nov 2026), popping up, no sound.
+ *  - "Friends who join": someone in your contacts joined WhoHas. Pops up, no sound.
  *  - "Your level": you reached Popular or Highly popular, or you are close. At most one nudge a week.
  * One notification per number: a second call from the same number updates it. There is no daily summary.
  */
@@ -44,11 +45,15 @@ class Notifier(private val context: Context) {
                 setSound(null, null)
                 enableVibration(false)
             },
-            NotificationChannel(CHANGES, "Changes to your numbers", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "When someone new has your number or a number you have. No sound."
+            NotificationChannel(CHANGES, "Changes to your numbers", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "Each time someone new has your number or a number you have. Shows on the screen, no sound."
+                setSound(null, null)
+                enableVibration(false)
             },
-            NotificationChannel(JOINED, "Friends who join", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "When someone in your contacts joins WhoHas. No sound."
+            NotificationChannel(JOINED, "Friends who join", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "When someone in your contacts joins WhoHas. Shows on the screen, no sound."
+                setSound(null, null)
+                enableVibration(false)
             },
             NotificationChannel(LEVEL, "Your level", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "When you reach a new level, or are close. No sound."
@@ -59,6 +64,9 @@ class Notifier(private val context: Context) {
         runCatching { manager.deleteNotificationChannel("evening") }
         // The quiet call channel before 23 Nov 2026 didn't pop up; a channel's importance can't be raised.
         runCatching { manager.deleteNotificationChannel("calls_quiet") }
+        // Changes and joins before 23 Nov 2026 were quiet channels that didn't pop up.
+        runCatching { manager.deleteNotificationChannel("changes") }
+        runCatching { manager.deleteNotificationChannel("joined") }
     }
 
     fun canPost(): Boolean =
@@ -105,7 +113,45 @@ class Notifier(private val context: Context) {
         return PendingIntent.getActivity(context, (name + e164).hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     }
 
-    /** "2 changes on WhoHas": silent, opens Updates. One notification that is replaced by the next. */
+    /**
+     * One change to one number (23 Nov 2026): "Raju Plumber · 2 more people have this number · now 14".
+     * Pops up without sound and opens that number's card (your own for [e164] = your number). A later
+     * change to the same number replaces it. Android stacks four or more under WhoHas by itself.
+     */
+    fun postChange(e164: String?, title: String, text: String) {
+        if (!canPost()) return
+        val open = if (e164 == null) {
+            Intent(context, MainActivity::class.java).setAction(ACTION_OPEN_UPDATES)
+        } else {
+            Intent(context, MainActivity::class.java).setAction(ACTION_OPEN_NUMBER)
+                .putExtra(EXTRA_NUMBER, e164)
+                .putExtra(EXTRA_KEY, app.foundwith.data.LocalStore(context).openKey)
+        }.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        val id = (e164 ?: "updates").hashCode()
+        val pending = PendingIntent.getActivity(context, ("c" + id).hashCode(), open,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val builder = NotificationCompat.Builder(context, CHANGES)
+            .setSmallIcon(R.drawable.ic_stat_found_with)
+            .setColor(ACCENT)
+            .setContentTitle(title)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+        if (text.isNotEmpty()) builder.setContentText(text).setStyle(NotificationCompat.BigTextStyle().bigText(text))
+        @Suppress("MissingPermission")
+        runCatching { NotificationManagerCompat.from(context).notify(TAG_CHANGES, id, builder.build()) }
+    }
+
+    /** A number's card was opened: its change and join notifications go (23 Nov 2026). */
+    fun cancelNumber(e164: String) {
+        runCatching {
+            val manager = NotificationManagerCompat.from(context)
+            manager.cancel(TAG_CHANGES, e164.hashCode())
+            manager.cancel(TAG_JOINED, e164.hashCode())
+        }
+    }
+
+    /** "2 changes on WhoHas": opens Updates. One notification that is replaced by the next (before 23 Nov 2026). */
     fun postChanges(title: String, text: String) {
         if (!canPost()) return
         val open = Intent(context, MainActivity::class.java).setAction(ACTION_OPEN_UPDATES)
@@ -145,7 +191,7 @@ class Notifier(private val context: Context) {
         runCatching { NotificationManagerCompat.from(context).notify(TAG_LEVEL, 2, notification) }
     }
 
-    /** "Priya joined WhoHas · Has your number". Silent; tapping opens their card. */
+    /** "Priya joined WhoHas · Has your number". Pops up without sound; tapping opens their card. */
     fun postJoined(e164: String, title: String, text: String?) {
         if (!canPost()) return
         val open = Intent(context, MainActivity::class.java)
@@ -159,7 +205,7 @@ class Notifier(private val context: Context) {
             .setSmallIcon(R.drawable.ic_stat_found_with)
             .setColor(ACCENT)
             .setContentTitle(title)
-            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .setContentIntent(pending)
         if (text != null) builder.setContentText(text)
@@ -172,9 +218,9 @@ class Notifier(private val context: Context) {
     companion object {
         const val CALLS_SOUND = "callers"
         const val CALLS_QUIET = "calls_other"
-        const val CHANGES = "changes"
+        const val CHANGES = "number_changes"
         const val LEVEL = "level"
-        const val JOINED = "joined"
+        const val JOINED = "friends_joined"
         private const val TAG_JOINED = "joined"
         const val ACTION_OPEN_NUMBER = "app.foundwith.OPEN_NUMBER"
         const val ACTION_OPEN_UPDATES = "app.foundwith.OPEN_UPDATES"
