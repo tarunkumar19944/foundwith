@@ -39,9 +39,13 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 
 **"Has" means contacts or call log.** WhoHas counts a number when it is in someone's contacts *or* their call log, so never say "saved" for that. Use "save" only for Android's own **Save to contacts** button. Names come only from contacts (a call log entry has no name), so for names say "know it as".
 
-## The look (approved by Y, 17 Nov)
+## The look (Facebook style, approved by Y, 23 Nov)
 
-Charcoal and gold, everywhere: page #14151A, cards #1D1F26, text #E7E8EC, grey text #A3A6B1, gold #D9B65C for the one accent (buttons, "Known to …", the count on your number, the new dot). Red only for missed and rejected calls, green only for received calls and joins. No pure white or pure black. Every text colour is at least 5.9:1.
+Light, like Facebook: page #F0F2F5, white cards, text #050505, grey text #65676B, blue #0862F5 for buttons, links, "Known to …", the count on your number and the new dot (Facebook's blue, a shade deeper so blue text on the grey page passes 4.5:1). Secondary buttons (Truecaller, Call back) are grey #E4E6EB with black text. Buttons have 8 dp corners. The Updates count is a red badge. Red #D21F3C only for missed and rejected calls and for warnings, green #188038 only for received calls, joins and a count going up. Every text colour is at least 4.5:1.
+
+**Dark mode follows the phone.** When the phone is in dark mode: page #18191A, cards #242526, text #E4E6EB, grey text #B0B3B8, blue #5AA2FF with dark text on blue buttons. Same layout. The website pages (privacy, terms, delete, invites) follow the same two looks.
+
+Icon: the three people in white over a light blue stroke, on blue. Not Facebook's "f" or any Facebook logo or name.
 
 Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never look alike), bundled in the app: Regular, SemiBold and Bold only, every digit the same width. Body text 16, small text 13, nothing under 12; sizes follow the phone's font setting. Section labels in normal case.
 
@@ -70,14 +74,14 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Wrong number | 10 digits, starting with 6, 7, 8 or 9. | Enter a 10-digit mobile number starting with 6, 7, 8 or 9. |
 | Code screen (22 Nov) | Enter the code · Sent to … · Change | **Enter the code** · Sent by SMS to +91 98450 31207 · **Change** · six boxes, keyboard open · ⟳ Waiting for the SMS. The code fills in by itself. · Send again in 0:25 |
 | Code filled in | | the boxes fill with the code · ⟳ Signing you in… (no tap needed) |
-| No code after 10 seconds | | gold box: ✉ **Check your messages for the code** (the boxes stay ready to type) |
+| No code after 10 seconds | | blue box: ✉ **Check your messages for the code** (the boxes stay ready to type) |
 | Wrong code | That code doesn't match. Check the SMS. | Wrong code. Check the SMS and try again. (red, under the boxes) |
 | Resend | Resend in 0:25 · Resend code | Send again in 0:25 · Send code again |
 | Too many tries | Too many tries · For safety, wait a while and try again. | Too many tries · Wait 15 minutes and try again. |
 | Couldn't send | We couldn't send the code. Try again. | Couldn't send the code. Try again in a minute. |
 | No internet | No internet · Connect and try again. | No internet · Connect and try again. |
 
-**The code fills in by itself (Y, 22 Nov).** No "Allow WhoHas to read this message?" prompt. Google reads the code silently when it can (Firebase's SMS Retriever); otherwise the keyboard or Google's autofill offers the code from the SMS (the field is marked as an SMS code); otherwise the person types it, helped by the gold "Check your messages for the code" box after 10 seconds. Typing is allowed for everyone, so sign-in no longer proves the SIM is in this phone (the 17 Nov rule): the SMS to that number is still needed.
+**The code fills in by itself (Y, 22 Nov).** No "Allow WhoHas to read this message?" prompt. Google reads the code silently when it can (Firebase's SMS Retriever); otherwise the keyboard or Google's autofill offers the code from the SMS (the field is marked as an SMS code); otherwise the person types it, helped by the blue "Check your messages for the code" box after 10 seconds. Typing is allowed for everyone, so sign-in no longer proves the SIM is in this phone (the 17 Nov rule): the SMS to that number is still needed.
 
 ## First time on Home
 
@@ -97,7 +101,7 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 
 | Where | New |
 |---|---|
-| Top bar | **WhoHas** · *Live · just now* (green dot) · **⤴ Share in group** (solid gold, on every Home screen) · Settings |
+| Top bar | **WhoHas** · *Live · just now* (green dot) · **⤴ Share in group** (solid blue, on every Home screen) · Settings |
 | Offline | No internet · showing what we had at 9:40 pm |
 | Search box | Search a number or name |
 | Your number (22 Nov: fixed just above the tabs, the same on Call log, Contacts and Updates; a tap opens your own card) | 👤 **23** people have your number · **+1** (green, when it went up this week) · [Popular] (one line; no arrow, the whole bar opens your card) · at 0: No one on WhoHas has your number yet · [Not popular] |
@@ -112,7 +116,7 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Notifications off | Notifications are off. You won't know who called. · Turn on |
 | Late calls | Your phone stopped WhoHas. Last 3 calls weren't checked. · Fix |
 | Tabs | **Call log · Contacts · Updates** (Y, 22 Nov). The app opens on Call log (contacts-only build: **Contacts · Updates**, opens on Contacts). Back from another tab goes to Call log. |
-| Updates badge | A gold count on the Updates tab: new things since you last looked at Updates (99+ above 99). Opening Updates clears it; the new ones keep their gold dot for that visit. "Open Updates" and the level notifications open Updates. |
+| Updates badge | A red count on the Updates tab: new things since you last looked at Updates (99+ above 99). Opening Updates clears it; the new ones keep their blue dot for that visit. "Open Updates" and the level notifications open Updates. |
 | Scrolling (22 Nov) | The WhoHas name and Share in group scroll away; the **search box stays pinned at the top** on every tab. Each tab keeps its own place. Tapping the tab you're on jumps to its top. |
 | See all | Opens Contacts or Call log at the top of the list, with **←** beside the search (Back to Updates, where you left it). Android's back does the same. |
 
@@ -120,7 +124,7 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 
 | Where | New |
 |---|---|
-| **New** (only what changed since you last looked, gold dot) | +91 90080 11223 · Missed call · today, 10:42 am · **Now known to Kiran Sir** |
+| **New** (only what changed since you last looked, blue dot) | +91 90080 11223 · Missed call · today, 10:42 am · **Now known to Kiran Sir** |
 | | Priya Sharma · In your contacts · **Joined WhoHas · has your number** (green) |
 | | Raju Plumber · In your contacts · **2 more people have this number · now 14** |
 | **From your calls** (not in your contacts, someone on WhoHas has it; people you know first, then the latest call) | [call symbol] +91 98765 43210 · Received · yesterday, 6:15 pm · 4 min · **Known to Priya and 1 more** |
@@ -137,7 +141,7 @@ Every call under its day (Today, Yesterday, Friday, 12 Nov), each with the phone
 |---|---|
 | Phone with ✕, red | Missed call · 10:42 am |
 | Phone with arrow in, green | Received · 9:15 am · 4 min |
-| Phone with arrow out, gold | You called · 6:10 pm · 1 min |
+| Phone with arrow out, blue | You called · 6:10 pm · 1 min |
 | Phone with arrow out, grey | You called · not answered · 7:30 pm |
 | Phone with a slash, red | Rejected · 8:02 am |
 | Second line | Known to Priya and 2 more · 3 people have it · No one on WhoHas has this number |
@@ -177,7 +181,7 @@ Order on screen (22 Nov 2026): who it is, with a copy icon beside the number →
 | Where | Now | New |
 |---|---|---|
 | Not-a-contact subtitle | (none) | Missed call · 10:42 am · not in your contacts |
-| The number | | A copy icon beside the number (gold, "Copy number" for screen readers); tapping the number copies it too (the plain 10 digits). Android 13+ shows its own "Copied"; older phones: Number copied |
+| The number | | A copy icon beside the number (blue, "Copy number" for screen readers); tapping the number copies it too (the plain 10 digits). Android 13+ shows its own "Copied"; older phones: Number copied |
 | Buttons under the card | | **Truecaller** (23 Nov: copies the number, then opens Truecaller straight on it: its "search with Truecaller" action, else its page for the number, else its dial pad with the number typed, else Truecaller itself; without Truecaller, truecaller.com search. Test builds show which in a short note: Opened Truecaller search / …) · **Call back** beside it after a call from a number not in your contacts |
 | Owner's own name | Raju Sharma (name they gave) | **Their own name: Raju Sharma** (chip) |
 | Name 3+ people have for it | Raju Plumber (popular name) | **5 people know it as "Raju Plumber"** **Off since 23 Nov 2026** (Google Play's contacts policy): not shown, and saved names are no longer sent. |
@@ -280,11 +284,11 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 
 | Where | New |
 |---|---|
-| Top bar, first line next to WhoHas (every tab) | **⤴ Share in group** (solid gold) |
+| Top bar, first line next to WhoHas (every tab) | **⤴ Share in group** (solid blue) |
 | Invite friends page | **Share in group** · Adds the most value: the more of your group join, the more callers you can recognise. |
 | Why a group (the value, never a count) | Share in a group so everyone pools their numbers. Then you can find who has any number that calls you. (Used in the share message and Invite friends; no longer inside your number's card.) |
 | Share in group vs Tell | **Share in group** is for a group. For one person it is **Tell Ravi on WhatsApp**, and the Invite list buttons read **Tell** and **Told**. |
-| What's shared | A picture of WhoHas in charcoal and gold (a missed call known to Priya, Meena and 10 more; "Unknown number calling?"; a gold band "Get WhoHas · Free on Android · link in the message"), and: Hi all! I'm using WhoHas. When an unknown number calls, it shows which people you know have that number, so you can ask them who it is. The more of us on it, the more callers we can recognise for each other. Get it here: {link} |
+| What's shared | A picture of WhoHas in the Facebook-style look (a missed call known to Priya, Meena and 10 more; "Unknown number calling?"; a blue band "Get WhoHas · Free on Android · link in the message"), and: Hi all! I'm using WhoHas. When an unknown number calls, it shows which people you know have that number, so you can ask them who it is. The more of us on it, the more callers we can recognise for each other. Get it here: {link} |
 
 ## Invite friends
 
@@ -310,7 +314,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 | Update needed | Update Found With · This version is too old. Update to keep using it. | **Update WhoHas** · This version is too old. Update from the Play Store. |
 | Suspended | This account is suspended · It broke Found With's rules. If that's a mistake, write to … | **Your account is suspended** · It broke WhoHas rules. If this is a mistake, write to help@… |
 | Generic error | Something went wrong. Try again. | Something went wrong. Try again. |
-| Opening the app (22 Nov) | (a first-time Home flashed for a moment) | No words: the WhoHas icon on charcoal stays until the saved data is read (at most 3 seconds), then Home opens as it is. |
+| Opening the app (22 Nov) | (a first-time Home flashed for a moment) | No words: the WhoHas icon on the page colour (light grey, or dark grey in dark mode) stays until the saved data is read (at most 3 seconds), then Home opens as it is. |
 
 ## Web pages
 

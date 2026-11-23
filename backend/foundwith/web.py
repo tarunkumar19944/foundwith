@@ -24,25 +24,30 @@ _INVITE_PATH_CODE = re.compile(r"^[A-HJ-NP-Za-hj-np-z2-9]{8}$")
 FIREBASE_JS = "https://www.gstatic.com/firebasejs/10.14.1"
 
 _STYLE = """
-:root{--bg:#14151A;--card:#1D1F26;--text:#E7E8EC;--muted:#A3A6B1;--accent:#D9B65C;--accent-bg:#3A3220;
---on-accent:#14151A;--danger:#F2867E;--ok:#7CCB98;--border:#2C2F38;color-scheme:dark}
+:root{--bg:#F0F2F5;--card:#FFFFFF;--text:#050505;--muted:#65676B;--accent:#0862F5;--accent-bg:#E7F3FF;
+--on-accent:#FFFFFF;--danger:#D21F3C;--ok:#188038;--border:#CED0D4;--field:#FFFFFF;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root{--bg:#18191A;--card:#242526;--text:#E4E6EB;--muted:#B0B3B8;
+--accent:#5AA2FF;--accent-bg:#263951;--on-accent:#001B3D;--danger:#FF6B7A;--ok:#45BD62;--border:#3E4042;--field:#3A3B3C}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);
 font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans",sans-serif}
-main{max-width:420px;margin:0 auto;padding:32px 16px}
-.logo{width:48px;height:48px;border-radius:12px;background:var(--accent-bg);color:var(--accent);
+main{max-width:480px;margin:16px auto;padding:24px 20px;background:var(--card);border-radius:12px;
+box-shadow:0 1px 2px rgba(0,0,0,.2)}
+@media (max-width:520px){main{margin:0;border-radius:0;box-shadow:none;min-height:100vh}}
+.logo{width:48px;height:48px;border-radius:12px;background:var(--accent);color:var(--on-accent);
 display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
 h1{font-size:24px;line-height:1.25;margin:16px 0 8px}p{margin:8px 0;color:var(--muted)}
-.btn{display:block;width:100%;margin-top:20px;padding:14px;border-radius:26px;border:0;font:inherit;
+.btn{display:block;width:100%;margin-top:20px;padding:12px;border-radius:8px;border:0;font:inherit;
 font-weight:700;text-align:center;text-decoration:none;cursor:pointer;background:var(--accent);color:var(--on-accent)}
-.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--border)}
-.btn.danger{background:var(--danger);color:var(--on-accent)}
+.btn.ghost{background:var(--accent-bg);color:var(--accent)}
+.btn.danger{background:var(--danger);color:#FFFFFF}
 .btn[disabled]{opacity:.5;cursor:default}
 .row{display:flex;gap:8px;margin-top:16px}
-input{font:inherit;font-size:17px;padding:13px 14px;border-radius:14px;border:1.5px solid var(--border);background:#272A33;
+input{font:inherit;font-size:17px;padding:12px 14px;border-radius:8px;border:1px solid var(--border);background:var(--field);
 color:var(--text);width:100%}
+input:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .cc{flex:none;width:64px;text-align:center;color:var(--muted)}
 .err{color:var(--danger);font-size:14px;margin-top:8px;min-height:1.2em}
-a{color:var(--accent);font-weight:700;text-decoration:none}
+a{color:var(--accent);font-weight:600;text-decoration:none}a:hover{text-decoration:underline}
 .done{color:var(--ok);font-weight:700}
 .note{margin-top:20px;padding-top:14px;border-top:1px solid var(--border);font-size:14px;line-height:1.6}
 .note b{color:var(--text)}
