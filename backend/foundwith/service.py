@@ -392,9 +392,10 @@ class Service:
         """Keep the saved name of each stored contact (encrypted), and drop names of numbers that
         are no longer contacts."""
         hmacs, name_hmacs, name_encs = [], [], []
+        keep = self.settings.known_as_names   # off: nothing is kept, and what was kept is cleared
         for d in sorted(numbers):
             in_c = target.get(d, (False, False))[0]
-            name = names.get(d) if in_c else None
+            name = names.get(d) if in_c and keep else None
             hmacs.append(d)
             name_hmacs.append(self.names.name_hmac(name) if name else None)
             name_encs.append(self.names.encrypt(name, d) if name else None)
@@ -637,7 +638,7 @@ class Service:
             return
         hmacs = [m.number_hmac for m in matches]
         owners = await repo.owners(conn, viewer_id, hmacs, excluded, self.settings.consent_version)
-        popular = await repo.popular_names(conn, hmacs)
+        popular = await repo.popular_names(conn, hmacs) if self.settings.known_as_names else {}
         for m in matches:
             owner = owners.get(m.number_hmac)
             if owner is not None:

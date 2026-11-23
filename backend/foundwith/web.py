@@ -338,7 +338,7 @@ async def delete_page(request: Request) -> HTMLResponse:
 
 # ---------------------------------------------------------------- privacy policy (Google Play needs its address)
 # Plain words, true to what the server and app actually do (checked against the code on 22 Nov 2026):
-# numbers are stored as keyed hashes, saved names encrypted, everything in Mumbai (asia-south1).
+# numbers are stored as keyed hashes, everything in Mumbai (asia-south1). Saved contact names are not sent.
 
 PRIVACY_UPDATED = "23 November 2026"
 
@@ -363,7 +363,7 @@ know. To do that, it compares the numbers on your phone with the numbers on othe
 <ul>
 <li><b>Your mobile number</b>, checked by an SMS code sent through Google Firebase.</li>
 <li><b>Your name</b>, if you add one.</li>
-<li><b>Your contacts</b>, after you allow it: each phone number, and the name you saved for it.</li>
+<li><b>Your contacts</b>, after you allow it: each phone number. The names you saved stay on your phone.</li>
 <li><b>Your call log</b> (only in the version of the app that asks for it, after you allow it): the phone numbers. Not call
 times, not call lengths and not recordings.</li>
 <li><b>Numbers you search</b> and numbers WhoHas checks after a call, with the time.</li>
@@ -379,8 +379,7 @@ advertising or sell data.</p>
 
 <h2>How it is stored</h2>
 <p>In WhoHas's database, phone numbers are stored only as keyed hashes (a one-way code made with a secret key), never
-as plain numbers. Your own number is also kept by Google Firebase, which signs you in with it. The names you saved for
-numbers are encrypted. Everything is stored on Google Cloud in Mumbai, India, and sent over encrypted
+as plain numbers. Your own number is also kept by Google Firebase, which signs you in with it. Everything is stored on Google Cloud in Mumbai, India, and sent over encrypted
 connections.</p>
 
 <h2>What other people can see</h2>
@@ -393,8 +392,6 @@ or call log (so they already know you). Everyone else sees you only as part of t
 chose in WhoHas ("Their own name"), if you added one. You can change or remove it in Settings.</li>
 <li><b>That you have their number.</b> People whose number you have can see that you have it, if your number is in their
 contacts or call log.</li>
-<li><b>Names for a number.</b> If 3 or more people saved the same name for a number, people who look it up see "People know it
-as …". The name you saved is never shown on its own or linked to you.</li>
 </ul>
 <p>You can block someone so you don't see each other, and anyone can remove their own number from WhoHas.</p>
 
@@ -476,8 +473,8 @@ and to our <a href="/privacy">privacy policy</a>.</p>
 
 <h2>What WhoHas shows, and its limits</h2>
 <p>WhoHas shows how many people on WhoHas have a number in their contacts or call log, and which of them
-you know. Names come from people's own contacts and from what people chose to share, so they can be
-wrong or out of date. WhoHas does not confirm who anyone is. Use your own judgement before you act on
+you know. Names come from your own contacts and from the names people give themselves on WhoHas, so they
+can be wrong or out of date. WhoHas does not confirm who anyone is. Use your own judgement before you act on
 what you see, for example before you send money or share details with a caller.</p>
 
 <h2>What you agree not to do</h2>

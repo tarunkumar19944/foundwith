@@ -847,6 +847,20 @@ async def compute_popular_names(conn: Conn, min_people: int, min_account_days: i
     return int(await conn.fetchval("SELECT count(*)::int FROM popular_names"))
 
 
+async def clear_saved_names(conn: Conn, batch: int = 50_000) -> int:
+    """Known-as names are off: forget every saved name and every popular name. Returns names cleared."""
+    await conn.execute("DELETE FROM popular_names")
+    cleared = 0
+    while True:
+        n = _count(await conn.execute(
+            """UPDATE user_numbers SET name_hmac = NULL, name_enc = NULL
+               WHERE ctid IN (SELECT ctid FROM user_numbers WHERE name_enc IS NOT NULL OR name_hmac IS NOT NULL
+                              LIMIT $1)""", batch))
+        cleared += n
+        if n < batch:
+            return cleared
+
+
 async def hold_popular_name(conn: Conn, number_hmac: bytes, reason: str) -> bool:
     """Stops the number getting a popular name, and removes the one it has now. True if it had one."""
     await conn.execute(

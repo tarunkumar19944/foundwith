@@ -27,13 +27,15 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 | Someone in your contacts or call log | **someone you know** | known person, your circle |
 | Using the app | **on WhoHas** | taking part, registered |
 | Name the owner typed in | **Their own name: Raju Sharma** | name they gave |
-| Name 3+ people have for a number | **5 people know it as "Raju Plumber"** | popular name, saved as |
+| Name 3+ people have for a number | **5 people know it as "Raju Plumber"** | popular name, saved as **Off since 23 Nov 2026** (Google Play's contacts policy): not shown, and saved names are no longer sent. |
 | Fewer than 10 people | **Not popular** (only on cards and on your own number) | unpopular, low |
 | 10–49 people | **Popular** · often a business, or someone who calls a lot of people | "usually a shop" |
 | 50+ people | **Highly popular** · often a business, or someone who calls a lot of people | viral, famous |
 | Telling one person | **Tell Ravi on WhatsApp** → Told | Share (that's for a group) |
 
 **No bare numbers in one-line summaries.** Someone you know only from your call log, with no WhoHas name, still counts ("You know 1 of them") and is listed on the card with their last call, but is never named as a number in "You know …" or "Known to …".
+
+**No "known as" names (23 Nov 2026).** Google Play's contacts policy doesn't allow showing names other people saved for a number without that person's say-so, so "People know it as …" is off, and the names saved in contacts stay on the phone. Names shown are the person's own WhoHas name ("Their own name") and the names in your own phone.
 
 **"Has" means contacts or call log.** WhoHas counts a number when it is in someone's contacts *or* their call log, so never say "saved" for that. Use "save" only for Android's own **Save to contacts** button. Names come only from contacts (a call log entry has no name), so for names say "know it as".
 
@@ -83,7 +85,7 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 |---|---|---|
 | Your number (before allowing) | Your number · Found with 23 people | Your number · **23 people have it** · Allow contacts to see who they are. · then your level (tag and its line). At 0: No one on WhoHas has your number yet · Not popular |
 | Allow card (Y's words, 17 Nov) | See who knows your contacts · Allow contacts, and each one shows who else has the number. · Allow | **See who has each number** · Allow contacts and call log. Then you can: · ✓ Find out who has your number · ✓ See who has each number on your phone · ✓ Know when something new happens or changes · ✓ After a call, get a notification if someone has the caller's number · **Allow** |
-| Data notice (23 Nov; Google Play's prominent disclosure, two lines right above the button, no box) | | WhoHas sends your contact and call log numbers, and the names you saved, to its server to match them. People who have your number see your name. (Contacts-only: "your contact numbers") · Button: **Agree and allow** |
+| Data notice (23 Nov; Google Play's prominent disclosure, two lines right above the button, no box) | | WhoHas sends your contact and call log numbers to its server to match them. People who have your number see your name. (Contacts-only: "your contact numbers") · Button: **Agree and allow** |
 | Privacy line | Stored encrypted · How it works | No one sees your contact list. If a friend checks a number you have, they see your name. · How WhoHas works |
 | Contacts-only build | (same card) | Allow contacts. Then you can: · ✓ Find out who has your number · ✓ See who has each number on your phone · ✓ Know when something new happens or changes |
 | Checking | Finding who you know… | Checking your contacts… This takes a few seconds. |
@@ -178,7 +180,7 @@ Order on screen (22 Nov 2026): who it is, with a copy icon beside the number →
 | The number | | A copy icon beside the number (gold, "Copy number" for screen readers); tapping the number copies it too (the plain 10 digits). Android 13+ shows its own "Copied"; older phones: Number copied |
 | Buttons under the card | | **Truecaller** (23 Nov: copies the number, then opens Truecaller straight on it: its "search with Truecaller" action, else its page for the number, else its dial pad with the number typed, else Truecaller itself; without Truecaller, truecaller.com search. Test builds show which in a short note: Opened Truecaller search / …) · **Call back** beside it after a call from a number not in your contacts |
 | Owner's own name | Raju Sharma (name they gave) | **Their own name: Raju Sharma** (chip) |
-| Name 3+ people have for it | Raju Plumber (popular name) | **5 people know it as "Raju Plumber"** |
+| Name 3+ people have for it | Raju Plumber (popular name) | **5 people know it as "Raju Plumber"** **Off since 23 Nov 2026** (Google Play's contacts policy): not shown, and saved names are no longer sent. |
 | Main line | Found with Priya, Ravi and 21 others | **12 people** have this number · **You know 3 of them** |
 | You know none | Found with 12 people | 12 people have this number · You don't know any of them |
 | Only you | Only you have this number | No one else on WhoHas has this number yet |
@@ -219,7 +221,7 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 | Message | New text |
 |---|---|
 | Ask (owner unknown) | Hi, do you know whose number this is?<br>+91 98450 77120 |
-| Ask (with a known name) | Hi, do you know whose number this is?<br>+91 98450 77120<br>Some people know it as "Raju Plumber". |
+| Ask (with a known name) | Hi, do you know whose number this is?<br>+91 98450 77120<br>Some people know it as "Raju Plumber". (off with "known as" names) |
 | Ask (owner gave a name) | Hi, do you know Raju Sharma?<br>+91 98450 77120 |
 | Share / Invite (2+ others have their number) | Hi! I'm on WhoHas, and 7 more people there have your number. See who they are:<br>{link} |
 | Share / Invite (1 other) | Hi! I'm on WhoHas, and 1 more person there has your number. See who:<br>{link} |

@@ -162,11 +162,10 @@ class ApiClient(private val baseUrl: String, private val auth: AuthManager) {
 
     private fun strings(values: Collection<String>): JsonArray = JsonArray(values.map { JsonPrimitive(it) })
 
-    private fun contactEntries(entries: Collection<String>): JsonArray = JsonArray(entries.map { entry ->
-        val name = ContactEntry.name(entry)
-        if (name == null) JsonPrimitive(ContactEntry.raw(entry))
-        else buildJsonObject { put("number", ContactEntry.raw(entry)); put("name", name) }
-    })
+    // Numbers only: the names saved in contacts stay on the phone (23 Nov 2026: "known as" names are off,
+    // so the server has no use for them).
+    private fun contactEntries(entries: Collection<String>): JsonArray =
+        JsonArray(entries.map { entry -> JsonPrimitive(ContactEntry.raw(entry)) })
 
     /** A reply this version can't read (the server changed shape) is an error to show, never a crash. */
     private inline fun <reified T> decode(text: String): T = try {

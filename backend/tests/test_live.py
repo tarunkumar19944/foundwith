@@ -482,3 +482,31 @@ async def test_test_numbers_are_not_held_to_lookup_limits(db, identity):
     await service.lookup(ravi, PLUMBER, "search")
     with pytest.raises(QuotaExceeded):
         await service.lookup(ravi, PLUMBER, "search")                 # everyone else keeps the limit
+
+
+def count_of(db, sql):
+    row = db.conn.run(sql)[0]
+    while isinstance(row, (list, tuple)):
+        row = row[0]
+    return next(iter(row.values())) if isinstance(row, dict) else row
+
+
+async def test_known_as_names_off_keeps_and_shows_no_saved_names(db, identity):
+    """Off (the default since 23 Nov 2026, Google Play's contacts policy): names people saved are not
+    kept, never shown, and the nightly job clears any kept before it was switched off."""
+    on = service_with(db, identity, popular_name_min_account_days=0)
+    people = People(on)
+    for i in range(3):
+        await people.add(f"+9197000000{i:02d}", f"Person {LETTERS[i]}", contacts=[contact(PLUMBER, "Mahesh Electricals")])
+    viewer, _, _ = await people.add(ARJUN, "Arjun Rao", contacts=[])
+    await nightly(db, on)
+    assert (await on.lookup(viewer, PLUMBER, "search"))["popular_name"] == "Mahesh Electricals"
+
+    off = service_with(db, identity, popular_name_min_account_days=0, known_as_names=False)
+    assert (await off.lookup(viewer, PLUMBER, "search"))["popular_name"] is None
+    stats = await nightly(db, off)
+    assert stats["saved_names_cleared"] == 3
+    assert count_of(db, "SELECT count(*) FROM user_numbers WHERE name_enc IS NOT NULL OR name_hmac IS NOT NULL") == 0
+    assert count_of(db, "SELECT count(*) FROM popular_names") == 0
+    newcomer = await People(off).add("+919700000099", "Person Z", contacts=[contact(PLUMBER, "Mahesh Electricals")])
+    assert count_of(db, "SELECT count(*) FROM user_numbers WHERE name_enc IS NOT NULL") == 0

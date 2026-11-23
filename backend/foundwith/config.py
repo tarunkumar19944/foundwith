@@ -103,6 +103,10 @@ class Settings:
     # Popular name: the name at least this many established people saved for a number. Established
     # means an account this old, used in the last 30 days, syncing and not suspended, so a handful
     # of fresh accounts can't name somebody. Worked out nightly.
+    # "People know it as …": names other people saved for a number. Off since 23 Nov 2026: Google
+    # Play's contacts policy doesn't allow showing contacts data without the number owner's say-so.
+    # While off, saved names are neither stored nor shown, and the nightly job clears what was kept.
+    known_as_names: bool = False
     popular_name_min_people: int = 3
     popular_name_min_account_days: int = 7   # set to 0 for a test group whose accounts are all new
     popular_name_active_days: int = 30
@@ -183,6 +187,7 @@ class Settings:
             contact_email=env.get("CONTACT_EMAIL", "").strip(),
             grievance_officer=env.get("GRIEVANCE_OFFICER", "").strip(),
             public_url=env.get("PUBLIC_URL", "").strip().rstrip("/"),
+            known_as_names=env.get("KNOWN_AS_NAMES", "false").strip().lower() in ("1", "true", "yes"),
             **values,  # type: ignore[arg-type]
         )
         settings.validate(require_pepper=for_api)

@@ -107,7 +107,7 @@ def make_settings(**overrides) -> Settings:
                 name_key=b"test-name-key-0123456789-abcdefghijklmnopqrs",
                 search_daily_limit=5, call_daily_limit=10, max_numbers_per_user=200,
                 new_numbers_burst=150, new_numbers_per_day=24, count_cap=1000, card_sample_size=3,
-                holder_page_size=50, visibility="everyone")
+                holder_page_size=50, visibility="everyone", known_as_names=True)
     base.update(overrides)
     settings = Settings(**base)
     settings.validate()

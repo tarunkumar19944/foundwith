@@ -7,10 +7,10 @@ package app.foundwith.core
 object DataNotice {
     fun text(callLog: Boolean): String =
         if (callLog) {
-            "WhoHas sends your contact and call log numbers, and the names you saved, to its server to match them. " +
+            "WhoHas sends your contact and call log numbers to its server to match them. " +
                 "People who have your number see your name."
         } else {
-            "WhoHas sends your contact numbers, and the names you saved, to its server to match them. " +
+            "WhoHas sends your contact numbers to its server to match them. " +
                 "People who have your number see your name."
         }
 }

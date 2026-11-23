@@ -83,9 +83,13 @@ async def run(db: Database, identity: IdentityAdmin, settings: Settings) -> dict
         stats["deletion_records_purged"] = await repo.purge_auth_deletions(conn, FINISHED_DELETIONS_KEEP_DAYS)
     stats.update(await check_holder_counts(db))
     async with db.acquire() as conn:
-        stats["popular_names"] = await repo.compute_popular_names(
-            conn, settings.popular_name_min_people, settings.popular_name_min_account_days,
-            settings.popular_name_active_days)
+        if settings.known_as_names:
+            stats["popular_names"] = await repo.compute_popular_names(
+                conn, settings.popular_name_min_people, settings.popular_name_min_account_days,
+                settings.popular_name_active_days)
+        else:
+            stats["saved_names_cleared"] = await repo.clear_saved_names(conn)
+            stats["popular_names"] = 0
         # After the recount, so "more people today" is counted from correct totals.
         stats["day_started_numbers"] = await repo.start_new_day(conn)
         stats["push_tokens_purged"] = await repo.purge_push_tokens(conn, PUSH_TOKEN_KEEP_DAYS)
