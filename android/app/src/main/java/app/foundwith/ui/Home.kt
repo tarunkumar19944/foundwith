@@ -629,6 +629,16 @@ private fun UpdateRow(state: AppState, item: UpdateItem, isNew: Boolean, onNumbe
             ?.let { "Now known to $it" }
         else -> null
     }
+    // When the latest change happened, on the right; under New in blue, with the dot.
+    val time: (@Composable () -> Unit)? = if (at == null) null else {
+        {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(whenText(at), style = MaterialTheme.typography.labelMedium,
+                    color = if (isNew) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                if (isNew) { Spacer(Modifier.height(6.dp)); NewDot() }
+            }
+        }
+    }
     InfoRow(
         leading = { if (call != null) CallKindIcon(call) else if (name.isNumber) IconAvatar(Icons.Filled.Phone) else Avatar(e164, name.text) },
         name = name,
@@ -640,13 +650,7 @@ private fun UpdateRow(state: AppState, item: UpdateItem, isNew: Boolean, onNumbe
             changeText != null -> MaterialTheme.colorScheme.primary
             else -> knownColour(card)
         },
-        trailing = if (at == null) null else @Composable {
-            Column(horizontalAlignment = Alignment.End) {
-                Text(whenText(at), style = MaterialTheme.typography.labelMedium,
-                    color = if (isNew) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                if (isNew) { Spacer(Modifier.height(6.dp)); NewDot() }
-            }
-        },
+        trailing = time,
         onClick = { onNumber(e164) },
         e164 = e164,
         tag = rowTag(card?.total, card?.totalIsLowerBound == true),
