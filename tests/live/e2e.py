@@ -342,7 +342,9 @@ def run(config: dict) -> Report:
         status, body = a.call("GET", "/v1/me/data")
         report.check("'Your data' summary loads", status == 200, (status, body))
         status, body = a.call("GET", "/v1/me/export")
-        report.check("the download has the names Asha saved", status == 200 and "Raju Plumber" in json.dumps(body), status)
+        # Contact names stay on the phone (known-as names off, 23 Nov 2026), so none are in the download.
+        report.check("the download loads, with no contact names in it", status == 200 and "raju plumber" not in json.dumps(body).lower(),
+                     status)
 
         print("Deleting accounts")
         status, _ = d.call("DELETE", "/v1/me")
