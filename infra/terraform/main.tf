@@ -8,6 +8,9 @@ locals {
     "identitytoolkit.googleapis.com",
     "logging.googleapis.com",
     "monitoring.googleapis.com",
+    # Firebase phone sign-in checks the app with Play Integrity; without this API every sign-in falls
+    # back to Google's robot check in a browser.
+    "playintegrity.googleapis.com",
     "run.googleapis.com",
     "secretmanager.googleapis.com",
     "sqladmin.googleapis.com",

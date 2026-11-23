@@ -10,7 +10,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -495,17 +494,9 @@ internal fun AllowCard(onAllow: () -> Unit, onHowItWorks: () -> Unit) {
         if (BuildConfig.CALL_LOG) TickLine("After a call, get a notification if someone has the caller's number")
         // Google Play's prominent disclosure: what is sent and why, right before the Android prompts,
         // with a button that agrees to it (User Data policy).
-        androidx.compose.material3.Surface(
-            color = MaterialTheme.colorScheme.background,
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("What WhoHas sends", fontWeight = FontWeight.Bold)
-                Text(DataNotice.text(BuildConfig.CALL_LOG))
-            }
-        }
+        // Two short lines right above the button (Y, 23 Nov: no box).
+        Text(DataNotice.text(BuildConfig.CALL_LOG), style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.padding(top = 4.dp))
         PrimaryButton("Agree and allow", onAllow)
         Row(Modifier.clickable(onClick = onHowItWorks).padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
             Icon(Icons.Filled.Lock, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)

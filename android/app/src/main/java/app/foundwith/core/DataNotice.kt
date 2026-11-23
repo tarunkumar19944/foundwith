@@ -7,14 +7,10 @@ package app.foundwith.core
 object DataNotice {
     fun text(callLog: Boolean): String =
         if (callLog) {
-            "WhoHas sends the numbers from your contacts and call log, and the names you saved, to its server, " +
-                "to match them with other people on WhoHas. No call times, messages or recordings. " +
-                "People who already have your number see your name when they check a number you have. " +
-                "A name you saved is shown to others only when 3 or more people saved the same name for that number."
+            "WhoHas sends your contact and call log numbers, and the names you saved, to its server to match them. " +
+                "People who have your number see your name."
         } else {
-            "WhoHas sends the numbers from your contacts, and the names you saved, to its server, " +
-                "to match them with other people on WhoHas. " +
-                "People who already have your number see your name when they check a number you have. " +
-                "A name you saved is shown to others only when 3 or more people saved the same name for that number."
+            "WhoHas sends your contact numbers, and the names you saved, to its server to match them. " +
+                "People who have your number see your name."
         }
 }

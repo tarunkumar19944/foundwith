@@ -13,7 +13,6 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import app.foundwith.MainActivity
 import app.foundwith.R
-import app.foundwith.graph
 import app.foundwith.core.AfterCallNote
 import app.foundwith.core.Alert
 
@@ -64,7 +63,7 @@ class Notifier(private val context: Context) {
         val open = Intent(context, MainActivity::class.java)
             .setAction(ACTION_OPEN_NUMBER)
             .putExtra(EXTRA_NUMBER, note.number)
-            .putExtra(EXTRA_KEY, context.graph.store.openKey)
+            .putExtra(EXTRA_KEY, app.foundwith.data.LocalStore(context).openKey)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pending = PendingIntent.getActivity(context, note.number.hashCode(), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -139,7 +138,7 @@ class Notifier(private val context: Context) {
         val open = Intent(context, MainActivity::class.java)
             .setAction(ACTION_OPEN_NUMBER)
             .putExtra(EXTRA_NUMBER, e164)
-            .putExtra(EXTRA_KEY, context.graph.store.openKey)
+            .putExtra(EXTRA_KEY, app.foundwith.data.LocalStore(context).openKey)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pending = PendingIntent.getActivity(context, ("j" + e164).hashCode(), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)

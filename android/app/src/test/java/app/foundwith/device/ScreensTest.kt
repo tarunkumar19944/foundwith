@@ -97,7 +97,6 @@ class ScreensTest {
     @Test
     fun allowCardSaysWhatIsSent() {
         shot("10-allow-notice") { AllowCard(onAllow = {}, onHowItWorks = {}) }
-        compose.onNodeWithText("What WhoHas sends").assertExists()
         compose.onNodeWithText(DataNotice.text(BuildConfig.CALL_LOG)).assertExists()
         compose.onNodeWithText("Agree and allow").assertExists()
     }
