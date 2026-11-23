@@ -240,6 +240,8 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 
 ## Notifications
 
+**As fast as possible, with no extra permission (Y, 23 Nov).** While WhoHas is running it watches the call log itself and checks a call about half a second after it ends; otherwise Android wakes it when the call log changes (asked for within 2 seconds). Only the caller's contact is looked up, not the whole address book. Every call notification pops up on the screen; only a missed call from a number not in your contacts makes a sound. Phones report, by brand only, how many calls were told within 10 seconds and within a minute.
+
 Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when someone on WhoHas has the number and something is new or changed. A number nobody has stays silent. A repeat call from the same number is told again only when more people have it. Only a missed call from a number not in your contacts makes a sound, and never from 9 pm to 9 am. A dialled call is told quietly after it ends. Changes with no call are merged into one notification. Nothing is shown while WhoHas is open; Updates shows it. There is no evening summary.
 
 | Kind | Title · text · buttons |
@@ -254,7 +256,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 | Changes with no call (several) | **2 changes on WhoHas** · 1 more person has your number. +91 98450 77120 is now known to Meena. · Open Updates |
 | Reached a level | **You're Popular now** · 10 people have your number. 40 more and you're Highly popular. · Share in group |
 | Close to a level (at most once a week) | **2 more people and you're Popular** · 8 people have your number. Share WhoHas in a group. · Share in group |
-| Channels (Android settings) | Calls from unknown numbers · Other calls (silent) · Changes to your numbers · Friends who join · Your level |
+| Channels (Android settings) | Calls from unknown numbers (pops up, with sound) · Other calls (no sound; pops up on the screen) · Changes to your numbers · Friends who join · Your level |
 
 ## Settings
 

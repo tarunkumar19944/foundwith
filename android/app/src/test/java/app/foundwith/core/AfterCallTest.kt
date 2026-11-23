@@ -126,6 +126,23 @@ class AfterCallTest {
     }
 
     @Test
+    fun healthCountsHowFastCallsWereChecked() {
+        val day = HealthDay("2026-11-23")
+            .seen(true, secondsAfterEnd = 2)       // within 10 s (and so within a minute)
+            .seen(true, secondsAfterEnd = 45)      // within a minute
+            .seen(true, secondsAfterEnd = 600)     // late, but in the hour
+            .seen(false, secondsAfterEnd = 3)      // too late to tell: never counted as fast
+            .seen(true)                            // speed not known
+        assertEquals(HealthDay("2026-11-23", callsSeen = 5, callsChecked = 4, within10s = 1, within60s = 2), day)
+    }
+
+    @Test
+    fun aCallEndsWhenItIsLoggedOrElseAfterItsLength() {
+        assertEquals(5_000L, CallEvent(1, "9845012345", CallType.MISSED, at = 1_000, loggedAt = 5_000).endedAt)
+        assertEquals(61_000L, CallEvent(1, "9845012345", CallType.ANSWERED, at = 1_000, duration = 60).endedAt)
+    }
+
+    @Test
     fun hiddenForeignAndIndianCallsAreToldApart() {
         fun call(raw: String?) = CallEvent(1, raw, CallType.MISSED, 0)
         assertTrue(call(null).isHidden)

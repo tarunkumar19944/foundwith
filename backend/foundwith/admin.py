@@ -167,12 +167,15 @@ async def release_name(db: Database, value: str) -> dict[str, Any]:
 
 
 async def health_report(db: Database, days: int = 14) -> list[dict[str, Any]]:
-    """After-call health by phone brand: of the calls phones saw, how many WhoHas checked."""
+    """After-call health by phone brand: of the calls phones saw, how many WhoHas checked, and how
+    many of those within 10 seconds and within a minute of the call ending."""
     async with db.acquire() as conn:
         rows = await repo.health_by_brand(conn, days)
     return [{"brand": r["brand"], "phone_days": r["phone_days"], "calls_seen": r["calls_seen"],
              "calls_checked": r["calls_checked"],
-             "checked_pct": round(100 * r["calls_checked"] / r["calls_seen"], 1) if r["calls_seen"] else None}
+             "checked_pct": round(100 * r["calls_checked"] / r["calls_seen"], 1) if r["calls_seen"] else None,
+             "within_10s_pct": round(100 * r["calls_within_10s"] / r["calls_checked"], 1) if r["calls_checked"] else None,
+             "within_60s_pct": round(100 * r["calls_within_60s"] / r["calls_checked"], 1) if r["calls_checked"] else None}
             for r in rows]
 
 

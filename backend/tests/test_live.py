@@ -210,12 +210,20 @@ def test_health_is_kept_by_brand_only(db, settings, identity):
         assert client.post("/v1/me/health", json={**day, "day": "2099-01-01"}, headers=h).status_code == 204
         rows, _ = db.conn.run("SELECT * FROM device_health")
         assert [(r["brand"], r["phones"], r["calls_seen"], r["calls_checked"]) for r in rows] == [("xiaomi", 2, 14, 10)]
-        assert set(rows[0]) == {"day", "brand", "android", "phones", "calls_seen", "calls_checked"}   # nobody in it
+        assert set(rows[0]) == {"day", "brand", "android", "phones", "calls_seen", "calls_checked",
+                                "calls_within_10s", "calls_within_60s"}   # nobody in it
+        assert (rows[0]["calls_within_10s"], rows[0]["calls_within_60s"]) == (0, 0)    # older apps don't send speed
 
         import anyio
         from foundwith import admin
         report = anyio.run(admin.run, db, ["health"])
-        assert report == [{"brand": "xiaomi", "phone_days": 2, "calls_seen": 14, "calls_checked": 10, "checked_pct": 71.4}]
+        assert report == [{"brand": "xiaomi", "phone_days": 2, "calls_seen": 14, "calls_checked": 10, "checked_pct": 71.4,
+                           "within_10s_pct": 0.0, "within_60s_pct": 0.0}]
+        # Speed counts: never more than were checked, and 10 s never more than a minute.
+        fast = {**day, "brand": "samsung", "calls_seen": 5, "calls_checked": 4, "calls_within_10s": 9, "calls_within_60s": 3}
+        assert client.post("/v1/me/health", json=fast, headers=h).status_code == 204
+        rows, _ = db.conn.run("SELECT calls_checked, calls_within_10s, calls_within_60s FROM device_health WHERE brand = 'samsung'")
+        assert [(r["calls_checked"], r["calls_within_10s"], r["calls_within_60s"]) for r in rows] == [(4, 3, 3)]
 
         r = client.put("/v1/me/settings", json={"evening_note": False}, headers=h)
         assert r.status_code == 200 and r.json()["evening_note"] is False

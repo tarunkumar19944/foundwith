@@ -37,6 +37,9 @@ class HealthIn(_Body):
     android: int = Field(ge=1, le=99)
     calls_seen: int = Field(ge=0, le=2000)
     calls_checked: int = Field(ge=0, le=2000)
+    # How fast: of the calls checked, how many within 10 seconds and within a minute of the call ending.
+    calls_within_10s: int = Field(default=0, ge=0, le=2000)
+    calls_within_60s: int = Field(default=0, ge=0, le=2000)
 
 
 class SyncSettingIn(_Body):

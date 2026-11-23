@@ -58,7 +58,7 @@ private data class CallsFile(
 )
 
 @Serializable
-private data class HealthRow(val day: String, val seen: Int, val checked: Int)
+private data class HealthRow(val day: String, val seen: Int, val checked: Int, val in10: Int = 0, val in60: Int = 0)
 
 /** What the viewer calls a number, for the cards. */
 @Serializable
@@ -305,14 +305,14 @@ class LocalStore(context: Context) {
     /** Call ids already handled, the times calls were reached too late, and today's health. */
     suspend fun callState(): Triple<Set<Long>, List<Long>, HealthDay?> {
         val file = read("calls.json", CallsFile.serializer()) ?: CallsFile()
-        return Triple(file.handled.toSet(), file.lateAt, file.health?.let { HealthDay(it.day, it.seen, it.checked) })
+        return Triple(file.handled.toSet(), file.lateAt, file.health?.let { HealthDay(it.day, it.seen, it.checked, it.in10, it.in60) })
     }
 
     suspend fun saveCallState(handled: Collection<Long>, lateAt: List<Long>, health: HealthDay?) =
         write("calls.json", CallsFile.serializer(), CallsFile(
             handled = handled.sorted().takeLast(MAX_HANDLED),
             lateAt = lateAt.sorted().takeLast(50),
-            health = health?.let { HealthRow(it.day, it.callsSeen, it.callsChecked) },
+            health = health?.let { HealthRow(it.day, it.callsSeen, it.callsChecked, it.within10s, it.within60s) },
         ))
 
     // ---------------------------------------------------------------- cards

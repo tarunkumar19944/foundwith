@@ -90,6 +90,39 @@ class DeviceBook(private val context: Context) {
         unique.map { it.copy(multiple = (numbersPerContact[it.contactId] ?: 1) > 1) }
     }
 
+    /**
+     * The contact saved for one number, without reading the whole address book (after a call,
+     * where every moment counts). Android's own number lookup, kept only when the saved number is
+     * this exact number. Null when it isn't saved, or contacts aren't allowed.
+     */
+    suspend fun contactFor(e164: String): SavedNumber? = withContext(Dispatchers.IO) {
+        if (!hasContactsPermission()) return@withContext null
+        val uri = android.net.Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI, android.net.Uri.encode(e164))
+        val projection = arrayOf(ContactsContract.PhoneLookup._ID, ContactsContract.PhoneLookup.DISPLAY_NAME,
+            ContactsContract.PhoneLookup.NUMBER, ContactsContract.PhoneLookup.TYPE, ContactsContract.PhoneLookup.LABEL,
+            ContactsContract.PhoneLookup.STARRED)
+        val found = ArrayList<SavedNumber>()
+        context.contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+            while (cursor.moveToNext()) {
+                val raw = cursor.getString(2)?.trim() ?: continue
+                if (PhoneNumbers.normalise(raw) != e164) continue
+                val label = runCatching {
+                    ContactsContract.CommonDataKinds.Phone.getTypeLabel(context.resources, cursor.getInt(3), cursor.getString(4)).toString()
+                }.getOrNull()
+                found += SavedNumber(raw, cursor.getString(1)?.trim(), label, cursor.getInt(5) == 1, cursor.getLong(0))
+            }
+        }
+        val first = found.firstOrNull() ?: return@withContext null
+        // "Ravi (Work)" when Ravi has more than one number, as everywhere else.
+        val numbers = runCatching {
+            context.contentResolver.query(ContactsContract.CommonDataKinds.Phone.CONTENT_URI,
+                arrayOf(ContactsContract.CommonDataKinds.Phone._ID),
+                "${ContactsContract.CommonDataKinds.Phone.CONTACT_ID} = ?", arrayOf(first.contactId.toString()), null)
+                ?.use { it.count } ?: 1
+        }.getOrDefault(1)
+        first.copy(multiple = numbers > 1)
+    }
+
     /** Contacts with whether each is a favourite, for ranking who to invite. */
     suspend fun contactsForInvite(): List<PhoneContact> = contacts().map { PhoneContact(it.raw, it.name, it.starred) }
 
@@ -100,8 +133,11 @@ class DeviceBook(private val context: Context) {
     suspend fun calls(sinceMs: Long = 0L, limit: Int = 500): List<CallEvent> = withContext(Dispatchers.IO) {
         if (!hasCallLogPermission()) return@withContext emptyList()
         val out = ArrayList<CallEvent>()
+        // When the row was written (Android 11+) tells when the call ended, for the speed numbers.
+        val logged = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
         val projection = arrayOf(CallLog.Calls._ID, CallLog.Calls.NUMBER, CallLog.Calls.TYPE,
-            CallLog.Calls.DATE, CallLog.Calls.CACHED_NAME, CallLog.Calls.DURATION)
+            CallLog.Calls.DATE, CallLog.Calls.CACHED_NAME, CallLog.Calls.DURATION) +
+            (if (logged) arrayOf(CallLog.Calls.LAST_MODIFIED) else emptyArray())
         runCatching {
             context.contentResolver.query(
                 CallLog.Calls.CONTENT_URI, projection, "${CallLog.Calls.DATE} >= ?", arrayOf(sinceMs.toString()),
@@ -113,6 +149,7 @@ class DeviceBook(private val context: Context) {
                 val dateCol = cursor.getColumnIndexOrThrow(CallLog.Calls.DATE)
                 val nameCol = cursor.getColumnIndexOrThrow(CallLog.Calls.CACHED_NAME)
                 val durationCol = cursor.getColumnIndexOrThrow(CallLog.Calls.DURATION)
+                val loggedCol = if (logged) cursor.getColumnIndex(CallLog.Calls.LAST_MODIFIED) else -1
                 while (cursor.moveToNext() && out.size < limit) {
                     val type = when (cursor.getInt(typeCol)) {
                         CallLog.Calls.INCOMING_TYPE -> CallType.ANSWERED
@@ -122,7 +159,8 @@ class DeviceBook(private val context: Context) {
                         else -> CallType.OTHER
                     }
                     out += CallEvent(cursor.getLong(idCol), cursor.getString(numberCol)?.trim(), type,
-                        cursor.getLong(dateCol), cursor.getString(nameCol), cursor.getLong(durationCol))
+                        cursor.getLong(dateCol), cursor.getString(nameCol), cursor.getLong(durationCol),
+                        loggedAt = if (loggedCol >= 0) cursor.getLong(loggedCol).takeIf { it > 0 } else null)
                 }
             }
         }

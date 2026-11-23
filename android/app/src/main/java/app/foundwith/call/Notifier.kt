@@ -20,7 +20,8 @@ import app.foundwith.core.Alert
  * WhoHas's notifications (22 Nov 2026). One Android channel per kind, so people can also quieten
  * any of them in Android's own settings:
  *  - "Calls from unknown numbers" (with sound): a missed call from a number not in your contacts, when someone has it.
- *  - "Other calls (silent)": every other call WhoHas tells about, received or dialled. No sound.
+ *  - "Other calls (no sound)": every other call WhoHas tells about, received or dialled. It pops up
+ *    on the screen like the first kind (23 Nov 2026: so it's seen at once), but makes no sound.
  *  - "Changes to your numbers": a new person has your number, a count went up. Merged into one.
  *  - "Friends who join": someone in your contacts joined WhoHas. No sound.
  *  - "Your level": you reached Popular or Highly popular, or you are close. At most one nudge a week.
@@ -37,8 +38,11 @@ class Notifier(private val context: Context) {
             NotificationChannel(CALLS_SOUND, "Calls from unknown numbers", NotificationManager.IMPORTANCE_HIGH).apply {
                 description = "After a missed call from a number not in your contacts: who you know has it."
             },
-            NotificationChannel(CALLS_QUIET, "Other calls (silent)", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "After other calls, without sound."
+            // High importance pops the notification up on the screen; no sound and no vibration.
+            NotificationChannel(CALLS_QUIET, "Other calls (no sound)", NotificationManager.IMPORTANCE_HIGH).apply {
+                description = "After other calls: shows on the screen, without sound."
+                setSound(null, null)
+                enableVibration(false)
             },
             NotificationChannel(CHANGES, "Changes to your numbers", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "When someone new has your number or a number you have. No sound."
@@ -53,6 +57,8 @@ class Notifier(private val context: Context) {
         // Channels from earlier versions.
         runCatching { manager.deleteNotificationChannel("incoming_calls") }
         runCatching { manager.deleteNotificationChannel("evening") }
+        // The quiet call channel before 23 Nov 2026 didn't pop up; a channel's importance can't be raised.
+        runCatching { manager.deleteNotificationChannel("calls_quiet") }
     }
 
     fun canPost(): Boolean =
@@ -78,8 +84,9 @@ class Notifier(private val context: Context) {
             .setContentText(note.text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(note.text))
             .setCategory(NotificationCompat.CATEGORY_CALL)
-            .setPriority(if (note.alert == Alert.SOUND) NotificationCompat.PRIORITY_HIGH else NotificationCompat.PRIORITY_LOW)
-            .setSilent(note.alert != Alert.SOUND)
+            // Both kinds pop up on the screen; only the first has sound (its channel). Not setSilent:
+            // Android never pops up a notification marked silent.
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setOnlyAlertOnce(true)
             .setAutoCancel(true)
             .setContentIntent(pending)
@@ -164,7 +171,7 @@ class Notifier(private val context: Context) {
 
     companion object {
         const val CALLS_SOUND = "callers"
-        const val CALLS_QUIET = "calls_quiet"
+        const val CALLS_QUIET = "calls_other"
         const val CHANGES = "changes"
         const val LEVEL = "level"
         const val JOINED = "joined"

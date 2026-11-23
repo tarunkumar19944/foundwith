@@ -164,7 +164,8 @@ async def put_settings(request: Request, svc: Service, ident: Identity, user: Ro
 
 async def post_health(request: Request, svc: Service, ident: Identity, user: Row) -> Response:
     body = await read_body(request, HealthIn)
-    await svc.record_health(body.brand, body.android, body.day, body.calls_seen, body.calls_checked)
+    await svc.record_health(body.brand, body.android, body.day, body.calls_seen, body.calls_checked,
+                            body.calls_within_10s, body.calls_within_60s)
     return Response(status_code=204)
 
 

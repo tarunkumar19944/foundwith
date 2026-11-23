@@ -29,15 +29,17 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
  * After a call: who knows the caller. WhoHas is never the phone's caller ID app, so it learns
- * about a call from the call log, three ways (whichever comes first handles the call, once):
- *  1. Android wakes it when the call log changes (a content trigger, no extra permission).
- *  2. Every time the app opens.
- *  3. A wake-up from the server a few times a day, for phones that stop apps in the background.
+ * about a call from the call log, four ways (whichever comes first handles the call, once):
+ *  1. While WhoHas is running, it watches the call log itself and checks at once (23 Nov 2026).
+ *  2. Otherwise Android wakes it when the call log changes (a content trigger, no extra permission).
+ *  3. Every time the app opens.
+ *  4. A wake-up from the server a few times a day, for phones that stop apps in the background.
  * A call is only notified about within the hour; later than that it just shows in Calls, and it
  * counts as "late" for the phone-settings fix and the brand health numbers.
  */
@@ -50,10 +52,13 @@ object AfterCall {
     /** Arms the call-log trigger. Each run re-arms it, so the chain never breaks. */
     fun watch(context: Context, rearm: Boolean = false) {
         if (!BuildConfig.CALL_LOG) return
+        CallLogWatcher.start(context)
         val constraints = Constraints.Builder()
             .addContentUriTrigger(CallLog.Calls.CONTENT_URI, true)
-            .setTriggerContentUpdateDelay(Duration.ofSeconds(2))
-            .setTriggerContentMaxDelay(Duration.ofSeconds(15))
+            // As soon as Android allows (23 Nov 2026: was 2 s and up to 15 s): half a second for the
+            // call log to settle, and never more than 2 seconds after the first change.
+            .setTriggerContentUpdateDelay(Duration.ofMillis(500))
+            .setTriggerContentMaxDelay(Duration.ofSeconds(2))
             .build()
         val request = OneTimeWorkRequestBuilder<AfterCallWorker>().setConstraints(constraints).build()
         WorkManager.getInstance(context).enqueueUniqueWork(WATCH,
@@ -81,10 +86,32 @@ object AfterCall {
     }
 
     fun cancelAll(context: Context) {
+        CallLogWatcher.stop(context)
         val wm = WorkManager.getInstance(context)
         wm.cancelUniqueWork(WATCH)
         wm.cancelUniqueWork(NOW)
         wm.cancelUniqueWork(RETRY)
+    }
+
+    /**
+     * Checks, then checks again if another call ended meanwhile (a missed call and the call back),
+     * so that call doesn't wait for the next change. Returns false when some call needs a retry.
+     */
+    suspend fun checkUntilDone(context: Context): Boolean {
+        repeat(3) {
+            if (!check(context)) return false          // waiting for the network: the retry job has it
+            if (!hasUnhandled(context)) return true
+        }
+        return true
+    }
+
+    private suspend fun hasUnhandled(context: Context): Boolean {
+        val graph = context.graph
+        if (!graph.book.hasCallLogPermission()) return false
+        val now = System.currentTimeMillis()
+        val handled = graph.store.callState().first
+        return graph.book.calls(sinceMs = now - CallCatchUp.NOTIFY_WITHIN_MS, limit = 20)
+            .any { it.id !in handled && it.isEligible }
     }
 
     /** Handles every call not yet handled. Returns false when some call needs a network retry. */
@@ -93,6 +120,8 @@ object AfterCall {
         // Only after the person agreed on the Allow card (Play's disclosure rule), even if the call
         // log permission was granted some other way.
         if (!graph.auth.isSignedIn || !graph.store.syncEnabledHint || !graph.book.hasCallLogPermission()) return@withLock true
+        // The sign-in token is refreshed (when it's old) while the call log is read, not after.
+        graph.scope.launch { runCatching { graph.auth.idToken(forceRefresh = false) } }
         val now = System.currentTimeMillis()
         val (handledIds, lateAt, healthNow) = graph.store.callState()
         val handled = handledIds.toMutableSet()
@@ -122,7 +151,6 @@ object AfterCall {
         }
         val plan = CallCatchUp.plan(calls, handled, now)
         Log.i(TAG, "check: ${calls.size} calls, ${plan.toNotify.size} to check, ${plan.tooLate.size} late")
-        val contacts = graph.book.contacts().mapNotNull { c -> c.e164?.let { it to c } }.toMap()
         val index = graph.store.index()
         val baseline = graph.store.changeLog()?.baseline.orEmpty()
         val blocked = graph.store.blockedRefs
@@ -137,8 +165,10 @@ object AfterCall {
                 handled += call.id
                 continue
             }
+            // Only this number's contact, not the whole address book: it's quicker.
+            val contactName = runCatching { graph.book.contactFor(e164) }.getOrNull()?.shownName
             val info = try {
-                callerInfo(context, e164, contacts[e164]?.shownName, index.refByE164[e164], baseline, blocked)
+                callerInfo(context, e164, contactName, index.refByE164[e164], baseline, blocked)
             } catch (e: OfflineException) {
                 needsRetry = true
                 continue
@@ -153,7 +183,9 @@ object AfterCall {
                 null
             }
             handled += call.id
-            health = health.seen(checkedInTime = true)
+            // How fast: from the end of the call to now, when it is checked and told.
+            health = health.seen(checkedInTime = true, secondsAfterEnd = ((System.currentTimeMillis() - call.endedAt) / 1000).coerceAtLeast(0))
+            Log.i(TAG, "call ${call.id} checked ${System.currentTimeMillis() - call.endedAt} ms after it ended")
             if (info == null) continue
             val note = AfterCallRules.decide(call, info, hour, CallCatchUp.repeats(call, calls))
             Log.i(TAG, "call ${call.id} ${call.type}: ${note.alert} (has ${info.total}, name ${info.ownerName != null})")
@@ -208,7 +240,7 @@ object AfterCall {
         if (day.callsSeen == 0) return
         runCatching {
             context.graph.api.sendHealth(day.day, Brands.reportName(Build.MANUFACTURER), Build.VERSION.SDK_INT,
-                day.callsSeen, day.callsChecked)
+                day.callsSeen, day.callsChecked, day.within10s, day.within60s)
         }
     }
 
@@ -220,7 +252,7 @@ object AfterCall {
 class AfterCallWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         try {
-            AfterCall.check(applicationContext)
+            AfterCall.checkUntilDone(applicationContext)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

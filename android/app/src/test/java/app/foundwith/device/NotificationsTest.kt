@@ -49,9 +49,14 @@ class NotificationsTest {
 
     @Test
     fun fiveChannelsAndNoDailySummary() {
-        assertEquals(setOf("callers", "calls_quiet", "changes", "joined", "level"), manager.notificationChannels.map { it.id }.toSet())
+        assertEquals(setOf("callers", "calls_other", "changes", "joined", "level"), manager.notificationChannels.map { it.id }.toSet())
         assertEquals(NotificationManager.IMPORTANCE_HIGH, manager.getNotificationChannel("callers").importance)
-        for (quiet in listOf("calls_quiet", "changes", "joined", "level")) {
+        // Other calls pop up on the screen at once too, but make no sound (23 Nov 2026).
+        val other = manager.getNotificationChannel("calls_other")
+        assertEquals(NotificationManager.IMPORTANCE_HIGH, other.importance)
+        assertNull(other.sound)
+        assertFalse(other.shouldVibrate())
+        for (quiet in listOf("changes", "joined", "level")) {
             assertEquals(quiet, NotificationManager.IMPORTANCE_LOW, manager.getNotificationChannel(quiet).importance)
         }
     }
@@ -70,7 +75,7 @@ class NotificationsTest {
         notifier.postCall(AfterCallNote(Alert.SILENT, "You called +91 97311 20456", "Known to Priya", "+919731120456"))
         notifier.postCall(AfterCallNote(Alert.SILENT, "Call from +91 97311 20456", "Known to Priya and Meena", "+919731120456"))
         val n = posted().single()
-        assertEquals("calls_quiet", n.channelId)
+        assertEquals("calls_other", n.channelId)
         assertEquals("Call from +91 97311 20456", n.extras.getString("android.title"))
     }
 

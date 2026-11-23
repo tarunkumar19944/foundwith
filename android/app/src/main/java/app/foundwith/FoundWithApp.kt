@@ -18,6 +18,8 @@ class FoundWithApp : Application() {
         // idempotent, so doing it on every start only repairs what an update may have cleared.
         if (graph.auth.isSignedIn && graph.store.syncEnabledHint) {
             Scheduling.scheduleAll(this)
+            // While this process runs, calls are checked the moment they end.
+            app.foundwith.call.CallLogWatcher.start(this)
         }
     }
 }

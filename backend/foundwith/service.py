@@ -1022,14 +1022,18 @@ class Service:
 
     # ---------- phone health by brand
 
-    async def record_health(self, brand: str, android: int, day: Any, calls_seen: int, calls_checked: int) -> None:
-        """One phone's day: calls it saw and how many WhoHas checked. Stored by brand only. Only
-        yesterday, today or tomorrow (time zones), so odd dates can't pile up unpurged."""
+    async def record_health(self, brand: str, android: int, day: Any, calls_seen: int, calls_checked: int,
+                            within_10s: int = 0, within_60s: int = 0) -> None:
+        """One phone's day: calls it saw, how many WhoHas checked, and how many of those within 10
+        seconds and within a minute of the call ending. Stored by brand only. Only yesterday, today
+        or tomorrow (time zones), so odd dates can't pile up unpurged."""
         today = datetime.now(timezone.utc).date()
         if not (today - timedelta(days=1) <= day <= today + timedelta(days=1)):
             return
         async with self.db.acquire() as conn:
-            await repo.add_health(conn, day, brand, android, calls_seen, min(calls_checked, calls_seen))
+            checked = min(calls_checked, calls_seen)
+            in_60 = min(within_60s, checked)
+            await repo.add_health(conn, day, brand, android, calls_seen, checked, min(within_10s, in_60), in_60)
 
 
 def _first_name(name: str) -> str:

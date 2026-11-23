@@ -15,7 +15,12 @@ data class CallEvent(
     val cachedName: String? = null,
     /** How long the call lasted, in seconds (0 for a missed call or one nobody answered). */
     val duration: Long = 0,
+    /** When Android wrote the call to the call log, which is when it ended (Android 11+; null before). */
+    val loggedAt: Long? = null,
 ) {
+    /** When the call ended: when it was logged, or else its start plus how long it lasted. */
+    val endedAt: Long get() = loggedAt ?: (at + duration * 1000)
+
     val e164: String? get() = PhoneNumbers.normalise(raw)
     /** A hidden ("Private") number: no number at all, or Android's -1/-2/-3 markers. */
     val isHidden: Boolean get() = raw.isNullOrBlank() || raw.trim().startsWith("-") || raw.none { it.isDigit() }
@@ -151,8 +156,24 @@ object CallCatchUp {
 }
 
 /** One phone's day for the brand health report: calls seen, and how many were checked in time. */
-data class HealthDay(val day: String, val callsSeen: Int = 0, val callsChecked: Int = 0) {
-    fun seen(checkedInTime: Boolean) = copy(callsSeen = callsSeen + 1, callsChecked = callsChecked + if (checkedInTime) 1 else 0)
+data class HealthDay(
+    val day: String,
+    val callsSeen: Int = 0,
+    val callsChecked: Int = 0,
+    /** Of the calls checked, how many within 10 seconds and within a minute of the call ending (23 Nov 2026). */
+    val within10s: Int = 0,
+    val within60s: Int = 0,
+) {
+    /** [secondsAfterEnd]: how long after the call ended it was checked, when known. */
+    fun seen(checkedInTime: Boolean, secondsAfterEnd: Long? = null): HealthDay {
+        val fast = if (checkedInTime) secondsAfterEnd else null
+        return copy(
+            callsSeen = callsSeen + 1,
+            callsChecked = callsChecked + if (checkedInTime) 1 else 0,
+            within10s = within10s + if (fast != null && fast <= 10) 1 else 0,
+            within60s = within60s + if (fast != null && fast <= 60) 1 else 0,
+        )
+    }
 
     /**
      * Whether to offer the phone-settings fix: at least 2 calls in the last week that WhoHas

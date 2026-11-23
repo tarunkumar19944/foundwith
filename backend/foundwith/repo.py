@@ -908,20 +908,25 @@ async def wake_tokens(conn: Conn, after: str, limit: int, active_days: int) -> l
 
 # ---------------------------------------------------------------- phone health by brand
 
-async def add_health(conn: Conn, day: Any, brand: str, android: int, calls_seen: int, calls_checked: int) -> None:
+async def add_health(conn: Conn, day: Any, brand: str, android: int, calls_seen: int, calls_checked: int,
+                     within_10s: int = 0, within_60s: int = 0) -> None:
     await conn.execute(
-        """INSERT INTO device_health AS h (day, brand, android, phones, calls_seen, calls_checked)
-           VALUES ($1::date, $2, $3, 1, $4, $5)
+        """INSERT INTO device_health AS h (day, brand, android, phones, calls_seen, calls_checked,
+                                           calls_within_10s, calls_within_60s)
+           VALUES ($1::date, $2, $3, 1, $4, $5, $6, $7)
            ON CONFLICT (day, brand, android) DO UPDATE
                SET phones = h.phones + 1, calls_seen = h.calls_seen + EXCLUDED.calls_seen,
-                   calls_checked = h.calls_checked + EXCLUDED.calls_checked""",
-        day, brand, android, calls_seen, calls_checked)
+                   calls_checked = h.calls_checked + EXCLUDED.calls_checked,
+                   calls_within_10s = h.calls_within_10s + EXCLUDED.calls_within_10s,
+                   calls_within_60s = h.calls_within_60s + EXCLUDED.calls_within_60s""",
+        day, brand, android, calls_seen, calls_checked, within_10s, within_60s)
 
 
 async def health_by_brand(conn: Conn, days: int) -> Sequence[Row]:
     return await conn.fetch(
         """SELECT brand, sum(phones)::int AS phone_days, sum(calls_seen)::int AS calls_seen,
-                  sum(calls_checked)::int AS calls_checked
+                  sum(calls_checked)::int AS calls_checked, sum(calls_within_10s)::int AS calls_within_10s,
+                  sum(calls_within_60s)::int AS calls_within_60s
            FROM device_health WHERE day >= current_date - $1::int
            GROUP BY brand ORDER BY sum(calls_seen) DESC""", days)
 

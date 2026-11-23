@@ -88,13 +88,16 @@ class ApiClient(private val baseUrl: String, private val auth: AuthManager) {
     suspend fun forgetDevice(token: String) { send("DELETE", "/v1/me/device", buildJsonObject { put("token", token) }) }
 
     /** One day of after-call health, by brand only. */
-    suspend fun sendHealth(day: String, brand: String, android: Int, callsSeen: Int, callsChecked: Int) {
+    suspend fun sendHealth(day: String, brand: String, android: Int, callsSeen: Int, callsChecked: Int,
+                           within10s: Int = 0, within60s: Int = 0) {
         send("POST", "/v1/me/health", buildJsonObject {
             put("day", day)
             put("brand", brand)
             put("android", android)
             put("calls_seen", callsSeen.coerceIn(0, 2000))
             put("calls_checked", callsChecked.coerceIn(0, 2000))
+            put("calls_within_10s", within10s.coerceIn(0, 2000))
+            put("calls_within_60s", within60s.coerceIn(0, 2000))
         })
     }
 
