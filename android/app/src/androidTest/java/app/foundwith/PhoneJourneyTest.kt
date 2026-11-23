@@ -28,6 +28,7 @@ import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
@@ -115,7 +116,8 @@ class PhoneJourneyTest {
         if (exists("Allow")) {
             shot("05-allow-card")
             // The card can go by itself (another phone on this test account already took part).
-            runCatching { compose.onAllNodes(hasText("Agree and allow")).onFirst().performClick() }
+            // On tall-text phones (a Galaxy on Android 16) the button sits below the screen: scroll first.
+            runCatching { compose.onAllNodes(hasText("Agree and allow")).onFirst().performScrollTo().performClick() }
         }
         waitFor("Updates", 120_000)
         // The notification and name cards wait until names have shown; put both off.
@@ -155,8 +157,13 @@ class PhoneJourneyTest {
             "Today's searches are over"), 30_000)
         shot("11-search-number")
         // Back closes the search, never the app (Y, 17 Nov): once for the keyboard, once for the search.
+        // Some real phones show no keyboard for typed-in test text, so the first back already closes it.
         device.pressBack()
-        device.pressBack()
+        compose.waitForIdle()
+        val stillSearching = runCatching {
+            field().fetchSemanticsNode().config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.EditableText)?.text.orEmpty().isNotEmpty()
+        }.getOrDefault(false)
+        if (stillSearching) device.pressBack()
         assertTrue("Back closed the app instead of the search",
             device.wait(Until.hasObject(By.pkg(PACKAGE)), 5_000) && onHome(10_000))
         search("")
