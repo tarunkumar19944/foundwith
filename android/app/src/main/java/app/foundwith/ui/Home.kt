@@ -395,7 +395,7 @@ private fun LazyListScope.searchResults(state: AppState, query: String, found: F
                 .distinctBy { it.e164 }
             item { SectionLabel("Your contacts") }
             if (matches.isEmpty()) item { HintBox(Icons.Filled.Search, "No contact called \"${q.text.trim()}\"", "Type a number to search everyone.") }
-            items(matches, key = { "s:" + it.e164 }) { c -> ContactRow(state, c, onNumber) }
+            items(matches, key = { "s:" + it.e164 }) { c -> ContactRow(state, c, mark = null, onNumber) }
         }
         is SearchQuery.Mobile -> item {
             when (found) {
