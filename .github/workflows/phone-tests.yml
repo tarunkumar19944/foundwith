@@ -28,8 +28,9 @@ permissions:
   id-token: write
 
 concurrency:
-  # Pushes replace each other; a run started by hand (say, a few real phones) isn't cancelled by a push.
-  group: phone-tests-${{ github.event_name }}
+  # A push replaces the push run before it. Runs started by hand or by the schedule never cancel
+  # each other or a push run: they run side by side (say, a few real phones while the emulators run).
+  group: phone-tests-${{ github.event_name == 'push' && 'push' || github.run_id }}
   cancel-in-progress: true
 
 env:
@@ -114,80 +115,81 @@ jobs:
         run: |
           set -uo pipefail
           apks=android/app/build/outputs/apk
-          run() {   # run <label> <flavour> <devices...>
+          failed=0; runs=()
+          # Every set of devices starts at once, without waiting: emulators, the contacts-only
+          # build and real phones run side by side on Test Lab, and each device runs in parallel too.
+          start() {   # start <label> <flavour> <devices...>
             label=$1; flavour=$2; shift 2
             args=(); for d in "$@"; do args+=(--device "$d"); done
-            echo "::group::$label"
-            gcloud firebase test android run --project=$PROJECT --type=instrumentation \
+            gcloud firebase test android run --async --project=$PROJECT --type=instrumentation \
               --app "$apks/$flavour/debug/app-$flavour-debug.apk" \
               --test "$apks/androidTest/$flavour/debug/app-$flavour-debug-androidTest.apk" \
               "${args[@]}" \
               --environment-variables "fwCode=$FW_CODE,fwNumber=9000000010,fwCaller=+919000000077" \
               --results-bucket=$PROJECT-test-lab --results-dir="run-$GITHUB_RUN_ID-$label" \
               --directories-to-pull=/sdcard/Android/data/app.whohas/files \
-              --timeout=15m --num-flaky-test-attempts=1 --format=json > "$RUNNER_TEMP/$label.json"
-            status=$?
-            echo "::endgroup::"
-            python3 - "$RUNNER_TEMP/$label.json" "$label" <<'PY'
-          import json, sys
-          rows = json.load(open(sys.argv[1])) if open(sys.argv[1]).read().strip() else []
-          print(f"\n{sys.argv[2]}:")
-          for r in rows:
-              print(f"  {r.get('outcome','?'):8} {r.get('axis_value','?'):40} {r.get('test_details','')}")
-          PY
-            return $status
+              --timeout=15m --num-flaky-test-attempts=1 2> "$RUNNER_TEMP/$label.txt"
+            matrix=$(grep -o 'matrix-[a-z0-9]*' "$RUNNER_TEMP/$label.txt" | head -1)
+            if [ -z "$matrix" ]; then
+              cat "$RUNNER_TEMP/$label.txt"; echo "::error::The $label run didn't start"; failed=1
+            else
+              echo "$label started ($# devices): $matrix"; runs+=("$label:$matrix")
+            fi
           }
-          failed=0
           if [ "$SET" = emulators ] || [ "$SET" = both ]; then
-            run emulators full $EMULATORS || failed=1
-            run contacts-only contactsOnly model=MediumPhone.arm,version=34 || failed=1
+            start emulators full $EMULATORS
+            start contacts-only contactsOnly model=MediumPhone.arm,version=34
           fi
           if [ -n "${ONLY_PHONES:-}" ]; then PHONES="$ONLY_PHONES"; fi
-          if [ "$SET" = phones ] || [ "$SET" = both ]; then
-            # Real phones can wait hours in Test Lab's queue, so start them without waiting and
-            # check on them every minute, for up to 4.5 hours.
-            args=(); for d in $PHONES; do args+=(--device "$d"); done
-            echo "::group::phones"
-            gcloud firebase test android run --async --project=$PROJECT --type=instrumentation \
-              --app "$apks/full/debug/app-full-debug.apk" \
-              --test "$apks/androidTest/full/debug/app-full-debug-androidTest.apk" \
-              "${args[@]}" \
-              --environment-variables "fwCode=$FW_CODE,fwNumber=9000000010,fwCaller=+919000000077" \
-              --results-bucket=$PROJECT-test-lab --results-dir="run-$GITHUB_RUN_ID-phones" \
-              --directories-to-pull=/sdcard/Android/data/app.whohas/files \
-              --timeout=15m --num-flaky-test-attempts=1 2> "$RUNNER_TEMP/phones.txt"
-            cat "$RUNNER_TEMP/phones.txt"
-            matrix=$(grep -o 'matrix-[a-z0-9]*' "$RUNNER_TEMP/phones.txt" | head -1)
-            echo "::endgroup::"
-            if [ -z "$matrix" ]; then
-              echo "::error::The phone run didn't start"; failed=1
-            else
+          if [ "$SET" = phones ] || [ "$SET" = both ]; then start phones full $PHONES; fi
+
+          # Check on every run each minute and report each one as soon as it finishes. Real phones
+          # can wait hours in Test Lab's queue: whatever isn't done after 4.5 hours is cancelled.
+          deadline=$(( $(date +%s) + 270 * 60 ))
+          left=("${runs[@]}")
+          while [ ${#left[@]} -gt 0 ]; do
+            still=()
+            for r in "${left[@]}"; do
+              label=${r%%:*}; matrix=${r#*:}
               api="https://testing.googleapis.com/v1/projects/$PROJECT/testMatrices/$matrix"
-              deadline=$(( $(date +%s) + 270 * 60 ))
-              while :; do
-                curl -sS -H "Authorization: Bearer $(gcloud auth print-access-token)" "$api" > "$RUNNER_TEMP/matrix.json"
-                state=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("state",""))' "$RUNNER_TEMP/matrix.json")
-                case "$state" in FINISHED|ERROR|INVALID|CANCELLED) break ;; esac
-                if [ "$(date +%s)" -gt "$deadline" ]; then
-                  echo "::warning::Phones still not done after 4.5 hours: cancelling the rest"
+              curl -sS -H "Authorization: Bearer $(gcloud auth print-access-token)" "$api" > "$RUNNER_TEMP/$label.json"
+              state=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("state",""))' "$RUNNER_TEMP/$label.json" 2>/dev/null)
+              case "$state" in
+                FINISHED|ERROR|INVALID|CANCELLED) ;;
+                *)
+                  if [ "$(date +%s)" -le "$deadline" ]; then still+=("$r"); continue; fi
+                  echo "::warning::$label still not done after 4.5 hours: cancelling the rest"
                   curl -sS -X POST -H "Authorization: Bearer $(gcloud auth print-access-token)" "$api:cancel" > /dev/null
-                  break
-                fi
-                sleep 60
-              done
-              python3 - "$RUNNER_TEMP/matrix.json" <<'PY'
-          import json, sys
-          m = json.load(open(sys.argv[1]))
-          print(f"\nphones: {m.get('state')} {m.get('outcomeSummary', '')}")
+                  sleep 30
+                  curl -sS -H "Authorization: Bearer $(gcloud auth print-access-token)" "$api" > "$RUNNER_TEMP/$label.json" ;;
+              esac
+              python3 - "$label" "$RUNNER_TEMP/$label.json" "gs://$PROJECT-test-lab/run-$GITHUB_RUN_ID-$label" <<'PY'
+          import json, subprocess, sys, xml.etree.ElementTree as ET
+          label, path, folder = sys.argv[1:4]
+          m = json.load(open(path))
+          print(f"\n{label}: {m.get('state')} {m.get('outcomeSummary', '')}")
           for e in m.get("testExecutions", []):
               d = e.get("environment", {}).get("androidDevice", {})
               detail = e.get("testDetails", {}).get("errorMessage") or ""
               print(f"  {e.get('state','?'):12} {d.get('androidModelId','?')}-{d.get('androidVersionId','?'):4} {detail}")
+          files = subprocess.run(["gcloud", "storage", "ls", f"{folder}/**/test_result_*.xml"],
+                                 capture_output=True, text=True).stdout.split()
+          for f in sorted(files):
+              try:
+                  root = ET.fromstring(subprocess.run(["gcloud", "storage", "cat", f], capture_output=True, text=True).stdout)
+              except ET.ParseError:
+                  continue
+              cases = list(root.iter("testcase"))
+              bad = [c.get("name") for c in cases if c.find("failure") is not None or c.find("error") is not None]
+              note = f"  failed: {', '.join(bad)}" if bad else ""
+              print(f"  {f.split('/')[-2]:44} {len(cases) - len(bad)}/{len(cases)} passed{note}")
           PY
-              summary=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("outcomeSummary",""))' "$RUNNER_TEMP/matrix.json")
+              summary=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("outcomeSummary",""))' "$RUNNER_TEMP/$label.json" 2>/dev/null)
               case "$summary" in SUCCESS|FLAKY) ;; *) failed=1 ;; esac
-            fi
-          fi
+            done
+            left=("${still[@]}")
+            if [ ${#left[@]} -gt 0 ]; then sleep 60; fi
+          done
           echo "Results, videos and screenshots: https://console.firebase.google.com/project/$PROJECT/testlab/histories/"
           exit $failed
 
