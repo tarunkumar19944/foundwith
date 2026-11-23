@@ -41,9 +41,9 @@ Updated the same night after talking it through: "has" instead of "saved" (call 
 
 ## The look (Facebook style, approved by Y, 23 Nov)
 
-Light, like Facebook: page #F0F2F5, white cards, text #050505, grey text #65676B, blue #0862F5 for buttons, links, "Known to …", the count on your number and the new dot (Facebook's blue, a shade deeper so blue text on the grey page passes 4.5:1). Secondary buttons (Truecaller, Call back) are grey #E4E6EB with black text. Buttons have 8 dp corners. The Updates count is a red badge. Red #D21F3C only for missed and rejected calls and for warnings, green #188038 only for received calls, joins and a count going up. Every text colour is at least 4.5:1.
+Light, like Facebook. **A white page (Y, 23 Nov)**, with lists full width and a thin line between rows; boxes (a number's card) keep a hairline edge. (Was: page #F0F2F5 with white cards.) text #050505, grey text #65676B, blue #0862F5 for buttons, links, "Known to …", the count on your number and the new dot (Facebook's blue, a shade deeper so blue text on the grey page passes 4.5:1). Secondary buttons (Truecaller, Call back) are grey #E4E6EB with black text. Buttons have 8 dp corners. The Updates count is a red badge. Red #D21F3C only for missed and rejected calls and for warnings, green #188038 only for received calls, joins and a count going up. Every text colour is at least 4.5:1.
 
-**Dark mode follows the phone.** When the phone is in dark mode: page #18191A, cards #242526, text #E4E6EB, grey text #B0B3B8, blue #5AA2FF with dark text on blue buttons. Same layout. The website pages (privacy, terms, delete, invites) follow the same two looks.
+**Dark mode follows the phone.** When the phone is in dark mode: one dark page #18191A (raised bits #242526), text #E4E6EB, grey text #B0B3B8, blue #5AA2FF with dark text on blue buttons. Same layout. The website pages (privacy, terms, delete, invites) follow the same two looks.
 
 Icon: the three people in white over a light blue stroke, on blue. Not Facebook's "f" or any Facebook logo or name.
 
@@ -135,6 +135,7 @@ Every number from your contacts and calls that someone on WhoHas has, each once,
 | Time on the right | When the latest change happened: 10:42 am today, Yesterday, Fri, 3 Nov |
 | First open | Nothing is marked New the first time; the list is still newest first |
 | Updates badge | The number of rows under New (also as a red count beside **New**, and on the app icon through the notifications) |
+| Call log and Contacts badges (Y, 23 Nov) | A red count on each tab too: how many numbers in that tab changed and haven't been seen yet (in Updates or on their card) |
 | Marks in Call log and Contacts (23 Nov) | The same changed numbers are marked there too: light blue, the dot, and what changed (in Call log on the number's latest call). Call log stays by date, Contacts A to Z. |
 | Opening a marked number | Its card shows what changed on top in light blue (**2 more people have it · now 14 · 4:30 pm**; **New ·** beside someone you know who now has it). After that the change is seen: the mark goes from all three tabs, the red count goes down by one, and its notification goes. Leaving Updates clears all the marks. |
 | Nothing found yet | **None of your numbers are with people on WhoHas yet** · When people you know join, every number in your contacts and calls that they have shows here, with who has it. · **Share in group** |
