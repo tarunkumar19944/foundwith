@@ -121,7 +121,7 @@ async def test_changes_need_a_full_sync_first_and_use_the_same_allowance(db, ide
         await service.apply_changes(user, [PLUMBER], [], [], [])
     await service.sync_numbers(user, [PLUMBER], [])
     user = await service.current_user(ident)
-    result = await service.apply_changes(user, [CLINIC, "70221 00001", "70221 00002"], [], ["121"], [])
+    result = await service.apply_changes(user, [CLINIC, "70221 00001", "70221 00002"], [], ["*121#"], [])
     assert result["stats"] == {"added": 2, "removed": 0, "skipped": 1, "deferred": 1}
 
     await service.set_sync(user, False, None)

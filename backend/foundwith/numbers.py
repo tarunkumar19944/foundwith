@@ -66,8 +66,9 @@ def _clean(run: str) -> str:
 
 
 def normalise(raw: object, country_code: str = "91") -> str | None:
-    """Return the Indian number in E.164 form (``+919845031207``), or ``None``.
-    The result is always plain ASCII. WhoHas checks Indian numbers only.
+    """Return the number in E.164 form (``+919845031207``), or ``None``.
+    The result is always plain ASCII. Every kind of number is matched (Y, 23 Nov 2026): Indian
+    mobiles and landlines, toll-free, short and service numbers, and other countries' numbers.
 
     The first full number in the field is used, so ``tel:+91 98450 31207``,
     ``98450 31207 (home)``, ``080 4123 5566,204`` (an extension) and
@@ -79,18 +80,33 @@ def normalise(raw: object, country_code: str = "91") -> str | None:
       * country code without plus: ``91 98450 31207`` or ``091 ...``; the code typed twice: ``+91 91 ...``
       * international prefix: ``00 91 98450 31207``
       * toll-free and shared-cost numbers: ``1800 ...`` / ``1860 ...``
-    Numbers of other countries (``+971 ...``), short codes (121, 198) and landlines saved
-    without their STD code return ``None``.
+      * other countries' numbers written with ``+`` or ``00``: ``+971 50 123 4567`` -> ``+971501234567``
+      * short and service numbers (3 to 9 digits, like 121, 198, 56161) and landlines saved without
+        their STD code: ``+91`` and the digits (``+91121``), when the field holds that one number only,
+        so the halves of ``98450/31207`` are never taken as two short numbers. USSD codes (``*121#``)
+        are not numbers.
     """
     if isinstance(raw, int) and not isinstance(raw, bool):
         raw = str(raw)
     if not isinstance(raw, str) or len(raw) > _MAX_RAW_LENGTH:
         return None
-    for run in _runs(unicodedata.normalize("NFKC", raw)):
+    runs = list(_runs(unicodedata.normalize("NFKC", raw)))
+    for run in runs:
         e164 = _one(_clean(run), country_code)
         if e164:
             return e164
+    if len(runs) == 1 and "*" not in raw and "#" not in raw:
+        return _short(_clean(runs[0]), country_code)
     return None
+
+
+def _short(s: str, country_code: str) -> str | None:
+    """A short or service number, or a landline without its STD code: 3 to 9 digits, never starting with 0."""
+    if s.startswith("+" + country_code):
+        s = s[1 + len(country_code):]
+    if not s.isdigit() or s.startswith("0") or not 3 <= len(s) <= 9:
+        return None
+    return f"+{country_code}{s}"
 
 
 def _one(s: str, country_code: str) -> str | None:
@@ -104,7 +120,8 @@ def _one(s: str, country_code: str) -> str | None:
     if s.startswith("+"):
         digits = s[1:]
         if not digits.startswith(country_code):
-            return None                                      # another country
+            # Another country's number: kept as written, 8 to 15 digits, never starting with 0.
+            return s if 8 <= len(digits) <= 15 and not digits.startswith("0") else None
         rest = digits[len(country_code):]
         if rest.startswith(country_code) and len(rest) == len(country_code) + 10:
             rest = rest[len(country_code):]                  # +91 91 98450 31207

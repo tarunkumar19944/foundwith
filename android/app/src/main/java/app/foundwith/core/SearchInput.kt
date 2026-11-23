@@ -5,14 +5,14 @@ sealed interface SearchQuery {
     data object Empty : SearchQuery
     /** Letters: search their own contacts and calls, on the phone. */
     data class Name(val text: String) : SearchQuery
-    /** A full Indian mobile: search everyone. */
-    data class Mobile(val e164: String) : SearchQuery
-    /** Digits, but not a full number yet. */
+    /**
+     * A number: search everyone. Every kind is searched (Y, 23 Nov 2026). A 10-digit Indian number
+     * is looked up as soon as it's typed ([auto]); a shorter one or another country's waits for the
+     * Search button, so a number half typed never uses up a search.
+     */
+    data class Mobile(val e164: String, val auto: Boolean = true) : SearchQuery
+    /** Digits, but not a number yet. */
     data object Incomplete : SearchQuery
-    /** A full number that isn't an Indian mobile (a landline, a short code). Search is for mobiles. */
-    data object NotMobile : SearchQuery
-    /** Another country's number: WhoHas checks Indian numbers only. */
-    data object Foreign : SearchQuery
 }
 
 object SearchInput {
@@ -20,11 +20,8 @@ object SearchInput {
         val text = input.trim()
         if (text.isEmpty()) return SearchQuery.Empty
         if (text.any { it.isLetter() }) return SearchQuery.Name(text)
-        val e164 = PhoneNumbers.normalise(text)
-        if (e164 != null && PhoneNumbers.isMobileShaped(e164)) return SearchQuery.Mobile(e164)
-        if (e164 == null && PhoneNumbers.isForeign(text)) return SearchQuery.Foreign
-        val digits = PhoneNumbers.clean(text)?.trimStart('+')?.length ?: text.count { it.isDigit() }
-        return if (digits < 10) SearchQuery.Incomplete else SearchQuery.NotMobile
+        val e164 = PhoneNumbers.normalise(text) ?: return SearchQuery.Incomplete
+        return SearchQuery.Mobile(e164, auto = PhoneNumbers.isFullIndian(e164))
     }
 
     /** Names that match: every word typed starts a word of the name ("ra ku" finds "Ravi Kumar"). */

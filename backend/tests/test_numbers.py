@@ -36,20 +36,34 @@ def test_other_formats(raw, expected):
     assert normalise(raw) == expected
 
 
-@pytest.mark.parametrize("raw", ["", "   ", None, "121", "198", "41235566", "+91 12345", "+0123456789",
-                                 "98450 3120", "call me", "+12345", "-1", "-2",
+@pytest.mark.parametrize("raw", ["", "   ", None, "+0123456789", "call me", "+12345", "-1", "-2", "12",
                                  "080-4123/4124",            # two landlines written short: never joined into one
-                                 "98450/31207"])
+                                 "98450/31207",              # nor taken as two short numbers
+                                 "971501234567",             # another country's number without + or 00
+                                 "*121#", "*#06#"])          # USSD codes are not numbers
 def test_unmatchable_numbers_are_skipped(raw):
     assert normalise(raw) is None
 
 
-@pytest.mark.parametrize("raw", ["+1 (415) 555-0100", "00 44 20 7946 0958", "+971 50 123 4567", "00971501234567",
-                                 "+44 20 7946 0958 / 98450 31207"])
-def test_only_indian_numbers(raw):
-    # WhoHas checks Indian numbers only; a foreign number first in the field isn't skipped past
-    # unless an Indian number follows it.
-    expected = "+919845031207" if raw.endswith("98450 31207") else None
+@pytest.mark.parametrize("raw, expected", [
+    ("+1 (415) 555-0100", "+14155550100"),
+    ("00 44 20 7946 0958", "+442079460958"),
+    ("+971 50 123 4567", "+971501234567"),
+    ("00971501234567", "+971501234567"),
+    ("+44 20 7946 0958 / 98450 31207", "+442079460958"),   # the first number in the field
+])
+def test_other_countries_numbers_match(raw, expected):
+    # Every kind of number is matched (Y, 23 Nov 2026), other countries' too.
+    assert normalise(raw) == expected
+
+
+@pytest.mark.parametrize("raw, expected", [
+    ("121", "+91121"), ("198", "+91198"), ("56161", "+9156161"), ("1909", "+911909"),
+    ("41235566", "+9141235566"),        # a landline saved without its STD code
+    ("+91 12345", "+9112345"),
+    ("98450 3120", "+91984503120"),     # nine digits: kept as written
+])
+def test_short_and_service_numbers_match(raw, expected):
     assert normalise(raw) == expected
 
 
@@ -106,7 +120,7 @@ def test_real_world_spellings_match(raw):
     assert normalise(raw) == "+919845031207"
 
 
-@pytest.mark.parametrize("raw", ["*121#", "98450x31207", "+91+9845031207",
+@pytest.mark.parametrize("raw", ["*121#", "98450x31207",
                                  "9" * 65, {"number": "9845031207"}, ["9845031207"], True])
 def test_junk_entries_are_skipped_not_fatal(raw):
     assert normalise(raw) is None

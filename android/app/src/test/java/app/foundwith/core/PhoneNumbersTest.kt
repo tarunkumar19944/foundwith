@@ -40,20 +40,30 @@ class PhoneNumbersTest {
     }
 
     @Test
-    fun onlyIndianNumbers() {
-        listOf("+1 (415) 555-0100", "00 44 20 7946 0958", "+971 50 123 4567").forEach {
-            assertNull(it, PhoneNumbers.normalise(it))
-            assertTrue(it, PhoneNumbers.isForeign(it))
-        }
-        assertFalse(PhoneNumbers.isForeign("98450 31207"))
-        assertFalse(PhoneNumbers.isForeign("121"))
-        assertFalse(PhoneNumbers.isForeign("971501234567"))   // no + or 00: can't tell, so not called foreign
+    fun everyKindOfNumberMatches() {
+        // Y, 23 Nov 2026: other countries', short and service numbers, landlines without STD code.
+        mapOf(
+            "+1 (415) 555-0100" to "+14155550100", "00 44 20 7946 0958" to "+442079460958",
+            "+971 50 123 4567" to "+971501234567", "121" to "+91121", "56161" to "+9156161",
+            "41235566" to "+9141235566", "+91 12345" to "+9112345",
+        ).forEach { (raw, e164) -> assertEquals(raw, e164, PhoneNumbers.normalise(raw)) }
+    }
+
+    @Test
+    fun numbersShowAndCopyByKind() {
+        assertEquals("+91 98450 31207", PhoneNumbers.display("+919845031207"))
+        assertEquals("1800 425 1234", PhoneNumbers.display("+9118004251234"))
+        assertEquals("121", PhoneNumbers.display("+91121"))
+        assertEquals("+971501234567", PhoneNumbers.display("+971501234567"))
+        assertEquals("9845031207", PhoneNumbers.copyText("+919845031207"))
+        assertEquals("121", PhoneNumbers.copyText("+91121"))
+        assertEquals("+971501234567", PhoneNumbers.copyText("+971501234567"))
     }
 
     @Test
     fun unmatchableNumbersAreNull() {
-        listOf("", "   ", null, "121", "*121#", "41235566", "+91 12345", "+0123456789", "98450 3120",
-            "call me", "+12345", "-1", "080-4123/4124", "98450/31207")
+        listOf("", "   ", null, "*121#", "12", "+0123456789", "call me", "+12345", "-1",
+            "080-4123/4124", "98450/31207", "971501234567")
             .forEach { assertNull(it.toString(), PhoneNumbers.normalise(it)) }
     }
 

@@ -49,7 +49,7 @@ Icon: the three people in white over a light blue stroke, on blue. Not Facebook'
 
 Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never look alike), bundled in the app: Regular, SemiBold and Bold only, every digit the same width. Body text 16, small text 13, nothing under 12; sizes follow the phone's font setting. Section labels in normal case.
 
-**Indian numbers only.** WhoHas checks +91 numbers; another country's number is never sent for matching and says "WhoHas checks only Indian numbers". The first full number in a field counts ("tel:", "(home)", ",204" and a second number are ignored), and two numbers are never joined into one. Share and Let them know are offered only for mobiles (Google's India mobile ranges), never for a landline such as 080 4123 5566.
+**Every kind of number (Y, 23 Nov).** WhoHas matches every number in contacts and call logs: Indian mobiles and landlines, toll-free (1800, 1860), short and service numbers (121, 198, 56161), landlines saved without their STD code, and other countries' numbers written with + or 00 (+971 50 123 4567). Shown as "+91 98450 31207", "1800 425 1234", "121", "+971501234567". The first full number in a field counts ("tel:", "(home)", ",204" and a second number are ignored), and two numbers are never joined into one; a short number counts only when it is the field's one number, and USSD codes (*121#) never. Sign-in, Share, Tell and Let them know stay mobile-only (an SMS or WhatsApp must reach the number). (Was: Indian numbers only.)
 
 ---
 
@@ -154,7 +154,7 @@ Every call under its day (Today, Yesterday, Friday, 12 Nov), each with the phone
 | Phone with a slash, red | Rejected · 8:02 am |
 | Second line | Known to Priya and 2 more · 3 people have it · No one on WhoHas has this number |
 | Hidden number | Private number · Can't check hidden numbers |
-| Another country's number | +971 50 123 4567 · **WhoHas checks only Indian numbers** |
+| Another country's number | +971501234567 · checked like any number (23 Nov) |
 | A short code (121) | WhoHas can't check this number |
 | Call log off | **See who has your callers' numbers** · Allow the call log. · Allow |
 
@@ -166,7 +166,7 @@ Every call under its day (Today, Yesterday, Friday, 12 Nov), each with the phone
 | Row | Raju Plumber · **12 people have it · You know Priya and 2 more** |
 | Nobody else has it | Suresh Bhaiya · No one else on WhoHas has it yet (no button on the row; the card has **Tell Suresh Bhaiya on WhatsApp**) |
 | Tags on rows | **Popular** or **Highly popular** under the name, after "In your contacts" (so a long name is never cut short). No tag under 10 people ("Not popular" shows only on cards and on your own number). |
-| Another country's number | **WhoHas checks only Indian numbers** |
+| Another country's number | checked like any number (23 Nov) |
 | Contacts off | Contacts are off · Open Settings › Permissions › Contacts › Allow. · Open Settings |
 
 ### Search
@@ -180,7 +180,7 @@ Every call under its day (Today, Yesterday, Friday, 12 Nov), each with the phone
 | Checking | Checking +91 98450 31207… | Checking +91 98450 31207… |
 | Daily limit | Today's search limit is over · Search again tomorrow. Calls and contacts keep updating. | Today's searches are over · Search again tomorrow. |
 | No internet | No internet · Search needs the internet. Home still shows your last update. | No internet · Search needs the internet. |
-| Another country's number | (none) | WhoHas checks only Indian numbers · Like 98451 72046 |
+| Any other number (23 Nov) | | A landline is searched as soon as its 10 digits are typed; a short number (121) or another country's (+971 50 123 4567) shows **121 · Search** and is looked up on the button, so a half-typed number never uses up a search. Not a number yet: **Type the number** · Like 98451 72046, 121 or +971 50 123 4567 |
 
 ## A number's card
 

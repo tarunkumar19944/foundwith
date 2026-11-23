@@ -14,9 +14,13 @@ class SearchAndChangesTest {
         assertEquals(SearchQuery.Mobile("+919845172046"), SearchInput.classify("98451 72046"))
         assertEquals(SearchQuery.Mobile("+919845172046"), SearchInput.classify("+91-98451-72046"))
         assertEquals(SearchQuery.Mobile("+919845172046"), SearchInput.classify("०९८४५१७२०४६"))
-        assertEquals(SearchQuery.Incomplete, SearchInput.classify("98451"))
-        assertEquals(SearchQuery.NotMobile, SearchInput.classify("044 2663 4410"))
-        assertEquals(SearchQuery.Foreign, SearchInput.classify("+971 50 123 4567"))
+        assertEquals(SearchQuery.Incomplete, SearchInput.classify("98"))
+        // Every kind of number (23 Nov 2026): a landline is searched at once; short and foreign
+        // numbers wait for the Search button.
+        assertEquals(SearchQuery.Mobile("+914426634410"), SearchInput.classify("044 2663 4410"))
+        assertEquals(SearchQuery.Mobile("+9198451", auto = false), SearchInput.classify("98451"))
+        assertEquals(SearchQuery.Mobile("+971501234567", auto = false), SearchInput.classify("+971 50 123 4567"))
+        assertEquals(SearchQuery.Mobile("+91121", auto = false), SearchInput.classify("121"))
         assertTrue(SearchInput.matches("Ravi Kumar (Work)", "ra ku"))
         assertTrue(SearchInput.matches("Dr. Anand", "anand"))
         assertFalse(SearchInput.matches("Ravi Kumar", "kumarr"))

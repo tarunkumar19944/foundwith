@@ -3,8 +3,9 @@ package app.foundwith.core
 import java.text.Normalizer
 
 /**
- * A copy of the server's number rules (backend/foundwith/numbers.py). WhoHas checks Indian
- * (+91) numbers only.
+ * A copy of the server's number rules (backend/foundwith/numbers.py). Every kind of number is
+ * matched (Y, 23 Nov 2026): Indian mobiles and landlines, toll-free, short and service numbers,
+ * and other countries' numbers.
  *
  * The app always sends numbers exactly as they are saved; the server normalises them for
  * matching. The app normalises only to recognise its own numbers in the server's replies
@@ -13,7 +14,7 @@ import java.text.Normalizer
  */
 object PhoneNumbers {
     /** Goes up whenever these rules change, so every phone sends its numbers again once. */
-    const val RULES = 2
+    const val RULES = 3
     private const val MAX_RAW_LENGTH = 64
     private const val INSIDE = "()."
     private val TOLL_FREE = listOf("1800", "1860")
@@ -76,13 +77,24 @@ object PhoneNumbers {
         return runs(raw).firstOrNull()?.let(::ascii)
     }
 
-    /** The Indian number in E.164 form ("+919845031207"), or null. The first full number in the
-     *  field is used ("tel:+91 98450 31207", "080 4123 5566,204", "98450 31207 / 98450 31208");
-     *  two numbers are never joined into one. Numbers of other countries are null. */
+    /** The number in E.164 form ("+919845031207", "+971501234567", "+91121"), or null. The first
+     *  full number in the field is used ("tel:+91 98450 31207", "080 4123 5566,204", "98450 31207 /
+     *  98450 31208"); two numbers are never joined into one. A short or service number (3 to 9
+     *  digits) counts only when it is the field's one number; USSD codes ("*121#") never. */
     fun normalise(raw: String?, countryCode: String = "91"): String? {
         if (raw == null || raw.codePointCount(0, raw.length) > MAX_RAW_LENGTH) return null
-        for (run in runs(raw)) one(ascii(run), countryCode)?.let { return it }
+        val all = runs(raw)
+        for (run in all) one(ascii(run), countryCode)?.let { return it }
+        if (all.size == 1 && '*' !in raw && '#' !in raw) return short(ascii(all[0]), countryCode)
         return null
+    }
+
+    /** A short or service number, or a landline without its STD code: 3 to 9 digits, never starting with 0. */
+    private fun short(sIn: String, countryCode: String): String? {
+        var s = sIn
+        if (s.startsWith("+$countryCode")) s = s.substring(1 + countryCode.length)
+        if (s.isEmpty() || s.any { it !in '0'..'9' } || s.startsWith("0") || s.length !in 3..9) return null
+        return "+$countryCode$s"
     }
 
     /** True when the field holds another country's number (and no Indian one before it), so the
@@ -109,7 +121,8 @@ object PhoneNumbers {
 
         if (s.startsWith("+")) {
             val digits = s.substring(1)
-            if (!digits.startsWith(countryCode)) return null                 // another country
+            // Another country's number: kept as written, 8 to 15 digits, never starting with 0.
+            if (!digits.startsWith(countryCode)) return if (digits.length in 8..15 && !digits.startsWith("0")) s else null
             var rest = digits.substring(countryCode.length)
             if (rest.startsWith(countryCode) && rest.length == countryCode.length + 10) {
                 rest = rest.substring(countryCode.length)                    // +91 91 98450 31207
@@ -142,14 +155,22 @@ object PhoneNumbers {
      *  mobile series still works before Google's data knows it. */
     fun isMobileShaped(e164: String?): Boolean = e164 != null && MOBILE_SHAPE.matches(e164)
 
-    /** "+91 98450 31207" for Indian numbers, the E.164 string otherwise. */
-    /** What to copy: the ten digits of an Indian number, no +91 and no spaces. Truecaller and the dialler take it as is. */
-    fun copyText(e164: String): String = if (e164.startsWith("+91") && e164.length == 13) e164.substring(3) else e164
+    /** What to copy: an Indian number without +91 and spaces (ten digits, "121", "18004251234"),
+     *  another country's with its + and code. Truecaller and the dialler take it as is. */
+    fun copyText(e164: String): String = if (e164.startsWith("+91") && e164.length > 3) e164.substring(3) else e164
 
-    fun display(e164: String): String =
-        if (e164.startsWith("+91") && e164.length == 13) {
-            "+91 ${e164.substring(3, 8)} ${e164.substring(8)}"
-        } else {
-            e164
+    /** "+91 98450 31207", "1800 425 1234", "121"; other countries' numbers as written in E.164. */
+    fun display(e164: String): String {
+        if (!e164.startsWith("+91")) return e164
+        val n = e164.substring(3)
+        return when {
+            n.length == 10 -> "+91 ${n.substring(0, 5)} ${n.substring(5)}"
+            TOLL_FREE.any { n.startsWith(it) } && n.length in 10..11 -> "${n.substring(0, 4)} ${n.substring(4, 7)} ${n.substring(7)}"
+            n.length <= 9 -> n
+            else -> e164
         }
+    }
+
+    /** A 10-digit Indian number (a mobile or a landline with its STD code): searched as soon as it's typed. */
+    fun isFullIndian(e164: String?): Boolean = e164 != null && e164.length == 13 && e164.startsWith("+91")
 }

@@ -150,9 +150,11 @@ class AfterCallTest {
         assertTrue(call("-2").isHidden)
         assertFalse(call("+971 50 123 4567").isHidden)
         assertTrue(call("+971 50 123 4567").isForeign)
+        assertEquals("+971501234567", call("+971 50 123 4567").e164)   // checked like any number
         assertFalse(call("98450 31207").isForeign)
         assertEquals("+919845031207", call("098450 31207").e164)
         assertFalse(call("121").isHidden)
         assertFalse(call("121").isForeign)
+        assertEquals("+91121", call("121").e164)
     }
 }

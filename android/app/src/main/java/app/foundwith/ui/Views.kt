@@ -144,7 +144,6 @@ fun dayHeading(at: Long, now: Long = System.currentTimeMillis()): String {
 /** Every call with this number, newest first. */
 fun AppState.callsWith(e164: String): List<CallEvent> = calls.filter { it.e164 == e164 }
 
-const val ONLY_INDIAN = "WhoHas checks only Indian numbers"
 
 /** "10:42 am" today, "Yesterday", "Fri" this week, "3 Nov" before that. */
 fun whenText(at: Long, now: Long = System.currentTimeMillis()): String {

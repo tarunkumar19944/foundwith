@@ -24,8 +24,8 @@ data class CallEvent(
     val e164: String? get() = PhoneNumbers.normalise(raw)
     /** A hidden ("Private") number: no number at all, or Android's -1/-2/-3 markers. */
     val isHidden: Boolean get() = raw.isNullOrBlank() || raw.trim().startsWith("-") || raw.none { it.isDigit() }
-    /** Another country's number: WhoHas checks Indian numbers only. */
-    val isForeign: Boolean get() = !isHidden && e164 == null && PhoneNumbers.isForeign(raw)
+    /** Another country's number (checked like any other since 23 Nov 2026). */
+    val isForeign: Boolean get() = !isHidden && e164?.startsWith("+91") == false
     val isIncoming: Boolean get() = type == CallType.ANSWERED || type == CallType.MISSED || type == CallType.REJECTED
     val isDialled: Boolean get() = type == CallType.OUTGOING
     /** Calls WhoHas may tell about: received, missed, rejected and dialled. */

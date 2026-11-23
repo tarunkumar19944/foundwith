@@ -94,7 +94,7 @@ async def test_with_visibility_known_call_log_holders_are_named_only_to_people_w
 
 async def test_numbers_saved_in_indian_scripts_match(people, service):
     """A contact saved with Devanagari or Kannada digits made the whole sync fail in v0.1."""
-    arjun, _, sync = await people.add(ARJUN, "Arjun Rao", contacts=["९८४५१ ७२०४६", "Mom", None, 121])
+    arjun, _, sync = await people.add(ARJUN, "Arjun Rao", contacts=["९८४५१ ७२०४६", "Mom", None, "*121#"])
     assert sync["stats"]["numbers"] == 1 and PLUMBER_E164 in sync["refs"]
     await people.add(RAVI, "Ravi Kumar", contacts=["೯೮೪೫೧೭೨೦೪೬"])
     cards = await service.cards(arjun, None, None)
@@ -501,9 +501,19 @@ async def test_each_sync_replaces_the_previous_snapshot(people, service):
 
 
 async def test_sync_skips_unmatchable_entries_and_own_number(people, service):
-    arjun, _, result = await people.add(ARJUN, "Arjun Rao", contacts=[PLUMBER, "121", "Mom", ARJUN, "0" + PLUMBER])
+    arjun, _, result = await people.add(ARJUN, "Arjun Rao", contacts=[PLUMBER, "*121#", "Mom", ARJUN, "0" + PLUMBER])
     assert result["stats"] == {"numbers": 1, "added": 1, "removed": 0, "skipped": 2, "deferred": 0}
     assert set(result["refs"]) == {PLUMBER_E164}
+
+
+async def test_every_kind_of_number_matches(people, service):
+    """Y, 23 Nov 2026: short and service numbers, landlines and other countries' numbers too."""
+    arjun, _, sync = await people.add(ARJUN, "Arjun Rao", contacts=["121", "+971 50 123 4567", "080 4123 5566"])
+    assert set(sync["refs"]) == {"+91121", "+971501234567", "+918041235566"}
+    await people.add(RAVI, "Ravi Kumar", contacts=["121", "00971501234567"])
+    cards = {c["ref"]: c for c in (await service.cards(arjun, None, None))["cards"]}
+    assert names(cards[sync["refs"]["+91121"]]["others"]) == ["Ravi Kumar"]
+    assert names(cards[sync["refs"]["+971501234567"]]["others"]) == ["Ravi Kumar"]
 
 
 async def test_new_numbers_come_out_of_an_allowance_that_refills(db, identity):
@@ -552,20 +562,21 @@ async def test_switching_sync_off_and_on_does_not_reset_the_allowance(db, identi
 
 # ---------------------------------------------------------------- quotas
 
-async def test_search_needs_a_mobile_number_and_has_a_daily_quota(people, service, db):
+async def test_search_takes_any_number_and_has_a_daily_quota(people, service, db):
     arjun, _, _ = await people.add(ARJUN, "Arjun Rao", contacts=[PLUMBER])
     with pytest.raises(InvalidNumber):
-        await service.lookup(arjun, "080 4123 556", "search")
-    with pytest.raises(InvalidNumber):
-        await service.lookup(arjun, "011 2345 6789", "search")        # landline: calls only
-    landline = await service.lookup(arjun, "011 2345 6789", "call")
-    assert landline["number"] == "+911123456789"
+        await service.lookup(arjun, "call me", "search")
+    # Every kind of number can be searched (Y, 23 Nov 2026): a landline, a short number, abroad.
+    assert (await service.lookup(arjun, "011 2345 6789", "search"))["number"] == "+911123456789"
+    assert (await service.lookup(arjun, "121", "search"))["number"] == "+91121"
+    assert (await service.lookup(arjun, "+971 50 123 4567", "search"))["number"] == "+971501234567"
+    db.conn.run("UPDATE lookup_quota SET day = day - 1")                          # start the day afresh
 
     for left in range(4, -1, -1):
         assert (await service.lookup(arjun, PLUMBER, "search"))["quota"]["left"] == left
     with pytest.raises(QuotaExceeded):
         await service.lookup(arjun, PLUMBER, "search")
-    assert (await service.lookup(arjun, PLUMBER, "call"))["quota"]["left"] == 8   # separate quota
+    assert (await service.lookup(arjun, PLUMBER, "call"))["quota"]["left"] == 9   # separate quota
 
     db.conn.run("UPDATE lookup_quota SET day = day - 1")                          # a new day
     assert (await service.lookup(arjun, PLUMBER, "search"))["quota"]["left"] == 4

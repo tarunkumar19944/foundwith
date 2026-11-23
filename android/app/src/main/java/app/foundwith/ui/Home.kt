@@ -168,6 +168,8 @@ fun HomeScreen(
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { if (tab == Tab.UPDATES) graph.model.leftUpdates() }
     var query by rememberSaveable { mutableStateOf("") }
     var found by remember { mutableStateOf<Found>(Found.Idle) }
+    // A short number or another country's: looked up only after the Search button (23 Nov 2026).
+    var askedFor by remember { mutableStateOf<String?>(null) }
     var searching by remember { mutableStateOf(false) }
     val focus = LocalFocusManager.current
     // Each tab keeps its own place in its list (22 Nov 2026), so going back to Updates lands where you were.
@@ -225,14 +227,14 @@ fun HomeScreen(
         } else context.openNotificationSettings()
     }
 
-    // Look the number up as soon as it's complete.
-    LaunchedEffect(query) {
+    // Look the number up as soon as it's complete (a 10-digit Indian number), or when Search is tapped.
+    LaunchedEffect(query, askedFor) {
         val q = SearchInput.classify(query)
-        if (q !is SearchQuery.Mobile) {
+        if (q !is SearchQuery.Mobile || (!q.auto && askedFor != q.e164)) {
             found = Found.Idle
             return@LaunchedEffect
         }
-        delay(350)
+        if (q.auto) delay(350)
         found = Found.Checking
         found = try {
             val result = graph.api.lookup(q.e164, "search")
@@ -336,7 +338,7 @@ fun HomeScreen(
             }
 
             if (query.isNotBlank()) {
-                searchResults(state, query, found, onNumber)
+                searchResults(state, query, found, askedFor, onAsk = { askedFor = it }, onNumber)
                 return@LazyColumn
             }
 
@@ -394,16 +396,20 @@ private fun SearchBox(query: String, onChange: (String) -> Unit, onFocus: (Boole
     )
 }
 
-private fun LazyListScope.searchResults(state: AppState, query: String, found: Found, onNumber: (String) -> Unit) {
+private fun LazyListScope.searchResults(state: AppState, query: String, found: Found, askedFor: String?,
+                                        onAsk: (String) -> Unit, onNumber: (String) -> Unit) {
     when (val q = SearchInput.classify(query)) {
-        is SearchQuery.Name -> {
-            val matches = state.contacts.filter { c -> c.shownName?.let { SearchInput.matches(it, q.text) } == true && c.e164 != null }
-                .distinctBy { it.e164 }
-            item { SectionLabel("Your contacts") }
-            if (matches.isEmpty()) item { HintBox(Icons.Filled.Search, "No contact called \"${q.text.trim()}\"", "Type a number to search everyone.") }
-            items(matches, key = { "s:" + it.e164 }) { c -> ContactRow(state, c, mark = null, onNumber) }
-        }
-        is SearchQuery.Mobile -> item {
+        is SearchQuery.Mobile -> if (!q.auto && askedFor != q.e164) item {
+            // Short and other countries' numbers wait for this button, so typing never uses up a search.
+            WhCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.Search, contentDescription = null)
+                    Spacer(Modifier.width(10.dp))
+                    Text(shown(q.e164), fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    Button(onClick = { onAsk(q.e164) }, shape = RoundedCornerShape(8.dp)) { Text("Search") }
+                }
+            }
+        } else item {
             when (found) {
                 is Found.Result -> {
                     val r = found.result
@@ -425,9 +431,14 @@ private fun LazyListScope.searchResults(state: AppState, query: String, found: F
                 }
             }
         }
-        SearchQuery.Incomplete -> item { HintBox(Icons.Filled.Search, "Type all 10 digits", "Like 98451 72046") }
-        SearchQuery.NotMobile -> item { HintBox(Icons.Filled.Search, "Only mobile numbers can be searched", "Like 98451 72046") }
-        SearchQuery.Foreign -> item { HintBox(Icons.Filled.Search, "WhoHas checks only Indian numbers", "Like 98451 72046") }
+        is SearchQuery.Name -> {
+            val matches = state.contacts.filter { c -> c.shownName?.let { SearchInput.matches(it, q.text) } == true && c.e164 != null }
+                .distinctBy { it.e164 }
+            item { SectionLabel("Your contacts") }
+            if (matches.isEmpty()) item { HintBox(Icons.Filled.Search, "No contact called \"${q.text.trim()}\"", "Type a number to search everyone.") }
+            items(matches, key = { "s:" + it.e164 }) { c -> ContactRow(state, c, mark = null, onNumber) }
+        }
+        SearchQuery.Incomplete -> item { HintBox(Icons.Filled.Search, "Type the number", "Like 98451 72046, 121 or +971 50 123 4567") }
         SearchQuery.Empty -> Unit
     }
 }
@@ -867,7 +878,6 @@ private fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, onNumbe
             sub = sub, subColor = callKindColour(call),
             line = when {
                 call.isHidden -> "Can't check hidden numbers"
-                call.isForeign -> ONLY_INDIAN
                 else -> "WhoHas can't check this number"
             },
         )
@@ -949,7 +959,7 @@ private fun ContactRow(state: AppState, contact: SavedNumber, mark: UpdateItem?,
         InfoRow(
             leading = { Avatar(contact.raw, name) },
             name = app.foundwith.core.ShownName(name, app.foundwith.core.NameSource.CONTACT),
-            line = if (PhoneNumbers.isForeign(contact.raw)) ONLY_INDIAN else "WhoHas can't check this number",
+            line = "WhoHas can't check this number",
         )
         return
     }
