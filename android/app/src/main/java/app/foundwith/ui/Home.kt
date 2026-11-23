@@ -610,7 +610,7 @@ private fun LazyListScope.updatesTab(
  * but the last. New rows are light blue.
  */
 @Composable
-private fun InGroup(first: Boolean, last: Boolean, tint: Boolean, content: @Composable () -> Unit) {
+internal fun InGroup(first: Boolean, last: Boolean, tint: Boolean, content: @Composable () -> Unit) {
     Surface(
         color = if (tint) newRowTint() else MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
@@ -632,7 +632,7 @@ private fun RowLine(onTint: Boolean = false) {
 
 /** A tab's icon with its red count (Y, 23 Nov 2026), none at 0. */
 @Composable
-private fun TabBadge(count: Int, icon: @Composable () -> Unit) {
+internal fun TabBadge(count: Int, icon: @Composable () -> Unit) {
     BadgedBox(badge = {
         if (count > 0) Badge(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError) {
             Text(if (count > 99) "99+" else count.toString(), fontWeight = FontWeight.Bold)
@@ -642,7 +642,7 @@ private fun TabBadge(count: Int, icon: @Composable () -> Unit) {
 
 /** "New" over the new rows, with how many in a red count (23 Nov 2026). */
 @Composable
-private fun NewHeading(count: Int) {
+internal fun NewHeading(count: Int) {
     Row(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text("New", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.width(6.dp))
@@ -690,7 +690,7 @@ internal fun newRowTint(): androidx.compose.ui.graphics.Color =
 
 /** One number in Updates: who, from your contacts or your calls, what changed (or who has it), and when. */
 @Composable
-private fun UpdateRow(state: AppState, item: UpdateItem, isNew: Boolean, onNumber: (String) -> Unit) {
+internal fun UpdateRow(state: AppState, item: UpdateItem, isNew: Boolean, onNumber: (String) -> Unit) {
     val e164 = item.e164
     val card = state.cardFor(e164)
     val ref = card?.ref
@@ -864,7 +864,7 @@ private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, marks: Map<
 }
 
 @Composable
-private fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, onNumber: (String) -> Unit) {
+internal fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, onNumber: (String) -> Unit) {
     val sub = callLine(call, withDay = false)
     val e164 = call.e164
     if (e164 == null) {
@@ -951,7 +951,7 @@ private fun LazyListScope.contactsTab(graph: AppGraph, state: AppState, marks: M
 }
 
 @Composable
-private fun ContactRow(state: AppState, contact: SavedNumber, mark: UpdateItem?, onNumber: (String) -> Unit) {
+internal fun ContactRow(state: AppState, contact: SavedNumber, mark: UpdateItem?, onNumber: (String) -> Unit) {
     val context = LocalContext.current
     val e164 = contact.e164
     if (e164 == null) {

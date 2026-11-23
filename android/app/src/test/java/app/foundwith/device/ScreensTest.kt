@@ -1,5 +1,33 @@
 package app.foundwith.device
 
+import org.junit.Assert.assertEquals
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.Icons
+import app.foundwith.data.SavedNumber
+import app.foundwith.data.NumberLabel
+import app.foundwith.data.NumberIndex
+import app.foundwith.data.Holder
+import app.foundwith.data.Card
+import app.foundwith.data.CachedCards
+import app.foundwith.data.AppState
+import app.foundwith.core.KnownGain
+import app.foundwith.core.CountChange
+import app.foundwith.core.ChangeLog
+import app.foundwith.core.CallType
+import app.foundwith.core.CallEvent
+import app.foundwith.core.UpdatesOrder
+import app.foundwith.ui.SectionLabel
+import app.foundwith.ui.isSaved
+import app.foundwith.ui.marked
+import app.foundwith.ui.updateItems
+import app.foundwith.ui.ContactRow
+import app.foundwith.ui.CallRow
+import app.foundwith.ui.UpdateRow
+import app.foundwith.ui.NewHeading
+import app.foundwith.ui.TabBadge
+import app.foundwith.ui.InGroup
 import android.app.Application
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -79,6 +107,79 @@ class ScreensTest {
         root.draw(Canvas(bitmap))
         val dir = File("build/screens").apply { mkdirs() }
         File(dir, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    }
+
+    /** A phone where three numbers changed since Updates was last opened (Y, 23 Nov 2026). */
+    private fun changedState(now: Long): AppState {
+        val raju = "+919845011111"; val priya = "+919845022222"; val caller = "+919008011223"; val meena = "+919845033333"
+        val refs = mapOf(raju to "r1", priya to "r2", caller to "r3", meena to "r4")
+        return AppState(
+            cards = CachedCards(savedAt = now, totalCards = 4, mine = Card("me", total = 23), cards = listOf(
+                Card("r1", inContacts = true, total = 14, known = listOf(Holder("h1", "Priya Sharma", known = true)), knownCount = 1),
+                Card("r2", inContacts = true, total = 3, knownCount = 0),
+                Card("r3", inCallLog = true, total = 3, known = listOf(Holder("h2", "Kiran Sir", known = true)), knownCount = 1),
+                Card("r4", inContacts = true, total = 6, knownCount = 0),
+            )),
+            index = NumberIndex(byRef = refs.entries.associate { it.value to NumberLabel(it.key) }, refByE164 = refs),
+            contacts = listOf(SavedNumber("98450 11111", "Raju Plumber"), SavedNumber("98450 22222", "Priya Sharma"),
+                SavedNumber("98450 33333", "Meena")),
+            calls = listOf(CallEvent(7, "9008011223", CallType.MISSED, at = now - 40 * 60_000L)),
+            changes = ChangeLog(
+                changes = mapOf("r1" to CountChange("r1", 12, 14, now - 60 * 60_000L)),
+                joined = mapOf("r2" to now - 30 * 60_000L),
+                gains = mapOf("r3" to KnownGain("r3", listOf("h2"), now - 20 * 60_000L)),
+            ),
+            dotsSince = now - 2 * 60 * 60_000L,
+            updatesSeenAt = now - 2 * 60 * 60_000L,
+            loaded = true,
+        )
+    }
+
+    @Test
+    fun changesAreMarkedInEveryTabWithRedCounts() = changesMarked(dark = false)
+
+    @Test
+    fun changesAreMarkedInDarkModeToo() = changesMarked(dark = true)
+
+    private fun changesMarked(dark: Boolean) {
+        val now = System.currentTimeMillis()
+        val state = changedState(now)
+        val items = updateItems(state)
+        val news = UpdatesOrder.newSince(items, state.dotsSince, state.seenNumbers)
+        // Newest change first: the caller now known (20 min), Priya joined (30 min), Raju +2 (1 h).
+        assertEquals(listOf("+919008011223", "+919845022222", "+919845011111"), news.map { it.e164 })
+        assertEquals("+919845033333", items.last().e164)                 // nothing new: last
+        val marks = state.marked(items)
+        val inCalls = marks.keys.count { k -> state.calls.any { it.e164 == k } }
+        val inContacts = marks.keys.count { state.isSaved(it) }
+        assertEquals(1, inCalls)
+        assertEquals(2, inContacts)
+
+        shot(if (dark) "13-changes-marked-dark" else "12-changes-marked", dark = dark) {
+            NewHeading(news.size)
+            news.forEachIndexed { i, item -> InGroup(first = i == 0, last = i == news.lastIndex, tint = true) { UpdateRow(state, item, isNew = true) {} } }
+            SectionLabel("Contacts")
+            for (c in state.contacts) ContactRow(state, c, c.e164?.let { marks[it] }) {}
+            SectionLabel("Call log")
+            CallRow(state, state.calls[0], marks["+919008011223"]) {}
+            androidx.compose.material3.NavigationBar {
+                androidx.compose.material3.NavigationBarItem(selected = false, onClick = {}, label = { Text("Call log") },
+                    icon = { TabBadge(inCalls) { androidx.compose.material3.Icon(Icons.Filled.Call, null) } })
+                androidx.compose.material3.NavigationBarItem(selected = false, onClick = {}, label = { Text("Contacts") },
+                    icon = { TabBadge(inContacts) { androidx.compose.material3.Icon(Icons.Filled.Person, null) } })
+                androidx.compose.material3.NavigationBarItem(selected = true, onClick = {}, label = { Text("Updates") },
+                    icon = { TabBadge(news.size) { androidx.compose.material3.Icon(Icons.Filled.Notifications, null) } })
+            }
+        }
+        compose.onAllNodesWithText("2 more people have this number · now 14").assertCountEquals(2)   // Updates and Contacts
+        compose.onAllNodesWithText("Now known to Kiran Sir").assertCountEquals(2)                     // Updates and Call log
+        compose.onAllNodesWithText("Joined WhoHas").assertCountEquals(2)
+        compose.onNodeWithText("6 people have it", substring = true).assertExists()                   // Meena: not marked
+
+        // Opening Raju's card: he is no longer new anywhere.
+        val seen = state.copy(seenNumbers = mapOf("+919845011111" to now))
+        assertEquals(2, UpdatesOrder.newSince(updateItems(seen), seen.dotsSince, seen.seenNumbers).size)
+        assertEquals(false, seen.marked(updateItems(seen)).containsKey("+919845011111"))
     }
 
     @Test

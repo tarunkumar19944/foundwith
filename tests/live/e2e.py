@@ -215,8 +215,9 @@ def run(config: dict) -> Report:
         a.id = me["id"]
         b.join([{"number": a.phone, "name": "Asha"}, {"number": PLUMBER, "name": "Raju Plumber"}], [c.phone])
         c.join([{"number": PLUMBER, "name": "raju plumber"}, {"number": a.phone, "name": "Asha Akka"}], named=False)
-        d.join([{"number": PLUMBER, "name": "Plumber"}, CLINIC])
-        e.join([{"number": CLINIC, "name": "Dr. Anand Clinic"}])
+        # Every kind of number (23 Nov 2026): a service number and another country's, written differently.
+        d.join([{"number": PLUMBER, "name": "Plumber"}, CLINIC, "56161", "+971 50 123 4567"])
+        e.join([{"number": CLINIC, "name": "Dr. Anand Clinic"}, "56161", "00971 50 123 4567"])
 
         print("What each person sees")
         seen = a.lookup(PLUMBER)
@@ -233,6 +234,12 @@ def run(config: dict) -> Report:
         seen = e.lookup(PLUMBER)
         report.check("Esha knows nobody who has it: all four are a count",
                      seen["total"] == 4 and known_names(seen) == [] and seen["more"] == 4, seen)
+        seen = e.lookup("56161")
+        report.check("a service number is matched between two people (Deepak has 56161 too)",
+                     seen.get("number") == "+9156161" and seen["total"] == 1, seen)
+        seen = e.lookup("+971501234567")
+        report.check("another country's number is matched however it was written",
+                     seen.get("number") == "+971501234567" and seen["total"] == 1, seen)
         seen = d.lookup(a.phone)
         report.check("searching a member's number shows their own name and that they're on Found With",
                      seen.get("name") == a.name and seen.get("on_found_with") is True and seen.get("owner_id") == a.id, seen)

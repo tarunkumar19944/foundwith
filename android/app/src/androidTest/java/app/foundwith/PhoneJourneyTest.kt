@@ -150,8 +150,18 @@ class PhoneJourneyTest {
         search("Clinic")
         waitFor("FW Test Clinic")
         shot("10-search-name")
-        search("98765")
-        waitFor("Type all 10 digits")
+        search("98")
+        waitFor("Type the number")
+        // Every kind of number (23 Nov 2026): a short number waits for the Search button, then is looked up.
+        search("56161")
+        waitFor("Search")
+        assertTrue("a short number was looked up before Search was tapped",
+            !exists("No one on WhoHas has this number") && !exists("Checking 56161"))
+        compose.onAllNodes(hasText("Search") and hasClickAction()).onFirst().performClick()
+        compose.waitForIdle()
+        waitForAny(listOf("have it", "has it", "No one else on WhoHas has it yet", "No one on WhoHas has this number",
+            "Today's searches are over"), 30_000)
+        shot("10b-search-short-number")
         search("9000000070")
         waitForAny(listOf("have it", "has it", "No one else on WhoHas has it yet", "No one on WhoHas has this number",
             "Today's searches are over"), 30_000)
