@@ -140,6 +140,8 @@ data class InviteInfo(
     val link: String = "",
     /** How many people joined with this person's link. */
     val joined: Int = 0,
+    /** Who joined with the link, as references (the same as the cards'), so the phone can name the ones it knows. */
+    @SerialName("joined_refs") val joinedRefs: List<String> = emptyList(),
 )
 
 @Serializable

@@ -94,6 +94,7 @@ import app.foundwith.core.DataNotice
 import app.foundwith.core.CallEvent
 import app.foundwith.core.Changes
 import app.foundwith.core.HolderText
+import app.foundwith.core.LinkJoins
 import app.foundwith.core.Messages
 import app.foundwith.core.Naming
 import app.foundwith.R
@@ -274,6 +275,7 @@ fun HomeScreen(
                     total = mine?.total ?: 0,
                     up = mine?.ref?.let { state.changes.changes[it] }?.delta?.takeIf { it > 0 } ?: 0,
                     onClick = state.profile?.phone?.let { phone -> { onNumber(phone) } },
+                    onShare = shareGroup,
                 )
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
                     // Call log · Contacts · Updates (Y, 22 Nov 2026). Each carries a red count (Y, 23 Nov):
@@ -286,7 +288,9 @@ fun HomeScreen(
                     NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { pick(Tab.CONTACTS) }, label = { Text("Contacts") }, colors = tabColors,
                         modifier = Modifier.semantics { if (inContacts > 0) stateDescription = "$inContacts new" },
                         icon = { TabBadge(inContacts) { Icon(Icons.Filled.Person, contentDescription = null) } })
-                    val unseen = if (tab == Tab.UPDATES) 0 else UpdatesOrder.newSince(updates, state.updatesSeenAt, state.seenNumbers).size
+                    // Someone not on this phone who joined with your link has no row of their own, only the note on top of Updates.
+                    val unseen = if (tab == Tab.UPDATES) 0 else UpdatesOrder.newSince(updates, state.updatesSeenAt, state.seenNumbers).size +
+                        state.linkJoins().count { it.e164 == null && state.updatesSeenAt > 0 && (it.at ?: 0L) > state.updatesSeenAt }
                     NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { pick(Tab.UPDATES) }, label = { Text("Updates") }, colors = tabColors,
                         modifier = Modifier.semantics { if (unseen > 0) stateDescription = "$unseen new" },
                         icon = {
@@ -586,13 +590,32 @@ private fun LazyListScope.updatesTab(
     if (BuildConfig.CALL_LOG && graph.store.firstNamesSeen && !graph.store.notifAsked && !graph.notifier.canPost()) {
         item { NotificationsCard(onTurnOn = onTurnOnNotifications, onLater = { graph.store.notifAsked = true }) }
     }
+    // People this phone doesn't know who joined with your link (23 Nov 2026): one note on top, with Share in group.
+    val strangers = state.linkJoins().filter { it.e164 == null && (it.at ?: 0L) > state.dotsSince }
+    if (strangers.isNotEmpty()) item(key = "link-joins") { LinkJoinNote(strangers, mine?.total ?: 0, onShareGroup) }
+    val linkRefs = state.cards?.circle?.invite?.joinedRefs.orEmpty().toSet()
     val news = UpdatesOrder.newSince(all, state.dotsSince, state.seenNumbers)
     val newNumbers = news.mapTo(HashSet()) { it.e164 }
     val earlier = all.filter { it.e164 !in newNumbers }
     if (news.isNotEmpty()) {
         item(key = "h:new") { NewHeading(news.size) }
         itemsIndexed(news, key = { _, it -> "u:" + it.e164 }) { i, it ->
-            InGroup(first = i == 0, last = i == news.lastIndex, tint = true) { UpdateRow(state, it, isNew = true, onNumber) }
+            InGroup(first = i == 0, last = i == news.lastIndex, tint = true) {
+                // Someone who joined with your link: how far the next level is, and Share in group right under them.
+                if (it.change?.what == UpdateWhat.JOINED && state.cardFor(it.e164)?.ref in linkRefs) {
+                    Column {
+                        UpdateRow(state, it, isNew = true, onNumber)
+                        Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LinkJoins.levelLine(mine?.total ?: 0)?.let { line ->
+                                Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            PrimaryButton("Share in group", onShareGroup, icon = Icons.Filled.Share)
+                        }
+                    }
+                } else {
+                    UpdateRow(state, it, isNew = true, onNumber)
+                }
+            }
         }
     }
     if (earlier.isNotEmpty()) {
@@ -603,6 +626,37 @@ private fun LazyListScope.updatesTab(
     }
     if (all.isEmpty()) item { NothingFoundCard(state) }
     if (graph.store.firstNamesSeen && state.profile?.name == null && !graph.store.nameAsked) item { NameCard(graph) }
+}
+
+/**
+ * On top of Updates when people this phone doesn't know joined with your link (23 Nov 2026):
+ * "Someone joined with your link", your count, how far the next level is, and Share in group.
+ */
+@Composable
+internal fun LinkJoinNote(joins: List<LinkJoin>, total: Int, onShare: () -> Unit) {
+    Surface(color = newRowTint(), modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                IconAvatar(Icons.Filled.Person, accent = true)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(LinkJoins.title(joins.map { it.name }), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(HolderText.haveYours(total).replaceFirstChar { it.uppercase() } + " now",
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.tertiary)
+                    LinkJoins.levelLine(total)?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+                joins.mapNotNull { it.at }.maxOrNull()?.let { at ->
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(whenText(at), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(6.dp)); NewDot()
+                    }
+                }
+            }
+            PrimaryButton("Share in group", onShare, icon = Icons.Filled.Share)
+        }
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 /**
@@ -666,7 +720,10 @@ internal fun AppState.changeLine(item: UpdateItem, since: Long): ChangeLine? {
     val ref = card?.ref
     val text = when (change.what) {
         UpdateWhat.COUNT_UP -> ref?.let { changes.changes[it] }?.let { HolderText.crossed(it.before, it.now) ?: HolderText.change(it.now, it.delta) }
-        UpdateWhat.JOINED -> if (cards?.mine?.known?.any { it.contactRef == ref } == true) "Joined WhoHas · has your number" else "Joined WhoHas"
+        UpdateWhat.JOINED -> {
+            val how = if (ref != null && ref in cards?.circle?.invite?.joinedRefs.orEmpty()) "Joined with your link" else "Joined WhoHas"
+            if (cards?.mine?.known?.any { it.contactRef == ref } == true) "$how · has your number" else how
+        }
         UpdateWhat.NOW_KNOWN -> ref?.let { changes.gains[it] }?.ids.orEmpty()
             .firstNotNullOfOrNull { id -> card?.known?.firstOrNull { it.id == id }?.let { personName(it) } }
             ?.let { "Now known to $it" }

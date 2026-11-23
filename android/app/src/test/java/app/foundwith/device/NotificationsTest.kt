@@ -113,6 +113,18 @@ class NotificationsTest {
     }
 
     @Test
+    fun aJoinWithYourLinkIsItsOwnSilentNoteWithShareInGroup() {
+        notifier.postLinkJoined("r1", "+919845011111", "Ravi Kumar joined with your link", "Has your number. 9 people have it now: 1 more and you’re Popular.")
+        notifier.postLinkJoined("r2", null, "Someone joined with your link", "9 people have your number. 1 more and you’re Popular.")
+        notifier.postLevel("1 more person and you’re Popular", "9 people have your number. Share WhoHas in a group.")
+        val all = posted()
+        assertEquals(3, all.size)                                  // one each; none replaces another
+        val ravi = all.single { it.extras.getString("android.title") == "Ravi Kumar joined with your link" }
+        assertEquals("level", ravi.channelId)
+        assertEquals(listOf("Share in group"), ravi.actions.map { it.title.toString() })
+    }
+
+    @Test
     fun withoutPermissionNothingIsPosted() {
         shadowOf(context as Application).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
         assertFalse(notifier.canPost())

@@ -8,6 +8,7 @@ import app.foundwith.core.ChangeItem
 import app.foundwith.core.ChangeNotes
 import app.foundwith.core.LevelRules
 import app.foundwith.core.Levels
+import app.foundwith.core.LinkJoins
 import app.foundwith.core.Naming
 import app.foundwith.core.ChangeLog
 import app.foundwith.core.Changes
@@ -363,11 +364,14 @@ class AppModel(private val graph: AppGraph) {
             val members = circle?.memberRefs?.toSet()
             val old = store.changeLog()
             val updated = Changes.update(old ?: ChangeLog(), totals, System.currentTimeMillis(),
-                first = first || old == null, members = members, known = known)
+                first = first || old == null, members = members, known = known, linkJoined = circle?.invite?.joinedRefs?.toSet())
             store.saveChangeLog(updated)
-            // A contact who just joined: tell the person, quietly ("Priya joined WhoHas · Has your number").
             val index = store.index()
-            if (graph.store.notifyJoined && !graph.inFront) for (ref in updated.joined.keys - old?.joined?.keys.orEmpty()) {
+            // Someone joined with your link: told on its own (it names the link), so not again as "joined WhoHas".
+            val newLinks = updated.linked.keys - old?.linked?.keys.orEmpty()
+            if (newLinks.isNotEmpty()) notifyLinkJoins(newLinks, mine, index)
+            // A contact who just joined: tell the person, quietly ("Priya joined WhoHas · Has your number").
+            if (graph.store.notifyJoined && !graph.inFront) for (ref in updated.joined.keys - old?.joined?.keys.orEmpty() - newLinks) {
                 val e164 = index.byRef[ref]?.e164 ?: continue
                 val name = _state.value.contactsByE164[e164]?.shownName ?: continue
                 val hasYours = mine?.known?.any { it.contactRef == ref } == true
@@ -406,6 +410,22 @@ class AppModel(private val graph: AppGraph) {
         for (note in notes) {
             val number = if (note.ref == null) myNumber else e164(note.ref)
             graph.notifier.postChange(number, note.title, note.text)
+        }
+    }
+
+    /**
+     * "Ravi Kumar joined with your link" (23 Nov 2026): one notification for each person, on the
+     * Your level channel (silent), with Share in group. Tapping opens their card when this phone
+     * has their number, else Updates.
+     */
+    private fun notifyLinkJoins(refs: Set<String>, mine: Card?, index: NumberIndex) {
+        if (!graph.store.notifyLevel || graph.inFront) return
+        val total = mine?.total ?: 0
+        for (ref in refs) {
+            val e164 = index.byRef[ref]?.e164
+            val name = e164?.let { _state.value.contactsByE164[it]?.shownName ?: PhoneNumbers.display(it) }
+            val hasYours = mine?.known?.any { it.contactRef == ref } == true
+            graph.notifier.postLinkJoined(ref, e164, LinkJoins.title(listOf(name)), LinkJoins.noteText(hasYours, total))
         }
     }
 

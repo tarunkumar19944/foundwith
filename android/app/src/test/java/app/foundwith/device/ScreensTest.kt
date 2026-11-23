@@ -1,5 +1,19 @@
 package app.foundwith.device
 
+import androidx.compose.ui.test.performClick
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.material.icons.filled.Star
+import app.foundwith.data.InviteInfo
+import app.foundwith.data.Circle
+import app.foundwith.core.Levels
+import app.foundwith.core.LinkJoins
+import app.foundwith.ui.PeopleStack
+import app.foundwith.ui.IconAvatar
+import app.foundwith.ui.linkJoins
+import app.foundwith.ui.LinkJoinNote
+import app.foundwith.ui.GrowRow
+import app.foundwith.ui.LevelProgress
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBar
@@ -183,6 +197,90 @@ class ScreensTest {
         val seen = state.copy(seenNumbers = mapOf("+919845011111" to now))
         assertEquals(2, UpdatesOrder.newSince(updateItems(seen), seen.dotsSince, seen.seenNumbers).size)
         assertEquals(false, seen.marked(updateItems(seen)).containsKey("+919845011111"))
+    }
+
+    @Test
+    fun theNumberBarShowsHowFarTheNextLevelIs() {
+        // Y, 23 Nov 2026: a thin line under your number, "2 more → Popular" and Share; none at the top.
+        var shared = 0
+        shot("14-number-bar-next-level") {
+            for ((total, up) in listOf(0 to 0, 3 to 1, 8 to 2, 23 to 1, 52 to 3)) {
+                YourNumberBar(total = total, up = up, onClick = {}, onShare = { shared++ })
+                Spacer(Modifier.height(8.dp))
+            }
+        }
+        compose.onNodeWithText("10 more → Popular").assertExists()
+        compose.onNodeWithText("2 more → Popular").assertExists()
+        compose.onNodeWithText("27 more → Highly popular").assertExists()
+        compose.onAllNodesWithText("Share").assertCountEquals(4)            // not at the top level
+        compose.onAllNodesWithText("Share")[2].performClick()
+        assertEquals(1, shared)
+    }
+
+    /** Ravi (a contact) and someone this phone doesn't know joined with your link; Ravi has your number. */
+    private fun linkState(now: Long): AppState {
+        val ravi = "+919845044444"
+        return AppState(
+            cards = CachedCards(savedAt = now, totalCards = 1,
+                mine = Card("me", total = 9, known = listOf(Holder("h7", "Ravi Kumar", known = true, contactRef = "r7")), knownCount = 1),
+                cards = listOf(Card("r7", inContacts = true, total = 4, knownCount = 0)),
+                circle = Circle(memberRefs = listOf("r7"), invite = InviteInfo(code = "ABCDEFGH", joined = 2, joinedRefs = listOf("r7", "x9")))),
+            index = NumberIndex(byRef = mapOf("r7" to NumberLabel(ravi)), refByE164 = mapOf(ravi to "r7")),
+            contacts = listOf(SavedNumber("98450 44444", "Ravi Kumar")),
+            changes = ChangeLog(changes = mapOf("me" to CountChange("me", 7, 9, now - 60_000L)),
+                joined = mapOf("r7" to now - 10 * 60_000L), linkRefs = setOf("r7", "x9"),
+                linked = mapOf("r7" to now - 10 * 60_000L, "x9" to now - 5 * 60_000L)),
+            dotsSince = now - 60 * 60_000L,
+            updatesSeenAt = now - 60 * 60_000L,
+            loaded = true,
+        )
+    }
+
+    @Test
+    fun yourCardShowsWhatGrowsYourCount() {
+        val state = linkState(System.currentTimeMillis())
+        val joins = state.linkJoins()
+        assertEquals(listOf("x9", "r7"), joins.map { it.ref })               // the latest noticed first
+        assertEquals(listOf(null, "Ravi Kumar"), joins.map { it.name })
+        assertEquals(listOf(false, true), joins.map { it.hasYours })
+        shot("15-your-card-grow") {
+            WhCard { LevelProgress(9) }
+            WhCard(padding = 0.dp) {
+                Column {
+                    GrowRow(leading = { PeopleStack(joins.map { it.ref to (it.name ?: "?") }, ring = MaterialTheme.colorScheme.surface) },
+                        title = LinkJoins.title(joins.map { it.name }), line = LinkJoins.rowLine(joins.size, joins.count { it.hasYours }))
+                    GrowRow(leading = { IconAvatar(Icons.Filled.Person, accent = true) }, title = LinkJoins.reach(38, true),
+                        line = LinkJoins.REACH_LINE, onClick = {})
+                    GrowRow(leading = { IconAvatar(Icons.Filled.Star, accent = true) }, title = "What Popular shows", line = Levels.tagNote(9)!!)
+                }
+            }
+            WhCard { LevelProgress(52) }
+        }
+        compose.onNodeWithText("1 more person and you’re Popular").assertExists()
+        compose.onNodeWithText("Ravi and 1 other joined with your link").assertExists()
+        compose.onNodeWithText("1 of them has your number: +1").assertExists()
+        compose.onNodeWithText("38 people you call aren’t on WhoHas").assertExists()
+        compose.onNodeWithText("Top level. 52 people have your number").assertExists()
+    }
+
+    @Test
+    fun updatesTellWhoJoinedWithYourLink() {
+        val now = System.currentTimeMillis()
+        val state = linkState(now)
+        val items = updateItems(state)
+        val news = UpdatesOrder.newSince(items, state.dotsSince, state.seenNumbers)
+        assertEquals(listOf("+919845044444"), news.map { it.e164 })
+        val strangers = state.linkJoins().filter { it.e164 == null }
+        shot("16-link-joins-in-updates") {
+            LinkJoinNote(strangers, 9) {}
+            NewHeading(news.size)
+            InGroup(first = true, last = true, tint = true) { UpdateRow(state, news[0], isNew = true) {} }
+        }
+        compose.onNodeWithText("Someone joined with your link").assertExists()
+        compose.onNodeWithText("9 people have your number now").assertExists()
+        compose.onNodeWithText("1 more and you’re Popular").assertExists()
+        compose.onNodeWithText("Joined with your link · has your number").assertExists()
+        compose.onNodeWithText("Share in group").assertExists()
     }
 
     @Test

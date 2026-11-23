@@ -20,6 +20,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -735,9 +737,10 @@ fun NumberMenu(e164: String, name: String, onOpen: () -> Unit, onDismiss: () -> 
  * how many people have it, this week's rise and your level. A tap opens your own card.
  */
 @Composable
-fun YourNumberBar(total: Int, up: Int, onClick: (() -> Unit)?) {
+fun YourNumberBar(total: Int, up: Int, onClick: (() -> Unit)?, onShare: (() -> Unit)? = null) {
     val blue = MaterialTheme.colorScheme.primary
     androidx.compose.material3.Surface(color = MaterialTheme.colorScheme.primaryContainer) {
+        Column {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -764,6 +767,84 @@ fun YourNumberBar(total: Int, up: Int, onClick: (() -> Unit)?) {
             if (up > 0) Text("+${HolderText.grouped(up)}", color = LiveGreen, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
             LevelTag(Levels.of(total))
         }
+        // How far the next level is, and Share (Y, 23 Nov 2026): the reason to share, where it is
+        // always in sight. None at the top level.
+        Levels.step(total)?.let { step -> NextLevelLine(step, Levels.barLine(total)!!, onShare) }
+        }
+    }
+}
+
+/** Under your number in the bar: a thin line, "2 more → Popular" and Share. */
+@Composable
+private fun NextLevelLine(step: Levels.Step, words: String, onShare: (() -> Unit)?) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 4.dp),
+    ) {
+        ProgressLine(step.done, Modifier.weight(1f), track = MaterialTheme.colorScheme.surface)
+        Text(words, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
+            color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+        if (onShare != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.heightIn(min = 36.dp)
+                    .clickable(onClickLabel = "Share WhoHas in a group", role = androidx.compose.ui.semantics.Role.Button, onClick = onShare)
+                    .padding(horizontal = 8.dp),
+            ) {
+                Icon(Icons.Filled.Share, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Share", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
+
+/** A thin rounded line, [done] of it (0 to 1) in blue. */
+@Composable
+fun ProgressLine(done: Float, modifier: Modifier = Modifier, track: Color = MaterialTheme.colorScheme.surfaceVariant, height: Dp = 6.dp) {
+    Box(modifier.height(height).background(track, RoundedCornerShape(50))) {
+        Box(Modifier.fillMaxWidth(done.coerceIn(0.04f, 1f)).fillMaxHeight().background(MaterialTheme.colorScheme.primary, RoundedCornerShape(50)))
+    }
+}
+
+/**
+ * Your own level on your card (23 Nov 2026): your tag, the line to the next one and its tag, and
+ * "2 more people and you’re Popular". At the top: the tag and "Top level. 52 people have your number".
+ */
+@Composable
+fun LevelProgress(total: Int) {
+    val level = Levels.of(total)
+    val step = Levels.step(total)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            LevelTag(level)
+            if (step != null) {
+                ProgressLine(step.done, Modifier.weight(1f), height = 8.dp)
+                LevelTag(step.next)
+            }
+        }
+        Text(Levels.progress(total)?.replaceFirstChar { it.uppercase() } ?: Levels.topLine(total),
+            style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+    }
+}
+
+/** A row on your own card's "what grows your count" box: a picture, a bold line, a grey line. */
+@Composable
+fun GrowRow(leading: @Composable () -> Unit, title: String, line: String, onClick: (() -> Unit)? = null) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = Modifier.fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick) else Modifier)
+            .heightIn(min = 56.dp).padding(horizontal = 14.dp, vertical = 10.dp),
+    ) {
+        Box(Modifier.widthIn(min = 40.dp), contentAlignment = Alignment.Center) { leading() }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+            Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (onClick != null) Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
     }
 }
 

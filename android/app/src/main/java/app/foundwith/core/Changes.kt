@@ -19,6 +19,10 @@ data class ChangeLog(
     /** Ids of known holders per tracked number, as last seen; null until first tracked. */
     val known: Map<String, Set<String>>? = null,
     val gains: Map<String, KnownGain> = emptyMap(),
+    /** Refs of people who joined with the viewer's invite link, as last seen; null until first tracked. */
+    val linkRefs: Set<String>? = null,
+    /** People who joined with the viewer's link: ref -> when it was noticed. Kept a week. */
+    val linked: Map<String, Long> = emptyMap(),
 )
 
 /**
@@ -40,8 +44,9 @@ object Changes {
         first: Boolean = false,
         members: Set<String>? = null,
         known: Map<String, Set<String>>? = null,
+        linkJoined: Set<String>? = null,
     ): ChangeLog {
-        if (first) return ChangeLog(totals, emptyMap(), members, emptyMap(), known, emptyMap())
+        if (first) return ChangeLog(totals, emptyMap(), members, emptyMap(), known, emptyMap(), linkJoined, emptyMap())
         val changes = log.changes.filterValues { now - it.at <= KEEP_MS }.toMutableMap()
         for ((ref, total) in totals) {
             val before = log.baseline[ref] ?: continue          // a new card isn't "more people"
@@ -71,7 +76,10 @@ object Changes {
             }
             gains.keys.retainAll(known.keys)
         }
-        return ChangeLog(totals, changes, members ?: log.members, joined, known ?: log.known, gains)
+        // People who joined with your link since last time. The first time the list is known, it is only the baseline.
+        val linked = log.linked.filterValues { now - it <= KEEP_MS }.toMutableMap()
+        if (linkJoined != null && log.linkRefs != null) for (ref in linkJoined - log.linkRefs) linked[ref] = now
+        return ChangeLog(totals, changes, members ?: log.members, joined, known ?: log.known, gains, linkJoined ?: log.linkRefs, linked)
     }
 
     /** Whether a change happened on the same day as [now] (for the green "Today" line). */

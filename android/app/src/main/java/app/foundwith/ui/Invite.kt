@@ -1,5 +1,14 @@
 package app.foundwith.ui
 
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.Surface
+import app.foundwith.core.HolderText
+import app.foundwith.core.LinkJoins
 import kotlinx.coroutines.launch
 
 import app.foundwith.core.TellList
@@ -50,13 +59,18 @@ fun InviteScreen(graph: AppGraph, onBack: () -> Unit) {
     val scope = rememberCoroutineScope()
     var candidates by remember { mutableStateOf<List<TellCandidate>>(emptyList()) }
     var told by remember { mutableStateOf(setOf<String>()) }
+    // How many could add to your count (23 Nov 2026): people you call who aren't on WhoHas, else your contacts who aren't.
+    var reach by remember { mutableStateOf<Pair<Int, Boolean>?>(null) }
     val link = state.cards?.circle?.invite?.link ?: Invites.PLAY_STORE
     val members = state.cards?.circle?.memberRefs.orEmpty().toSet()
 
     LaunchedEffect(state.contacts, members) {
         val onWhoHas = state.index.byRef.filterKeys { it in members }.values.map { it.e164 }.toSet()
         val recent = graph.store.toldAt().filterValues { System.currentTimeMillis() - it < TellList.TOLD_DAYS * 24 * 3600_000L }.keys
-        candidates = InviteList.rank(graph.book.contactsForInvite(), graph.book.callLogCalls(), onWhoHas).take(100)
+        val ranked = InviteList.rank(graph.book.contactsForInvite(), graph.book.callLogCalls(), onWhoHas)
+        val called = ranked.count { it.calls > 0 }
+        reach = if (called > 0) called to true else ranked.size to false
+        candidates = ranked.take(100)
             .map { c -> val card = state.cardFor(c.e164); TellCandidate(c.e164, c.name, c.calls, card?.total ?: 0, card?.totalIsLowerBound == true) }
             .sortedBy { it.e164 in recent }   // people told lately go to the end
         told = recent
@@ -67,6 +81,24 @@ fun InviteScreen(graph: AppGraph, onBack: () -> Unit) {
         item {
             Column(Modifier.padding(horizontal = 20.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text("Invite friends", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                val count = reach?.first ?: 0
+                val joins = state.linkJoins()
+                if (count > 0) {
+                    // "38 people you call aren't on WhoHas. Each one who joins can add 1 to your 8."
+                    Surface(color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp), modifier = Modifier.fillMaxWidth()) {
+                        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(verticalAlignment = Alignment.Bottom) {
+                                Text(HolderText.grouped(count), fontSize = 40.sp, lineHeight = 40.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                Spacer(Modifier.width(10.dp))
+                                Text(LinkJoins.reach(count, reach?.second == true).substringAfter(' '), style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 4.dp))
+                            }
+                            Text(LinkJoins.reachInvite(state.cards?.mine?.total ?: 0))
+                            if (joins.isNotEmpty()) Text(LinkJoins.already(joins.map { it.name }), fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
                 Text("Adds the most value: the more of your group join, the more callers you can recognise.", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 PrimaryButton("Share in group", {
                     context.shareImage(app.foundwith.R.drawable.share_whohas, Messages.groupShare(link), "Share WhoHas")

@@ -36,6 +36,23 @@ fun AppState.nameFor(e164: String, card: Card?): ShownName =
     Naming.of(contactName(e164), card?.name, card?.popularName, e164)
 
 /** How someone who has the number is shown: your name for them, else their own, else their number. */
+/**
+ * Someone who joined with your invite link (23 Nov 2026): their number when this phone has it, a
+ * name only from this phone, whether WhoHas shows they have your number, and when it was noticed.
+ */
+data class LinkJoin(val ref: String, val e164: String?, val name: String?, val hasYours: Boolean, val at: Long?)
+
+/** Everyone who joined with your link, the latest noticed first. */
+fun AppState.linkJoins(): List<LinkJoin> {
+    val mine = cards?.mine
+    return cards?.circle?.invite?.joinedRefs.orEmpty().distinct().filterNot { it in blockedRefs }.map { ref ->
+        val e164 = index.byRef[ref]?.e164
+        val holder = mine?.known?.firstOrNull { it.contactRef == ref }
+        val name = e164?.let { contactsByE164[it]?.shownName } ?: holder?.let { personName(it) } ?: e164?.let { PhoneNumbers.display(it) }
+        LinkJoin(ref, e164, name, holder != null, changes.linked[ref])
+    }.sortedByDescending { it.at ?: 0L }
+}
+
 fun AppState.personName(holder: Holder): String {
     val label = holder.contactRef?.let { index.byRef[it] }
     return Naming.person(label?.name, holder.name, label?.e164)

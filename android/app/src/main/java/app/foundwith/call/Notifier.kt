@@ -56,7 +56,7 @@ class Notifier(private val context: Context) {
                 enableVibration(false)
             },
             NotificationChannel(LEVEL, "Your level", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "When you reach a new level, or are close. No sound."
+                description = "When you reach a new level, are close, or someone joins with your link. No sound."
             },
         ))
         // Channels from earlier versions.
@@ -191,6 +191,37 @@ class Notifier(private val context: Context) {
         runCatching { NotificationManagerCompat.from(context).notify(TAG_LEVEL, 2, notification) }
     }
 
+    /**
+     * "Ravi Kumar joined with your link" (23 Nov 2026). Silent, on the Your level channel, with
+     * Share in group; one per person. Opens their card when the phone has their number, else Updates.
+     */
+    fun postLinkJoined(ref: String, e164: String?, title: String, text: String) {
+        if (!canPost()) return
+        val open = Intent(context, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        if (e164 != null) {
+            open.setAction(ACTION_OPEN_NUMBER).putExtra(EXTRA_NUMBER, e164)
+                .putExtra(EXTRA_KEY, app.foundwith.data.LocalStore(context).openKey)
+        } else {
+            open.setAction(ACTION_OPEN_UPDATES)
+        }
+        val pending = PendingIntent.getActivity(context, ("l" + ref).hashCode(), open,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val notification = NotificationCompat.Builder(context, LEVEL)
+            .setSmallIcon(R.drawable.ic_stat_found_with)
+            .setColor(ACCENT)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setSilent(true)
+            .setAutoCancel(true)
+            .setContentIntent(pending)
+            .addAction(0, "Share in group", action(ACTION_SHARE_GROUP, ""))
+            .build()
+        @Suppress("MissingPermission")
+        runCatching { NotificationManagerCompat.from(context).notify(TAG_LINKED, ref.hashCode(), notification) }
+    }
+
     /** "Priya joined WhoHas · Has your number". Pops up without sound; tapping opens their card. */
     fun postJoined(e164: String, title: String, text: String?) {
         if (!canPost()) return
@@ -232,6 +263,7 @@ class Notifier(private val context: Context) {
         private const val TAG_CALL = "call"
         private const val TAG_CHANGES = "changes"
         private const val TAG_LEVEL = "level"
+        private const val TAG_LINKED = "linked"
         private const val GROUP_CALLS = "calls"
     }
 }

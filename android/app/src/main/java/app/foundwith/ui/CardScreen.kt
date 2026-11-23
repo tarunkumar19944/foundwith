@@ -1,5 +1,10 @@
 package app.foundwith.ui
 
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Star
+import app.foundwith.core.LinkJoins
+import app.foundwith.core.InviteList
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -155,6 +160,20 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
     }
     LaunchedEffect(e164) { graph.model.sawNumber(e164) }
 
+    // Your own card (23 Nov 2026): who joined with your link, and how many people you call aren't on
+    // WhoHas yet (they likely have your number), worked out on the phone like Invite friends.
+    val joins = if (mine) state.linkJoins() else emptyList()
+    var reach by remember { mutableStateOf<Pair<Int, Boolean>?>(null) }
+    LaunchedEffect(mine, state.contacts, state.cards?.circle?.memberRefs) {
+        if (!mine) return@LaunchedEffect
+        val members = state.cards?.circle?.memberRefs.orEmpty().toSet()
+        val onWhoHas = state.index.byRef.filterKeys { it in members }.values.map { it.e164 }.toSet()
+        val people = runCatching { InviteList.rank(graph.book.contactsForInvite(), graph.book.callLogCalls(), onWhoHas) }.getOrDefault(emptyList())
+        val called = people.count { it.calls > 0 }
+        reach = if (called > 0) called to true else people.size to false
+    }
+    val shareGroup = { context.shareImage(app.foundwith.R.drawable.share_whohas, Messages.groupShare(link), "Share WhoHas") }
+
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState())) {
         Row(Modifier.fillMaxWidth().padding(4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
@@ -264,7 +283,7 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                                 saved -> HolderText.NO_ONE_ELSE
                                 else -> "No one on WhoHas has this number yet"
                             }, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                            if (mine) LevelBlock(0)
+                            if (mine) LevelProgress(0)
                         } else {
                             Row(verticalAlignment = Alignment.Bottom) {
                                 Text(HolderText.grouped(total) + if (lowerBound) "+" else "", fontSize = 48.sp, fontWeight = FontWeight.Bold, lineHeight = 48.sp,
@@ -283,7 +302,11 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                                 Text(HolderText.youKnowCount(knownCount), style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold, color = if (knownCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            if (change != null) Chip(HolderText.today(change.delta), Icons.Filled.KeyboardArrowUp)
+                            if (mine) {
+                                // Your number: this week's rise and how far the next level is (23 Nov 2026).
+                                card?.let { state.changes.changes[it.ref] }?.delta?.takeIf { it > 0 }?.let { Chip(HolderText.thisWeek(it), Icons.Filled.KeyboardArrowUp) }
+                                LevelProgress(total)
+                            } else if (change != null) Chip(HolderText.today(change.delta), Icons.Filled.KeyboardArrowUp)
                         }
                     }
                     // Who you know: contacts first, then call log, each with Ask; then a count of the rest.
@@ -323,11 +346,46 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                     }
                 }
 
-                // Actions: Invite friends on your own number, Tell for a contact not on WhoHas; Truecaller and Call back.
+                // Your own number: what grows your count (23 Nov 2026), the people who joined with your
+                // link, the people you call who aren't on WhoHas, and what the next tag does.
+                if (mine) {
+                    val count = reach?.first ?: 0
+                    val tagNote = Levels.tagNote(total)
+                    if (joins.isNotEmpty() || count > 0 || tagNote != null) WhCard(padding = 0.dp) {
+                        Column {
+                            if (joins.isNotEmpty()) {
+                                GrowRow(
+                                    leading = { PeopleStack(joins.take(3).map { it.ref to (it.name ?: "?") }, ring = MaterialTheme.colorScheme.surface) },
+                                    title = LinkJoins.title(joins.map { it.name }),
+                                    line = LinkJoins.rowLine(joins.size, joins.count { it.hasYours }),
+                                )
+                            }
+                            if (count > 0) {
+                                if (joins.isNotEmpty()) HorizontalDivider(Modifier.padding(horizontal = 14.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                                GrowRow(
+                                    leading = { IconAvatar(Icons.Filled.Person, accent = true) },
+                                    title = LinkJoins.reach(count, reach?.second == true),
+                                    line = LinkJoins.REACH_LINE,
+                                    onClick = onInviteFriends,
+                                )
+                            }
+                            if (tagNote != null) {
+                                if (joins.isNotEmpty() || count > 0) HorizontalDivider(Modifier.padding(horizontal = 14.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                                val next = Levels.step(total)!!.next
+                                GrowRow(leading = { IconAvatar(Icons.Filled.Star, accent = true) }, title = "What ${next.label} shows", line = tagNote)
+                            }
+                        }
+                    }
+                }
+
+                // Actions: Share in group and Invite friends on your own number, Tell for a contact not on WhoHas; Truecaller and Call back.
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     val member = state.onWhoHas(e164, card)
                     when {
-                        mine -> PrimaryButton("Invite friends", onInviteFriends)
+                        mine -> {
+                            PrimaryButton("Share in group", shareGroup, icon = Icons.Filled.Share)
+                            OutlinedButton(onClick = onInviteFriends, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Invite friends") }
+                        }
                         saved && PhoneNumbers.isIndianMobile(e164) && !member -> {
                             val who = name.text
                             WhCard(Modifier, color = MaterialTheme.colorScheme.secondaryContainer, edge = false) {
@@ -347,8 +405,8 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                     if (!mine) CardButtons(e164, callBack = !saved && lastCall != null && lastCall.isIncoming)
                 }
 
-                // How popular it is, below the actions.
-                if (total > 0) {
+                // How popular it is, below the actions. Your own number has it in its count card.
+                if (total > 0 && !mine) {
                     SectionLabel(if (mine) "How popular your number is" else "How popular it is")
                     WhCard(padding = if (mine) 16.dp else 4.dp) {
                         if (mine) LevelBlock(total) else CompareBox(Levels.of(total, lowerBound), state.cards?.mine?.total ?: 0)

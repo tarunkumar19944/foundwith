@@ -104,7 +104,8 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Top bar | **WhoHas** · *Live · just now* (green dot) · **⤴ Share in group** (solid blue, on every Home screen) · Settings |
 | Offline | No internet · showing what we had at 9:40 pm |
 | Search box | Search a number or name |
-| Your number (22 Nov: fixed just above the tabs, the same on Call log, Contacts and Updates; a tap opens your own card) | 👤 **23** people have your number · **+1** (green, when it went up this week) · [Popular] (one line; no arrow, the whole bar opens your card) · at 0: No one on WhoHas has your number yet · [Not popular] |
+| Your number (22 Nov: fixed just above the tabs, the same on Call log, Contacts and Updates; a tap opens your own card) | 👤 **23** people have your number · **+1** (green, when it went up this week) · [Popular] (no arrow, the whole bar opens your card) · at 0: No one on WhoHas has your number yet · [Not popular] |
+| Next level, under it (Y, 23 Nov: built) | a thin blue line (how far to the next level) · **2 more → Popular** · **⤴ Share** (Share in group). At 23: 27 more → Highly popular. At Highly popular: no line. |
 | Your level (inside the number card) | **[Not popular]** Share WhoHas so people you know can find you. |
 | | **[Popular]** More people means more callers you can recognise. |
 | | **[Highly popular]** (tag only). No bar, no "N more people", no link and no pooling line in the card (Y, 22 Nov: they took too much room); "Share in group" is the top button. |
@@ -128,6 +129,7 @@ Every number from your contacts and calls that someone on WhoHas has, each once,
 | What moves a number up | More people have it · someone you know now has a caller's number · a contact joins WhoHas · a call from a number not in your contacts. (A call from one of your contacts is no news by itself.) |
 | **New** (since you last looked at Updates; light blue rows, time in blue and the dot) | [call symbol] +91 90080 11223 · Missed call · today, 10:42 am · **Now known to Kiran Sir** · 10:42 am |
 | | Priya Sharma · In your contacts · **Joined WhoHas · has your number** (green) · 9:05 am |
+| Joined with your link (23 Nov) | | Ravi Kumar · In your contacts · **Joined with your link · has your number** (green) · 1 more and you're Popular · **⤴ Share in group** (under New only). Someone not on your phone: a note on top, **Someone joined with your link** · 9 people have your number now · 1 more and you're Popular · Share in group (it counts in the red number on Updates). |
 | | Raju Plumber · In your contacts [Popular] · **2 more people have it · now 14** · 8:30 am |
 | **Earlier** (everything else, newest first) | [call symbol] +91 98765 43210 · Received · Mon, 6:15 pm · 4 min · **Known to Priya and 1 more** · Mon |
 | | Kiran Sir · In your contacts · **6 people have it** · You know Priya (no time: nothing changed lately) |
@@ -198,7 +200,9 @@ Order on screen (22 Nov 2026): who it is, with a copy icon beside the number →
 | No one | Found with no one yet | No one on WhoHas has this number yet |
 | While looking it up | (said "No one…" until the answer came) | ⟳ **Checking…** (a card opened from a call's notification shows the notification's count straight away, with no second lookup) |
 | Couldn't look it up | | **Couldn't check this number** · under the number: No internet. Connect and try again. / Today's searches are over. Try again tomorrow. (never "No one has it") |
-| Your own number | Found with … | **23 people have your number** · You know 6 of them · **Invite friends** · How popular your number is: [Popular] and its why line |
+| Your own number (23 Nov: what grows your count, built) | Found with … | **8 people have your number** · You know 2 of them · **+2 this week** · [Not popular] ━━━━━━░░ [Popular] · **2 more people and you're Popular** (at the top: Top level. 52 people have your number) |
+| What grows your count (a box under it; each row only when it applies) | | **Ravi and Asha joined with your link** · Both have your number: +2 (only what WhoHas shows; else Each one who has your number adds 1.) · **38 people you call aren't on WhoHas** › (opens Invite friends; with no call log: 38 of your contacts aren't on WhoHas) · They likely have your number. Each one who joins can add 1. · **What Popular shows** · At 10 people, the Popular tag shows beside your number for everyone who has it. |
+| Your own number, buttons | Invite friends | **⤴ Share in group** (blue) · **Invite friends** (outlined). No separate "How popular your number is" box any more. |
 | How popular it is (section title, under the buttons) | Many people have this number | A box: This number **[Highly popular]** · You **[Not popular]** · **More popular than your number. 2 more people and you catch up.** / **Same level as your number.** / **Your number is ahead of this one.** |
 | Today | Today: 3 more people · now a Popular number | **+3 today** |
 | Asking (not a contact) | Ask (per person) | No big button: a small **Ask** on each person in the card (WhatsApp, else SMS). |
@@ -256,6 +260,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 | Repeat missed calls | **2 missed calls: +91 98450 77120** |
 | A contact whose count went up | **Missed call: Raju Plumber** (or Call from / You called) · 3 more people have Raju Plumber's number · now 12 |
 | Friend joined | **Priya joined WhoHas** · Has your number |
+| Joined with your link (23 Nov, on the Your level channel, silent) | **Ravi Kumar joined with your link** (or Someone joined with your link) · Has your number. 9 people have it now: 1 more and you're Popular. (when WhoHas doesn't show that they have it: 9 people have your number. 1 more and you're Popular.) · Share in group. Not told again as "joined WhoHas". |
 | A contact's count went up (no call) | **Raju Plumber** · 2 more people have this number · now 14 |
 | A caller now known to someone you know | **+91 90080 11223** · Now known to Kiran Sir |
 | Your number went up | **1 more person has your number** · Now 23 |
@@ -274,7 +279,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 | | | **Other calls** · Received and dialled calls, quietly, when something is new. (These two are hidden in the contacts-only build.) |
 | | | **Changes to your numbers** · Someone new has your number, or a count went up. |
 | | | **Friends who join** · Someone in your contacts joins WhoHas. |
-| | | **Your level** · When you reach Popular or Highly popular, or are close. |
+| | | **Your level** · When you reach Popular or Highly popular, are close, or someone joins with your link. |
 | | Silent from 9 pm to 9 am. | No sound from 9 pm to 9 am. |
 | | Not getting them after calls? | Not getting notifications after calls? |
 | Name page | Your name on Found With · People who haven't saved your number see this name when they look it up. · Saved. | **Your name on WhoHas** · People who don't have you in their contacts see this name. · Name updated |
@@ -307,7 +312,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 
 | Where | Now | New |
 |---|---|---|
-| Title | Invite friends · When a friend joins, you see if they have your number. | **Invite friends** · Adds the most value: the more of your group join, the more callers you can recognise. · **Share in group** |
+| Title | Invite friends · When a friend joins, you see if they have your number. | **Invite friends** · a blue box: **38** people you call aren't on WhoHas · They likely have your number. Each one who joins can add 1 to your 8. · **Ravi and Asha already joined with your link.** (23 Nov) · Adds the most value: the more of your group join, the more callers you can recognise. · **Share in group** |
 | Button | Share your link | **Share in group** |
 | List | People you call most · Invite | **Let them know who has their number** · These people you call most aren't on WhoHas yet. Let them know. · Their number is with 7 people on WhoHas · **Tell** (the people you call most in the last 60 days, at least 3 calls, mobiles only, not on WhoHas; **Told** leaves the list for 30 days) |
 

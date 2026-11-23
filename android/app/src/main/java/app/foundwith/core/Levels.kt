@@ -45,6 +45,27 @@ object Levels {
     /** How many more people reach the next level; null at the top. */
     fun left(total: Int): Int? = target(of(total))?.let { it - total }
 
+    /** How far the next level is (23 Nov 2026): people left, the next level, and how much of the way is done (0 to 1). */
+    data class Step(val left: Int, val next: Level, val done: Float)
+
+    /** Null at the top level. Counts are real; [done] only draws the line under your number. */
+    fun step(total: Int): Step? {
+        val level = of(total)
+        val next = next(level) ?: return null
+        val to = target(level) ?: return null
+        val from = if (level == Level.NOT_POPULAR) 0 else POPULAR_FROM
+        val done = ((total.coerceAtLeast(0) - from).toFloat() / (to - from)).coerceIn(0f, 1f)
+        return Step(to - total.coerceAtLeast(0), next, done)
+    }
+
+    /** Beside the line in the number bar: "2 more → Popular"; null at the top. */
+    fun barLine(total: Int): String? = step(total)?.let { "${HolderText.grouped(it.left)} more → ${it.next.label}" }
+
+    /** On your own card, what the next level's tag does: "At 10 people, the Popular tag shows beside your number for everyone who has it." */
+    fun tagNote(total: Int): String? = step(total)?.let { s ->
+        "At ${HolderText.grouped(target(of(total))!!)} people, the ${s.next.label} tag shows beside your number for everyone who has it."
+    }
+
     /** "10 more people and you’re Popular", "1 more person and you’re Popular"; null at the top. */
     fun progress(total: Int): String? {
         val left = left(total) ?: return null

@@ -40,6 +40,8 @@ private data class ChangeFile(
     val joined: Map<String, Long> = emptyMap(),
     val known: Map<String, List<String>>? = null,
     val gains: List<GainRow> = emptyList(),
+    @SerialName("link_refs") val linkRefs: List<String>? = null,
+    val linked: Map<String, Long> = emptyMap(),
 )
 
 @Serializable
@@ -303,6 +305,8 @@ class LocalStore(context: Context) {
             file.joined,
             file.known?.mapValues { it.value.toSet() },
             file.gains.associate { it.ref to KnownGain(it.ref, it.ids, it.at) },
+            file.linkRefs?.toSet(),
+            file.linked,
         )
     }
 
@@ -314,6 +318,8 @@ class LocalStore(context: Context) {
             value.joined,
             value.known?.mapValues { it.value.toList() },
             value.gains.values.map { GainRow(it.ref, it.ids, it.at) },
+            value.linkRefs?.toList(),
+            value.linked,
         ))
 
     // ---------------------------------------------------------------- after calls

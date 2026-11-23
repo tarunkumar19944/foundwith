@@ -258,6 +258,20 @@ class PhoneJourneyTest {
     }
 
     @Test
+    fun step06b_yourOwnCardShowsHowToGrowYourCount() {
+        // 23 Nov 2026: the bar above the tabs opens your own card, with how far the next level is,
+        // what grows your count, Share in group and Invite friends.
+        assertTrue(onHome(30_000))
+        compose.onAllNodes(hasText("your number", substring = true) and hasClickAction()).onFirst().performClick()
+        compose.waitForIdle()
+        waitForAny(listOf("you’re Popular", "you’re Highly popular", "Top level"), 20_000)
+        waitFor("Invite friends")
+        shot("14b-your-card")
+        back()
+        assertTrue(onHome(10_000))
+    }
+
+    @Test
     fun step07_settingsPagesOpen() {
         assertTrue(onHome(30_000))
         compose.onNode(hasContentDescription("Settings")).performClick()

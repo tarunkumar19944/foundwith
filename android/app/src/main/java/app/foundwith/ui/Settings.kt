@@ -181,7 +181,7 @@ fun NotificationsScreen(graph: AppGraph, onBack: () -> Unit, onFix: () -> Unit) 
         ToggleRow("Friends who join", "Someone in your contacts joins WhoHas. Pops up, no sound.", joined) {
             joined = it; graph.store.notifyJoined = it
         }
-        ToggleRow("Your level", "When you reach Popular or Highly popular, or are close.", level) {
+        ToggleRow("Your level", "When you reach Popular or Highly popular, are close, or someone joins with your link.", level) {
             level = it; graph.store.notifyLevel = it
         }
         Text("No sound from 9 pm to 9 am.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
