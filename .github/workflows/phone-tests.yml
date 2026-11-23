@@ -26,6 +26,7 @@ on:
 permissions:
   contents: write   # publishes screenshots and logs as the test-screens release
   id-token: write
+  actions: read     # sees whether another phone-test run is going, before resetting the test account
 
 concurrency:
   # A push replaces the push run before it. Runs started by hand or by the schedule never cancel
@@ -93,7 +94,16 @@ jobs:
           -Pfoundwith.versionCode=${{ github.run_number }}
 
       - name: The caller the tests expect is on WhoHas
-        run: cd tests/live && python3 phone_fixture.py "$RUNNER_TEMP/live.json"
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Runs go side by side: the phones' shared account starts afresh only when no other
+          # phone-test run is using it, or that run's phones would fail (23 Nov 2026).
+          others=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/phone-tests.yml/runs?status=in_progress" \
+            -q "[.workflow_runs[] | select(.id != $GITHUB_RUN_ID)] | length" 2>/dev/null || echo 0)
+          echo "Other phone-test runs going: $others"
+          keep=""; if [ "${others:-0}" != "0" ]; then keep="--keep-phones-account"; fi
+          cd tests/live && python3 phone_fixture.py "$RUNNER_TEMP/live.json" $keep
 
       - name: Which devices
         id: which

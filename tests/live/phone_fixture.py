@@ -5,7 +5,10 @@ call is told only when someone on WhoHas has the number); and the phones' own ac
 +91 90000 00010, starts afresh, so nothing an earlier run saved is still on the server. Safe to run
 any number of times.
 
-    python3 tests/live/phone_fixture.py config.json
+    python3 tests/live/phone_fixture.py config.json [--keep-phones-account]
+
+--keep-phones-account: another phone-test run is using the phones' account right now (runs go side
+by side since 23 Nov 2026), so it is left as it is; deleting it would fail that run's phones.
 """
 
 from __future__ import annotations
@@ -50,6 +53,9 @@ def main() -> int:
         raise Failed(f"caller's contacts: {status} {body}")
     print(f"Caller ready: {me.get('name')} (taking part: {me.get('sync', {}).get('enabled')}), has {UNKNOWN_CALLER}")
 
+    if "--keep-phones-account" in sys.argv[2:]:
+        print("Another phone-test run is using the phones' account: left as it is")
+        return 0
     token = firebase_sign_in(config["web_api_key"], PHONES, config["test_numbers"][PHONES])
     status, _ = http.call("GET", "/v1/me", token)
     if status == 200:

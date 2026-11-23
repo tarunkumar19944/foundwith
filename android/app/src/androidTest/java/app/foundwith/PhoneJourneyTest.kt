@@ -262,7 +262,15 @@ class PhoneJourneyTest {
         // 23 Nov 2026: the bar above the tabs opens your own card, with how far the next level is,
         // what grows your count, Share in group and Invite friends.
         assertTrue(onHome(30_000))
-        compose.onAllNodes(hasText("your number", substring = true) and hasClickAction()).onFirst().performClick()
+        // The bar shows once Home has loaded (Settings is there a moment earlier).
+        val bar = hasText("your number", substring = true) and hasClickAction()
+        try {
+            compose.waitUntil(30_000) { has(bar) }
+        } catch (e: ComposeTimeoutException) {
+            shot("failed-waiting")
+            throw AssertionError("The number bar didn't appear on Home in 30s")
+        }
+        compose.onAllNodes(bar).onFirst().performClick()
         compose.waitForIdle()
         waitForAny(listOf("you’re Popular", "you’re Highly popular", "Top level"), 20_000)
         waitFor("Invite friends")
