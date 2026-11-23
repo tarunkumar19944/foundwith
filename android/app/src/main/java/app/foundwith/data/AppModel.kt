@@ -300,8 +300,15 @@ class AppModel(private val graph: AppGraph) {
 
     private fun saveProfile(profile: Profile) {
         store.profileJson = api.json.encodeToString(profile)
+        // Agreement lives with the account on the server: someone who agreed on another phone, or
+        // before reinstalling, is still agreed here (and someone who turned sync off is not).
+        store.syncEnabledHint = agreed(profile)
         _state.update { it.copy(profile = profile) }
     }
+
+    /** The person agreed to the Allow card's notice, in its current version, and has sync on. */
+    private fun agreed(profile: Profile?): Boolean =
+        profile != null && profile.sync.enabled && profile.sync.consentVersion == BuildConfig.CONSENT_VERSION
 
     /** Loads up to [MAX_CACHED_CARDS] cards, keeps them, and notes which counts went up. */
     private suspend fun fetchCards(first: Boolean = false): CachedCards {
@@ -432,7 +439,7 @@ class AppModel(private val graph: AppGraph) {
 
     private fun setupFrom(profile: Profile?, cards: CachedCards?, current: Setup? = null): Setup = when {
         current == Setup.FINDING -> Setup.FINDING
-        profile?.sync?.enabled == true && (graph.book.hasContactsPermission() || graph.book.hasCallLogPermission()) -> Setup.READY
+        agreed(profile) && (graph.book.hasContactsPermission() || graph.book.hasCallLogPermission()) -> Setup.READY
         cards?.takingPart == true && store.syncEnabledHint -> Setup.READY
         else -> Setup.NOT_ALLOWED
     }
