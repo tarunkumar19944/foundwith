@@ -97,7 +97,7 @@ class NotificationsTest {
         assertEquals(3, all.size)
         assertTrue(all.all { it.channelId == "number_changes" })
         assertEquals(listOf("Raju Plumber", "+91 90080 11223", "1 more person has your number").sorted(),
-            all.map { it.extras.getString("android.title") }.sorted())
+            all.mapNotNull { it.extras.getString("android.title") }.sorted())
         assertTrue(all.any { it.extras.getString("android.text") == "1 more person has this number · now 15" })
         // Opening Raju's card takes his notification away.
         notifier.cancelNumber("+919845011111")
