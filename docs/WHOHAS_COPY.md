@@ -134,7 +134,9 @@ Every number from your contacts and calls that someone on WhoHas has, each once,
 | Order of numbers with no change lately | People you know have it first, then the most people |
 | Time on the right | When the latest change happened: 10:42 am today, Yesterday, Fri, 3 Nov |
 | First open | Nothing is marked New the first time; the list is still newest first |
-| Updates badge | The number of rows under New |
+| Updates badge | The number of rows under New (also as a red count beside **New**, and on the app icon through the notifications) |
+| Marks in Call log and Contacts (23 Nov) | The same changed numbers are marked there too: light blue, the dot, and what changed (in Call log on the number's latest call). Call log stays by date, Contacts A to Z. |
+| Opening a marked number | Its card shows what changed on top in light blue (**2 more people have it · now 14 · 4:30 pm**; **New ·** beside someone you know who now has it). After that the change is seen: the mark goes from all three tabs, the red count goes down by one, and its notification goes. Leaving Updates clears all the marks. |
 | Nothing found yet | **None of your numbers are with people on WhoHas yet** · When people you know join, every number in your contacts and calls that they have shows here, with who has it. · **Share in group** |
 | No counts line | Never "18 numbers are with people on WhoHas" (Y, 17 Nov) |
 
@@ -242,6 +244,8 @@ Opened in WhatsApp with the text typed in; the person sends it themselves.
 
 **As fast as possible, with no extra permission (Y, 23 Nov).** While WhoHas is running it watches the call log itself and checks a call about half a second after it ends; otherwise Android wakes it when the call log changes (asked for within 2 seconds). Only the caller's contact is looked up, not the whole address book. Every call notification pops up on the screen; only a missed call from a number not in your contacts makes a sound. Phones report, by brand only, how many calls were told within 10 seconds and within a minute.
 
+**A notification for every change (Y, 23 Nov).** Each change gets its own notification, popping up without sound: a contact joined, more people have a number, someone you know now has a caller's number, more people have your number. A later change to the same number replaces its notification. Four or more stack under WhoHas (Android does this). Tapping one opens that number's card. Nothing pops up while WhoHas is open; the change goes into Updates with the count.
+
 Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when someone on WhoHas has the number and something is new or changed. A number nobody has stays silent. A repeat call from the same number is told again only when more people have it. Only a missed call from a number not in your contacts makes a sound, and never from 9 pm to 9 am. A dialled call is told quietly after it ends. Changes with no call are merged into one notification. Nothing is shown while WhoHas is open; Updates shows it. There is no evening summary.
 
 | Kind | Title · text · buttons |
@@ -252,11 +256,13 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 | Repeat missed calls | **2 missed calls: +91 98450 77120** |
 | A contact whose count went up | **Missed call: Raju Plumber** (or Call from / You called) · 3 more people have Raju Plumber's number · now 12 |
 | Friend joined | **Priya joined WhoHas** · Has your number |
-| Changes with no call (one) | the change itself, e.g. **1 more person has your number** |
-| Changes with no call (several) | **2 changes on WhoHas** · 1 more person has your number. +91 98450 77120 is now known to Meena. · Open Updates |
+| A contact's count went up (no call) | **Raju Plumber** · 2 more people have this number · now 14 |
+| A caller now known to someone you know | **+91 90080 11223** · Now known to Kiran Sir |
+| Your number went up | **1 more person has your number** · Now 23 |
+| Several changes | one notification each; four or more stack under **WhoHas · 5 changes** |
 | Reached a level | **You're Popular now** · 10 people have your number. 40 more and you're Highly popular. · Share in group |
 | Close to a level (at most once a week) | **2 more people and you're Popular** · 8 people have your number. Share WhoHas in a group. · Share in group |
-| Channels (Android settings) | Calls from unknown numbers (pops up, with sound) · Other calls (no sound; pops up on the screen) · Changes to your numbers · Friends who join · Your level |
+| Channels (Android settings) | Calls from unknown numbers (pops up, with sound) · Other calls (pops up, no sound) · Changes to your numbers (pops up, no sound) · Friends who join (pops up, no sound) · Your level |
 
 ## Settings
 
