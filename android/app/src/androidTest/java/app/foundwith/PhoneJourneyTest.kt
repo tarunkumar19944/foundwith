@@ -422,6 +422,18 @@ class PhoneJourneyTest {
                 if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
             }
             for (p in perms) runCatching { ui.grantRuntimePermission(PACKAGE, p) }
+            // Xiaomi (MIUI / HyperOS) refuses to let the test open the app's screen: the test starts it
+            // from the app's own process, which counts as a start from the background (log: "MIUILOG-
+            // Permission Denied Activity"), and the test then waits until Test Lab's time runs out. A
+            // person opening the app from the home screen or a notification isn't affected. Xiaomi's own
+            // app-op 10021 ("open new windows while running in the background") allows it.
+            if (Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) {
+                runCatching {
+                    android.os.ParcelFileDescriptor.AutoCloseInputStream(
+                        ui.executeShellCommand("appops set $PACKAGE 10021 allow")
+                    ).use { it.readBytes() }
+                }
+            }
             val context = instrumentation.targetContext
             runCatching { addContact(context, "FW Test Plumber", "+91 90000 00070") }
             runCatching { addContact(context, "FW Test Clinic", "090000 00071") }
