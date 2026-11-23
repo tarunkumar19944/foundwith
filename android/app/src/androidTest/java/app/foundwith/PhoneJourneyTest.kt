@@ -1,5 +1,10 @@
 package app.foundwith
 
+import kotlinx.coroutines.runBlocking
+import java.net.URL
+import java.net.HttpURLConnection
+import org.json.JSONArray
+import org.json.JSONObject
 import android.service.notification.StatusBarNotification
 
 import android.app.NotificationManager
@@ -284,6 +289,131 @@ class PhoneJourneyTest {
         shot("14b-your-card")
         back()
         assertTrue(onHome(10_000))
+    }
+
+    /**
+     * Someone joins with this phone's invite link (23 Nov 2026), end to end on the live server.
+     * Only when asked (fwJoiner, fwJoinerCode and fwKey given): a number can join through a link
+     * once, ever, so each joiner number works once. What Play does at install (hand the app the
+     * link's code) isn't covered; the joiner redeems the code itself, as the app does next.
+     */
+    @Test
+    fun step06c_someoneJoinsWithYourLink() {
+        val joiner = args.getString("fwJoiner")
+        val joinerCode = args.getString("fwJoinerCode")
+        val key = args.getString("fwKey")
+        assumeTrue("Runs only when asked: a number joins through a link once, ever",
+            !joiner.isNullOrBlank() && !joinerCode.isNullOrBlank() && !key.isNullOrBlank())
+        assertTrue(onHome(30_000))
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val graph = (context.applicationContext as FoundWithApp).graph
+        // The joiner is in this phone's contacts, so the join shows by name; the phone sends its
+        // contacts and takes the counts as they are now (the joiner isn't on WhoHas yet).
+        addContact(context, "FW Test Joiner", joiner!!)
+        runBlocking {
+            graph.sync.fullSync()
+            graph.model.reloadPhone()
+            graph.model.refresh()
+        }
+        val code = runBlocking { graph.api.circle().invite.code }
+        assertTrue("This phone has no invite code", code.isNotBlank())
+
+        // WhoHas in the background, as when a friend joins later: then it tells with a notification.
+        compose.activityRule.scenario.moveToState(Lifecycle.State.CREATED)
+        var token = firebaseSignIn(key!!, joiner, joinerCode!!)
+        if (api(token, "GET", "/v1/me").first == 200) {
+            api(token, "DELETE", "/v1/me")
+            token = firebaseSignIn(key, joiner, joinerCode)   // a sign-in newer than the deletion
+        }
+        val (made, me) = api(token, "POST", "/v1/me", JSONObject().put("display_name", "Test Joiner"))
+        assertTrue("The joiner's account: $made $me", made == 200)
+        val consent = me.optJSONObject("sync")?.optString("current_consent_version")
+        api(token, "PUT", "/v1/me/sync", JSONObject().put("enabled", true).put("consent_version", consent))
+        val phone = graph.model.state.value.profile?.phone ?: "+91" + (args.getString("fwNumber") ?: "9000000010")
+        api(token, "PUT", "/v1/me/numbers", JSONObject().put("contacts", JSONArray().put(phone)).put("call_log", JSONArray()))
+        val (redeemed, body) = api(token, "POST", "/v1/me/invite/redeem", JSONObject().put("code", code))
+        if (redeemed == 409 && body.optJSONObject("error")?.optJSONObject("details")?.optString("reason") == "already_used") {
+            api(token, "DELETE", "/v1/me")
+            assumeTrue("$joiner has already joined through a link once (that counts once, ever)", false)
+        }
+        assertTrue("Joining with the link: $redeemed $body", redeemed == 200)
+
+        try {
+            // The server pushes the news; the app also checks now, as it does on a push.
+            runBlocking { graph.model.refresh() }
+            val manager = context.getSystemService(NotificationManager::class.java)
+            fun note() = manager.activeNotifications.firstOrNull {
+                it.notification.extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.endsWith("joined with your link") == true
+            }
+            val until = System.currentTimeMillis() + 60_000
+            while (note() == null && System.currentTimeMillis() < until) Thread.sleep(1_000)
+            val n = note() ?: throw AssertionError("No \"joined with your link\" notification. Posted: " +
+                manager.activeNotifications.map { it.notification.extras.getCharSequence(Notification.EXTRA_TITLE) })
+            val title = n.notification.extras.getCharSequence(Notification.EXTRA_TITLE).toString()
+            val text = n.notification.extras.getCharSequence(Notification.EXTRA_TEXT).toString()
+            assertEquals("FW Test Joiner joined with your link", title)
+            assertTrue("The note says your count: $text", text.contains("your number") || text.contains("have it now"))
+            assertEquals(listOf("Share in group"), n.notification.actions.orEmpty().map { it.title.toString() })
+            device.openNotification()
+            device.waitForIdle(2_000)
+            shotDevice("14c-link-join-notification")
+            closeShade()
+
+            // Back in the app: your own card names the join, and so does Updates.
+            compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+            assertTrue(onHome(30_000))
+            compose.waitUntil(30_000) { has(hasText("your number", substring = true) and hasClickAction()) }
+            compose.onAllNodes(hasText("your number", substring = true) and hasClickAction()).onFirst().performClick()
+            waitFor("joined with your link", 30_000)
+            compose.waitForIdle(); device.waitForIdle(2_000); Thread.sleep(800)
+            assertAppOnScreen()
+            shot("14d-your-card-link-join")
+            back()
+            assertTrue(onHome(30_000))
+            tap("Updates")
+            try {
+                waitFor("Joined with your link", 30_000)
+            } finally {
+                compose.waitForIdle(); device.waitForIdle(2_000); Thread.sleep(800)
+                shot("14e-updates-link-join")
+            }
+            assertAppOnScreen()
+        } finally {
+            // The joiner's account goes; the join stays recorded (once per number, ever).
+            runCatching { api(token, "DELETE", "/v1/me") }
+            compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        }
+    }
+
+    /** Identity Platform's REST sign-in for a test number (no SMS, the fixed code), as the live test does. */
+    private fun firebaseSignIn(key: String, phone: String, code: String): String {
+        val api = "https://identitytoolkit.googleapis.com/v1/accounts"
+        val (s1, sent) = http("POST", "$api:sendVerificationCode?key=$key", null, JSONObject().put("phoneNumber", phone))
+        assertTrue("sendVerificationCode: $s1 $sent", s1 == 200)
+        val (s2, signed) = http("POST", "$api:signInWithPhoneNumber?key=$key", null,
+            JSONObject().put("sessionInfo", sent.getString("sessionInfo")).put("code", code))
+        assertTrue("signInWithPhoneNumber: $s2 $signed", s2 == 200)
+        return signed.getString("idToken")
+    }
+
+    /** A call to the WhoHas server as the joiner. */
+    private fun api(token: String, method: String, path: String, body: JSONObject? = null) =
+        http(method, BuildConfig.API_BASE_URL.trimEnd('/') + path, token, body)
+
+    private fun http(method: String, url: String, token: String?, body: JSONObject?): Pair<Int, JSONObject> {
+        val c = URL(url).openConnection() as HttpURLConnection
+        c.requestMethod = method
+        c.connectTimeout = 20_000; c.readTimeout = 30_000
+        if (token != null) c.setRequestProperty("Authorization", "Bearer $token")
+        if (body != null) {
+            c.doOutput = true
+            c.setRequestProperty("Content-Type", "application/json")
+            c.outputStream.use { it.write(body.toString().toByteArray()) }
+        }
+        val status = c.responseCode
+        val text = (if (status < 400) c.inputStream else c.errorStream)?.bufferedReader()?.use { it.readText() }.orEmpty()
+        c.disconnect()
+        return status to runCatching { JSONObject(text) }.getOrDefault(JSONObject())
     }
 
     @Test

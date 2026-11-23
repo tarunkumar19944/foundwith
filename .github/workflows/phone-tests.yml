@@ -22,6 +22,9 @@ on:
       phone_models:
         description: "Only these real phones (space-separated model=…,version=… entries; empty for all)"
         default: ""
+      joiner:
+        description: "A test number that joins with the phones' invite link (once per number, ever; use one device)"
+        default: ""
 
 permissions:
   contents: write   # publishes screenshots and logs as the test-screens release
@@ -75,6 +78,8 @@ jobs:
       - uses: google-github-actions/setup-gcloud@v2
 
       - name: Config, signing key and test account
+        env:
+          JOINER: ${{ github.event.inputs.joiner }}
         run: |
           set -euo pipefail
           umask 077
@@ -84,6 +89,13 @@ jobs:
           code=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['test_numbers']['+919000000010'])" "$RUNNER_TEMP/live.json")
           echo "::add-mask::$code"
           echo "FW_CODE=$code" >> "$GITHUB_ENV"
+          # Someone joins with the phones' invite link (only when asked: a number joins through a link once, ever).
+          if [ -n "$JOINER" ]; then
+            extra=$(python3 -c "import json,sys; c=json.load(open(sys.argv[1])); print(f\",fwJoiner={sys.argv[2]},fwJoinerCode={c['test_numbers'][sys.argv[2]]},fwKey={c['web_api_key']}\")" "$RUNNER_TEMP/live.json" "$JOINER")
+            echo "::add-mask::$(echo "$extra" | sed 's/.*fwJoinerCode=\([^,]*\).*/\1/')"
+            echo "::add-mask::$(echo "$extra" | sed 's/.*fwKey=//')"
+            echo "FW_EXTRA=$extra" >> "$GITHUB_ENV"
+          fi
 
       - name: Build the app and its phone tests
         working-directory: android
@@ -136,7 +148,7 @@ jobs:
               --app "$apks/$flavour/debug/app-$flavour-debug.apk" \
               --test "$apks/androidTest/$flavour/debug/app-$flavour-debug-androidTest.apk" \
               "${args[@]}" \
-              --environment-variables "fwCode=$FW_CODE,fwNumber=9000000010,fwCaller=+919000000077" \
+              --environment-variables "fwCode=$FW_CODE,fwNumber=9000000010,fwCaller=+919000000077${FW_EXTRA:-}" \
               --results-bucket=$PROJECT-test-lab --results-dir="run-$GITHUB_RUN_ID-$label" \
               --directories-to-pull=/sdcard/Android/data/app.whohas/files \
               --timeout=15m --num-flaky-test-attempts=1 2> "$RUNNER_TEMP/$label.txt"
