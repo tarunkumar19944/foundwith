@@ -24,10 +24,10 @@ class SnapshotDiffTest {
     @Test
     fun deletingOneOfTwoCopiesOfANumberRemovesNothing() {
         // Suresh is saved twice, in two formats. Deleting one copy must keep him on the server.
-        val before = Snapshot(contacts = setOf("98451 72046", "+91 98451 72046", "121"))
+        val before = Snapshot(contacts = setOf("98451 72046", "+91 98451 72046", "*121#"))
         val oneLeft = Snapshot(contacts = setOf("+91 98451 72046"))
         val changes = SnapshotDiff.diff(before, oneLeft)
-        assertTrue(changes.isEmpty)                                   // "121" was never stored either
+        assertTrue(changes.isEmpty)                                   // "*121#" was never stored either
         assertEquals(oneLeft, SnapshotDiff.afterChanges(before, oneLeft, changes, emptySet(), own))
 
         // Deleting the last copy does send it.
@@ -48,10 +48,10 @@ class SnapshotDiffTest {
 
     @Test
     fun deferredAndOptedOutNumbersAreOfferedAgain() {
-        // The server stored the plumber, deferred the clinic (allowance used up), and skipped "121".
-        val sent = listOf("98451 72046", "99860 31412", "121", "+91 98450 31207")
+        // The server stored the plumber, deferred the clinic (allowance used up), and skipped "*121#".
+        val sent = listOf("98451 72046", "99860 31412", "*121#", "+91 98450 31207")
         val accepted = SnapshotDiff.accepted(sent, storedE164 = setOf("+919845172046"), ownE164 = own)
-        assertEquals(setOf("98451 72046", "121", "+91 98450 31207"), accepted)
+        assertEquals(setOf("98451 72046", "*121#", "+91 98450 31207"), accepted)
     }
 
     @Test
