@@ -355,7 +355,7 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                         Column {
                             if (joins.isNotEmpty()) {
                                 GrowRow(
-                                    leading = { PeopleStack(joins.take(3).map { it.ref to (it.name ?: "?") }, ring = MaterialTheme.colorScheme.surface) },
+                                    leading = { JoinFaces(joins) },
                                     title = LinkJoins.title(joins.map { it.name }),
                                     line = LinkJoins.rowLine(joins.size, joins.count { it.hasYours }),
                                 )

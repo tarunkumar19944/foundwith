@@ -829,6 +829,14 @@ fun LevelProgress(total: Int) {
     }
 }
 
+/** The faces of people who joined with your link that this phone knows; a plain person when it knows none. */
+@Composable
+fun JoinFaces(joins: List<LinkJoin>) {
+    val known = joins.filter { it.name != null }.take(2)
+    if (known.isEmpty()) IconAvatar(Icons.Filled.Person, accent = true)
+    else PeopleStack(known.map { it.ref to it.name!! }, ring = MaterialTheme.colorScheme.surface)
+}
+
 /** A row on your own card's "what grows your count" box: a picture, a bold line, a grey line. */
 @Composable
 fun GrowRow(leading: @Composable () -> Unit, title: String, line: String, onClick: (() -> Unit)? = null) {
@@ -839,7 +847,7 @@ fun GrowRow(leading: @Composable () -> Unit, title: String, line: String, onClic
             .then(if (onClick != null) Modifier.clickable(role = androidx.compose.ui.semantics.Role.Button, onClick = onClick) else Modifier)
             .heightIn(min = 56.dp).padding(horizontal = 14.dp, vertical = 10.dp),
     ) {
-        Box(Modifier.widthIn(min = 40.dp), contentAlignment = Alignment.Center) { leading() }
+        Box(Modifier.width(52.dp), contentAlignment = Alignment.Center) { leading() }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
             Text(line, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

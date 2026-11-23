@@ -9,6 +9,7 @@ import app.foundwith.data.Circle
 import app.foundwith.core.Levels
 import app.foundwith.core.LinkJoins
 import app.foundwith.ui.PeopleStack
+import app.foundwith.ui.JoinFaces
 import app.foundwith.ui.IconAvatar
 import app.foundwith.ui.linkJoins
 import app.foundwith.ui.LinkJoinNote
@@ -247,7 +248,7 @@ class ScreensTest {
             WhCard { LevelProgress(9) }
             WhCard(padding = 0.dp) {
                 Column {
-                    GrowRow(leading = { PeopleStack(joins.map { it.ref to (it.name ?: "?") }, ring = MaterialTheme.colorScheme.surface) },
+                    GrowRow(leading = { JoinFaces(joins) },
                         title = LinkJoins.title(joins.map { it.name }), line = LinkJoins.rowLine(joins.size, joins.count { it.hasYours }))
                     GrowRow(leading = { IconAvatar(Icons.Filled.Person, accent = true) }, title = LinkJoins.reach(38, true),
                         line = LinkJoins.REACH_LINE, onClick = {})
