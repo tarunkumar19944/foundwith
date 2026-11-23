@@ -1,5 +1,8 @@
 package app.foundwith.device
 
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBar
 import org.junit.Assert.assertEquals
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
@@ -162,13 +165,13 @@ class ScreensTest {
             for (c in state.contacts) ContactRow(state, c, c.e164?.let { marks[it] }) {}
             SectionLabel("Call log")
             CallRow(state, state.calls[0], marks["+919008011223"]) {}
-            androidx.compose.material3.NavigationBar {
-                androidx.compose.material3.NavigationBarItem(selected = false, onClick = {}, label = { Text("Call log") },
-                    icon = { TabBadge(inCalls) { androidx.compose.material3.Icon(Icons.Filled.Call, null) } })
-                androidx.compose.material3.NavigationBarItem(selected = false, onClick = {}, label = { Text("Contacts") },
-                    icon = { TabBadge(inContacts) { androidx.compose.material3.Icon(Icons.Filled.Person, null) } })
-                androidx.compose.material3.NavigationBarItem(selected = true, onClick = {}, label = { Text("Updates") },
-                    icon = { TabBadge(news.size) { androidx.compose.material3.Icon(Icons.Filled.Notifications, null) } })
+            NavigationBar {
+                NavigationBarItem(selected = false, onClick = {}, label = { Text("Call log") },
+                    icon = { TabBadge(inCalls) { Icon(Icons.Filled.Call, null) } })
+                NavigationBarItem(selected = false, onClick = {}, label = { Text("Contacts") },
+                    icon = { TabBadge(inContacts) { Icon(Icons.Filled.Person, null) } })
+                NavigationBarItem(selected = true, onClick = {}, label = { Text("Updates") },
+                    icon = { TabBadge(news.size) { Icon(Icons.Filled.Notifications, null) } })
             }
         }
         compose.onAllNodesWithText("2 more people have this number · now 14").assertCountEquals(2)   // Updates and Contacts
