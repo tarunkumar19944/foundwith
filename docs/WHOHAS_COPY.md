@@ -116,20 +116,25 @@ Font: **Atkinson Hyperlegible Next** (made so 1, l and I, and 0 and O, never loo
 | Notifications off | Notifications are off. You won't know who called. · Turn on |
 | Late calls | Your phone stopped WhoHas. Last 3 calls weren't checked. · Fix |
 | Tabs | **Call log · Contacts · Updates** (Y, 22 Nov). The app opens on Call log (contacts-only build: **Contacts · Updates**, opens on Contacts). Back from another tab goes to Call log. |
-| Updates badge | A red count on the Updates tab: new things since you last looked at Updates (99+ above 99). Opening Updates clears it; the new ones keep their blue dot for that visit. "Open Updates" and the level notifications open Updates. |
+| Updates badge | A red count on the Updates tab: numbers that changed since you last looked at Updates (99+ above 99). Opening Updates clears it; those rows stay under New, light blue, for that visit. "Open Updates" and the level notifications open Updates. |
 | Scrolling (22 Nov) | The WhoHas name and Share in group scroll away; the **search box stays pinned at the top** on every tab. Each tab keeps its own place. Tapping the tab you're on jumps to its top. |
-| See all | Opens Contacts or Call log at the top of the list, with **←** beside the search (Back to Updates, where you left it). Android's back does the same. |
 
-### Updates: everything found, what changed on top
+### Updates: one list, latest change on top (Y, 23 Nov)
+
+Every number from your contacts and calls that someone on WhoHas has, each once, in one list. The number that changed most recently is on top, so nobody has to look through Call log and Contacts for what's new. No "From your calls" or "Your contacts" sections and no See all: the whole list scrolls.
 
 | Where | New |
 |---|---|
-| **New** (only what changed since you last looked, blue dot) | +91 90080 11223 · Missed call · today, 10:42 am · **Now known to Kiran Sir** |
-| | Priya Sharma · In your contacts · **Joined WhoHas · has your number** (green) |
-| | Raju Plumber · In your contacts · **2 more people have this number · now 14** |
-| **From your calls** (not in your contacts, someone on WhoHas has it; people you know first, then the latest call) | [call symbol] +91 98765 43210 · Received · yesterday, 6:15 pm · 4 min · **Known to Priya and 1 more** |
-| **Your contacts** (someone on WhoHas has it; people you know first, then the most people) | Raju Plumber · **12 people have it · You know Priya and 2 more** |
-| Each section | First 5, then **See all** (opens Contacts or Call log) |
+| What moves a number up | More people have it · someone you know now has a caller's number · a contact joins WhoHas · a call from a number not in your contacts. (A call from one of your contacts is no news by itself.) |
+| **New** (since you last looked at Updates; light blue rows, time in blue and the dot) | [call symbol] +91 90080 11223 · Missed call · today, 10:42 am · **Now known to Kiran Sir** · 10:42 am |
+| | Priya Sharma · In your contacts · **Joined WhoHas · has your number** (green) · 9:05 am |
+| | Raju Plumber · In your contacts [Popular] · **2 more people have it · now 14** · 8:30 am |
+| **Earlier** (everything else, newest first) | [call symbol] +91 98765 43210 · Received · Mon, 6:15 pm · 4 min · **Known to Priya and 1 more** · Mon |
+| | Kiran Sir · In your contacts · **6 people have it** · You know Priya (no time: nothing changed lately) |
+| Order of numbers with no change lately | People you know have it first, then the most people |
+| Time on the right | When the latest change happened: 10:42 am today, Yesterday, Fri, 3 Nov |
+| First open | Nothing is marked New the first time; the list is still newest first |
+| Updates badge | The number of rows under New |
 | Nothing found yet | **None of your numbers are with people on WhoHas yet** · When people you know join, every number in your contacts and calls that they have shows here, with who has it. · **Share in group** |
 | No counts line | Never "18 numbers are with people on WhoHas" (Y, 17 Nov) |
 
