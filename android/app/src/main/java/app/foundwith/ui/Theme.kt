@@ -49,7 +49,8 @@ private val LightColours = lightColorScheme(
     secondaryContainer = FbGrey, onSecondaryContainer = FbInk,
     tertiary = FbGreen, onTertiary = Color.White,
     tertiaryContainer = Color(0xFFE6F4EA), onTertiaryContainer = Color(0xFF0D652D),
-    background = FbGround, onBackground = FbInk,
+    // A white page (Y, 23 Nov 2026), rows parted by thin lines; cards keep a hairline edge.
+    background = Color.White, onBackground = FbInk,
     surface = Color.White, onSurface = FbInk,
     surfaceVariant = FbGrey, onSurfaceVariant = FbMuted,
     surfaceTint = Color.White,
@@ -71,10 +72,11 @@ private val DarkColours = darkColorScheme(
     secondaryContainer = DkRaised, onSecondaryContainer = DkInk,
     tertiary = DkGreen, onTertiary = Color(0xFF00210B),
     tertiaryContainer = Color(0xFF1E3A28), onTertiaryContainer = Color(0xFFA6E3B8),
+    // One dark page, like the white one in light mode (Y, 23 Nov 2026).
     background = DkGround, onBackground = DkInk,
-    surface = DkCard, onSurface = DkInk,
+    surface = DkGround, onSurface = DkInk,
     surfaceVariant = DkRaised, onSurfaceVariant = DkMuted,
-    surfaceTint = DkCard,
+    surfaceTint = DkGround,
     inverseSurface = DkInk, inverseOnSurface = DkGround,
     outline = Color(0xFF4E4F50), outlineVariant = DkRule,
     error = DkRed, onError = Color(0xFF3B0009),
@@ -82,7 +84,7 @@ private val DarkColours = darkColorScheme(
     scrim = Color.Black,
     surfaceBright = DkRaised, surfaceDim = DkGround,
     surfaceContainerLowest = DkGround, surfaceContainerLow = Color(0xFF1E1F20),
-    surfaceContainer = DkCard, surfaceContainerHigh = DkCard, surfaceContainerHighest = DkRaised,
+    surfaceContainer = DkGround, surfaceContainerHigh = DkCard, surfaceContainerHighest = DkRaised,
 )
 
 /** The green of "Live" and a count going up. */

@@ -143,6 +143,10 @@ fun HomeScreen(
     // Every number in Updates, and the ones marked new (in Updates, Call log and Contacts alike).
     val updates = remember(state) { updateItems(state) }
     val marks = remember(updates, state.dotsSince, state.seenNumbers) { state.marked(updates) }
+    // How many of them are in Call log and in Contacts, for the red counts on those tabs.
+    val callNumbers = remember(state.calls) { state.calls.mapNotNullTo(HashSet()) { it.e164 } }
+    val inCalls = marks.keys.count { it in callNumbers }
+    val inContacts = marks.keys.count { state.isSaved(it) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     // Call log first (Y, 22 Nov 2026): the app opens on it; Contacts in the contacts-only build.
@@ -270,14 +274,16 @@ fun HomeScreen(
                     onClick = state.profile?.phone?.let { phone -> { onNumber(phone) } },
                 )
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-                    // Call log · Contacts · Updates (Y, 22 Nov 2026). Updates carries a red badge with
-                    // how many numbers changed that haven't been seen there or on their card yet.
+                    // Call log · Contacts · Updates (Y, 22 Nov 2026). Each carries a red count (Y, 23 Nov):
+                    // how many numbers in it changed that haven't been seen in Updates or on their card yet.
                     if (BuildConfig.CALL_LOG) {
                         NavigationBarItem(selected = tab == Tab.CALLS, onClick = { pick(Tab.CALLS) }, label = { Text("Call log") }, colors = tabColors,
-                            icon = { Icon(Icons.Filled.Call, contentDescription = null) })
+                            modifier = Modifier.semantics { if (inCalls > 0) stateDescription = "$inCalls new" },
+                            icon = { TabBadge(inCalls) { Icon(Icons.Filled.Call, contentDescription = null) } })
                     }
                     NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { pick(Tab.CONTACTS) }, label = { Text("Contacts") }, colors = tabColors,
-                        icon = { Icon(Icons.Filled.Person, contentDescription = null) })
+                        modifier = Modifier.semantics { if (inContacts > 0) stateDescription = "$inContacts new" },
+                        icon = { TabBadge(inContacts) { Icon(Icons.Filled.Person, contentDescription = null) } })
                     val unseen = if (tab == Tab.UPDATES) 0 else UpdatesOrder.newSince(updates, state.updatesSeenAt, state.seenNumbers).size
                     NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { pick(Tab.UPDATES) }, label = { Text("Updates") }, colors = tabColors,
                         modifier = Modifier.semantics { if (unseen > 0) stateDescription = "$unseen new" },
@@ -588,23 +594,39 @@ private fun LazyListScope.updatesTab(
     if (graph.store.firstNamesSeen && state.profile?.name == null && !graph.store.nameAsked) item { NameCard(graph) }
 }
 
-/** Rows of one section, drawn as one rounded card: the first and last rows carry the corners. New rows are light blue. */
+/**
+ * One row of a section on the white page (Y, 23 Nov 2026): full width, a thin line under every row
+ * but the last. New rows are light blue.
+ */
 @Composable
 private fun InGroup(first: Boolean, last: Boolean, tint: Boolean, content: @Composable () -> Unit) {
-    val r = 12.dp
     Surface(
         color = if (tint) newRowTint() else MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        shape = RoundedCornerShape(topStart = if (first) r else 0.dp, topEnd = if (first) r else 0.dp,
-            bottomStart = if (last) r else 0.dp, bottomEnd = if (last) r else 0.dp),
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = if (last) 6.dp else 0.dp),
+        modifier = Modifier.fillMaxWidth(),
     ) {
         Column {
             content()
-            if (!last) HorizontalDivider(Modifier.padding(start = 68.dp),
-                color = if (tint) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.outlineVariant)
+            if (!last) RowLine(onTint = tint)
         }
     }
+}
+
+/** The thin line between rows, starting where the names start. */
+@Composable
+private fun RowLine(onTint: Boolean = false) {
+    HorizontalDivider(Modifier.padding(start = 68.dp),
+        color = if (onTint) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.outlineVariant)
+}
+
+/** A tab's icon with its red count (Y, 23 Nov 2026), none at 0. */
+@Composable
+private fun TabBadge(count: Int, icon: @Composable () -> Unit) {
+    BadgedBox(badge = {
+        if (count > 0) Badge(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError) {
+            Text(if (count > 99) "99+" else count.toString(), fontWeight = FontWeight.Bold)
+        }
+    }) { icon() }
 }
 
 /** "New" over the new rows, with how many in a red count (23 Nov 2026). */
@@ -821,7 +843,12 @@ private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, marks: Map<
     }
     state.calls.groupBy { dayHeading(it.at, now) }.forEach { (day, calls) ->
         item(key = "day:$day") { SectionLabel(day) }
-        items(calls, key = { "c:" + it.id }) { call -> CallRow(state, call, markedCalls[call.id], onNumber) }
+        itemsIndexed(calls, key = { _, it -> "c:" + it.id }) { i, call ->
+            Column {
+                CallRow(state, call, markedCalls[call.id], onNumber)
+                if (i < calls.lastIndex) RowLine()
+            }
+        }
     }
 }
 
@@ -904,7 +931,12 @@ private fun LazyListScope.contactsTab(graph: AppGraph, state: AppState, marks: M
     all.groupBy { c -> (c.shownName ?: c.raw).trim().firstOrNull()?.takeIf { it.isLetter() }?.uppercaseChar()?.toString() ?: "#" }
         .forEach { (letter, people) ->
             item(key = "letter:$letter") { SectionLabel(letter) }
-            items(people, key = { "k:" + (it.e164 ?: ("raw:" + it.raw)) }) { c -> ContactRow(state, c, c.e164?.let { marks[it] }, onNumber) }
+            itemsIndexed(people, key = { _, it -> "k:" + (it.e164 ?: ("raw:" + it.raw)) }) { i, c ->
+                Column {
+                    ContactRow(state, c, c.e164?.let { marks[it] }, onNumber)
+                    if (i < people.lastIndex) RowLine()
+                }
+            }
         }
 }
 

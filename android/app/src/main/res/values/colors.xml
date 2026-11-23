@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Facebook-style light page (the opening screen and the window behind Compose). -->
+    <!-- The white page (the opening screen and the window behind Compose; Y, 23 Nov 2026). -->
     <color name="ink">#FF050505</color>
-    <color name="ground">#FFF0F2F5</color>
+    <color name="ground">#FFFFFFFF</color>
     <!-- The icon's background: Facebook blue. -->
     <color name="launcher_background">#FF0862F5</color>
 </resources>
