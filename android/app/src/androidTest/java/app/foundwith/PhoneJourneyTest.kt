@@ -161,7 +161,9 @@ class PhoneJourneyTest {
         device.pressBack()
         compose.waitForIdle()
         val stillSearching = runCatching {
-            field().fetchSemanticsNode().config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.EditableText)?.text.orEmpty().isNotEmpty()
+            val config = field().fetchSemanticsNode().config
+            val text = androidx.compose.ui.semantics.SemanticsProperties.EditableText
+            config.contains(text) && config[text].text.isNotEmpty()
         }.getOrDefault(false)
         if (stillSearching) device.pressBack()
         assertTrue("Back closed the app instead of the search",
