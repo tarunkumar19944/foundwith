@@ -65,6 +65,8 @@ android {
         buildConfigField("String", "API_BASE_URL", "\"$apiUrl\"")
         buildConfigField("String", "PRIVACY_URL", "\"$privacyUrl\"")
         buildConfigField("String", "PUBLIC_URL", "\"$publicUrl\"")
+        // The help address on the Help page; empty until there is one (the old help@found-with.app is gone).
+        buildConfigField("String", "CONTACT_EMAIL", "\"${providers.gradleProperty("foundwith.contactEmail").getOrElse("").trim()}\"")
         // The consent text in the app is written for this version of the server's terms.
         buildConfigField("String", "CONSENT_VERSION", "\"2026-11-16\"")
         buildConfigField("boolean", "FIREBASE_CONFIGURED", firebaseConfigured.toString())

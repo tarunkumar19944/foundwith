@@ -345,7 +345,7 @@ fun HelpScreen(onBack: () -> Unit, onHowItWorks: () -> Unit) {
     val context = LocalContext.current
     Page(onBack, "Help") {
         SettingRow(Icons.Filled.Info, "How WhoHas works", onClick = onHowItWorks)
-        SettingRow(Icons.Filled.Email, "Write to us", HELP_EMAIL) { context.email(HELP_EMAIL) }
+        if (HELP_EMAIL.isNotEmpty()) SettingRow(Icons.Filled.Email, "Write to us", HELP_EMAIL) { context.email(HELP_EMAIL) }
         if (DELETE_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Delete my account without the app") { context.openUrl(DELETE_URL) }
         if (PRIVACY_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Privacy policy") { context.openUrl(PRIVACY_URL) }
         if (TERMS_URL.isNotBlank()) SettingRow(Icons.Filled.Lock, "Terms of use") { context.openUrl(TERMS_URL) }
@@ -395,7 +395,8 @@ fun SuspendedScreen(graph: AppGraph, onSignedOut: () -> Unit) {
     val scope = rememberCoroutineScope()
     Column(Modifier.fillMaxSize().safeDrawingPadding().padding(24.dp), verticalArrangement = Arrangement.Center) {
         EmptyState(Icons.Filled.Warning, "Your account is suspended",
-            "It broke WhoHas rules. If this is a mistake, write to $HELP_EMAIL.")
+            if (HELP_EMAIL.isNotEmpty()) "It broke WhoHas rules. If this is a mistake, write to $HELP_EMAIL."
+            else "It broke WhoHas rules. If this is a mistake, write to the contact address on our Google Play listing.")
         OutlinedButton(onClick = { scope.launch { graph.forgetEverything(); onSignedOut() } }, modifier = Modifier.fillMaxWidth()) {
             Text("Sign out")
         }

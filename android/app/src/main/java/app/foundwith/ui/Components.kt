@@ -240,7 +240,8 @@ fun Context.email(address: String) {
     runCatching { startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$address")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }
 
-const val HELP_EMAIL = "help@found-with.app"
+/** The help address (BuildConfig.CONTACT_EMAIL); empty until there is one: then "Write to us" is hidden. */
+val HELP_EMAIL: String = app.foundwith.BuildConfig.CONTACT_EMAIL
 val PRIVACY_URL: String get() = BuildConfig.PRIVACY_URL
 /** The terms of use and their grievance officer section, beside the privacy policy (whohas-app.web.app/terms). */
 val TERMS_URL: String get() = BuildConfig.PUBLIC_URL.takeIf { it.startsWith("https://") }?.plus("/terms").orEmpty()
