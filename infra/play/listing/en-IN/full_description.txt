@@ -4,9 +4,9 @@ For any phone number, WhoHas shows how many people on WhoHas have it in their co
 
 WHAT YOU GET
 • After a call: if someone on WhoHas has the caller's number, a notification tells you who you know has it. Copy the number or check it in Truecaller in one tap.
-• Search any Indian mobile number: see how many people have it and ask someone you know on WhatsApp.
+• Search any number: see how many people have it and ask someone you know on WhatsApp.
 • Updates: every number on your phone that people on WhoHas have, with what changed on top.
-• Your own number: see how many people have it, and when a friend joins.
+• Your own number: see how many people have it, how close you are to the next level, and when a friend joins with your link.
 
 YOUR PRIVACY
 • WhoHas never messages or calls anyone, never reads your messages and never records calls.

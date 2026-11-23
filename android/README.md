@@ -113,7 +113,7 @@ Three notification channels, so people can quieten any of them in Android's sett
 - **The link.** Each person has one invite link, `https://<api>/i/<CODE>`: a page with a Google Play button carrying `referrer=invite%3D<CODE>` (on an iPhone, "on Android for now").
 - **After install.** On first start the app asks Google Play which link it was installed from (the Play Install Referrer library) and, once the person has signed in, sends the code to `POST /v1/me/invite/redeem`. No reward: the inviter just hears that they joined.
 - **Invite, Ask and Share** open WhatsApp (WhatsApp Business, then Messages, then the share sheet) with the message typed in; nothing is ever sent by itself. The messages (`core/Messages.kt`) speak to the reader, don't greet by name (names are saved as "Dr. Anand" or "Plumber Raju"), put the number on its own line, and never name who has a number.
-- **Testing it.** The referrer only exists for installs from Google Play: use the internal testing track and open `https://play.google.com/store/apps/details?id=app.foundwith&referrer=invite%3D<CODE>` on the tester's phone.
+- **Testing it.** The referrer only exists for installs from Google Play: use the internal testing track and open `https://play.google.com/store/apps/details?id=app.whohas&referrer=invite%3D<CODE>` on the tester's phone.
 
 ## 7. How sync works
 
