@@ -129,7 +129,7 @@ Every number from your contacts and calls that someone on WhoHas has, each once,
 | What moves a number up | More people have it · someone you know now has a caller's number · a contact joins WhoHas · a call from a number not in your contacts. (A call from one of your contacts is no news by itself.) |
 | **New** (since you last looked at Updates; light blue rows, time in blue and the dot) | [call symbol] +91 90080 11223 · Missed call · today, 10:42 am · **Now known to Kiran Sir** · 10:42 am |
 | | Priya Sharma · In your contacts · **Joined WhoHas · has your number** (green) · 9:05 am |
-| Joined with your link (23 Nov) | | Ravi Kumar · In your contacts · **Joined with your link · has your number** (green) · 1 more and you're Popular · **⤴ Share in group** (under New only). Someone not on your phone: a note on top, **Someone joined with your link** · 9 people have your number now · 1 more and you're Popular · Share in group (it counts in the red number on Updates). |
+| Joined with your link (23 Nov) | Ravi Kumar · In your contacts · **Joined with your link · has your number** (green) · 1 more and you're Popular · **⤴ Share in group** (under New only). Someone not on your phone: a note on top, **Someone joined with your link** · 9 people have your number now · 1 more and you're Popular · Share in group (it counts in the red number on Updates). |
 | | Raju Plumber · In your contacts [Popular] · **2 more people have it · now 14** · 8:30 am |
 | **Earlier** (everything else, newest first) | [call symbol] +91 98765 43210 · Received · Mon, 6:15 pm · 4 min · **Known to Priya and 1 more** · Mon |
 | | Kiran Sir · In your contacts · **6 people have it** · You know Priya (no time: nothing changed lately) |
