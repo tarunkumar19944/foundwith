@@ -199,8 +199,11 @@ def run(config: dict) -> Report:
         report.check("bank-like names are refused", status == 422, (status, body))
         status, body = a.call("POST", "/v1/lookup", {"number": "hello", "context": "search"})
         report.check("a non-number search is refused", status == 422, (status, body))
+        # Every kind of number can be searched (23 Nov 2026): a landline, a service number, abroad.
         status, body = a.call("POST", "/v1/lookup", {"number": "044 2345 6789", "context": "search"})
-        report.check("a landline search is refused", status == 422, (status, body))
+        report.check("a landline can be searched", status == 200 and body.get("number") == "+914423456789", (status, body))
+        status, body = a.call("POST", "/v1/lookup", {"number": "+971 50 123 4567", "context": "search"})
+        report.check("another country's number can be searched", status == 200 and body.get("number") == "+971501234567", (status, body))
 
         print("Five people join and save each other")
         a_contacts = [{"number": b.phone, "name": "Bala"}, {"number": c.phone, "name": "Chitra"},

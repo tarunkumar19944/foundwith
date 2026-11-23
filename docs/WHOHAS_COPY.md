@@ -176,7 +176,6 @@ Every call under its day (Today, Yesterday, Friday, 12 Nov), each with the phone
 | Name search heading | From your phone | Your contacts |
 | No match | No one called that · Letters search your own contacts. Type a number to search everyone. | No contact called "Raju" · Type a number to search everyone. |
 | Part of a number | Type the full number · Like 98451 72046 | Type all 10 digits · Like 98451 72046 |
-| Not a mobile | Type a 10-digit mobile number · Search works with mobile numbers. | Only mobile numbers can be searched · Like 98451 72046 |
 | Checking | Checking +91 98450 31207… | Checking +91 98450 31207… |
 | Daily limit | Today's search limit is over · Search again tomorrow. Calls and contacts keep updating. | Today's searches are over · Search again tomorrow. |
 | No internet | No internet · Search needs the internet. Home still shows your last update. | No internet · Search needs the internet. |
