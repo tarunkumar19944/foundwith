@@ -222,7 +222,9 @@ class PhoneJourneyTest {
         device.openNotification()
         device.waitForIdle(2_000)
         shotDevice("13-notification")
-        device.pressBack()   // close the shade (and One UI's one-time tutorial) for the next steps
+        // Close the shade (and One UI's one-time tutorial) for the next steps, but only when it is
+        // open: on a Samsung tablet it closed by itself, and Back then closed WhoHas (gta9pwifi, 23 Nov).
+        if (device.currentPackageName == "com.android.systemui") device.pressBack()
         if (note == null) {
             // The shared test account can use up its daily call lookups when the tests run many
             // times in a day; that's the server's limit working, not the app failing.
