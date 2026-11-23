@@ -100,9 +100,6 @@ object HolderText {
     /** The chip on a card that went up today: "+3 today". */
     fun today(delta: Int): String = "+${grouped(delta)} today"
 
-    /** Your own number's rise over the last week, on your card: "+2 this week". */
-    fun thisWeek(delta: Int): String = "+${grouped(delta)} this week"
-
     /** The chip on your own number: "+5 this week". */
     fun thisWeek(delta: Int): String = "+${grouped(delta)} this week"
 
