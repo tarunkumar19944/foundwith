@@ -158,6 +158,9 @@ class PhoneJourneyTest {
         shot("11-search-number")
         // Back closes the search, never the app (Y, 17 Nov): once for the keyboard, once for the search.
         // Some real phones show no keyboard for typed-in test text, so the first back already closes it.
+        // A real tap on the box first: on a Samsung tablet the taskbar kept the key focus after the
+        // test opened the app, so Back went to the launcher, not to WhoHas (gta9pwifi, 23 Nov).
+        touch(field())
         device.pressBack()
         compose.waitForIdle()
         val stillSearching = runCatching {
@@ -340,6 +343,15 @@ class PhoneJourneyTest {
         val backs = compose.onAllNodes(hasContentDescription("Back")).fetchSemanticsNodes()
         if (backs.isNotEmpty()) compose.onAllNodes(hasContentDescription("Back")).onFirst().performClick()
         else device.pressBack()
+        compose.waitForIdle()
+    }
+
+    /** A real tap through Android (Compose's own clicks don't move the window focus). */
+    private fun touch(node: SemanticsNodeInteraction) {
+        val bounds = node.fetchSemanticsNode().boundsInWindow
+        val at = IntArray(2)
+        compose.runOnIdle { compose.activity.window.decorView.getLocationOnScreen(at) }
+        device.click((at[0] + bounds.center.x).toInt(), (at[1] + bounds.center.y).toInt())
         compose.waitForIdle()
     }
 
