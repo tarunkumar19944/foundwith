@@ -16,7 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.unit.dp
 import app.foundwith.core.CallEvent
 import app.foundwith.core.CallType
@@ -57,7 +57,7 @@ import java.io.File
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = Application::class, qualifiers = "w320dp-h1400dp-xhdpi")
+@Config(sdk = [34], application = Application::class, qualifiers = "w320dp-h2400dp-xhdpi")
 class BigTextTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
@@ -114,9 +114,10 @@ class BigTextTest {
             ToggleRow("Tell me after every call", "Calls with nothing new arrive quietly, in the notification panel.", true) {}
         }
         compose.onNodeWithText("Vijaya Lakshmi Narasimhamurthy", substring = true, useUnmergedTree = true).assertExists()
-        compose.onAllNodesWithText("Truecaller", useUnmergedTree = true)[0].assertIsDisplayed()
-        compose.onNodeWithText("Call", useUnmergedTree = true).assertIsDisplayed()
-        compose.onNodeWithText("Tell me after every call", useUnmergedTree = true).assertIsDisplayed()
+        compose.onAllNodesWithText("Truecaller", useUnmergedTree = true).assertCountEquals(2)   // the two calls from a stranger
+        compose.onNodeWithText("Call", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Tell me after every call", useUnmergedTree = true).assertExists()
+        compose.onNodeWithText("Share", useUnmergedTree = true).assertExists()
     }
 
     @Test fun busyRowsAt130PercentText() = busyRows("big-130-small-phone", 1.3f)

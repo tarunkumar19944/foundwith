@@ -340,6 +340,13 @@ private fun rowClick(e164: String?, onClick: (() -> Unit)?): Modifier {
  * One row in every list: who, the one line, and an optional small line under it. The line wraps
  * to two lines rather than cutting off the count.
  */
+/**
+ * Large text (130% and up) on the phone (24 Nov 2026): rows put their button and tag under the
+ * words instead of beside them, so names aren't squeezed to "+9…" on small phones.
+ */
+@Composable
+fun bigText(): Boolean = LocalDensity.current.fontScale >= 1.25f
+
 @Composable
 fun NumberRow(
     leading: @Composable () -> Unit,
@@ -351,18 +358,20 @@ fun NumberRow(
     e164: String? = null,
     tag: (@Composable () -> Unit)? = null,
 ) {
+    val big = bigText()
     ListItem(
         modifier = rowClick(e164, onClick),
         leadingContent = leading,
         headlineContent = { NameText(name) },
         supportingContent = {
             Column {
-                Text(line, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(line, maxLines = if (big) 3 else 2, overflow = TextOverflow.Ellipsis)
                 if (sub != null) Text(sub, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (tag != null) Box(Modifier.padding(top = 4.dp)) { tag() }
+                if (big && trailing != null) Box(Modifier.padding(top = 6.dp)) { trailing() }
             }
         },
-        trailingContent = trailing,
+        trailingContent = if (big) null else trailing,
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
     )
 }
@@ -392,23 +401,32 @@ fun InfoRow(
     ) {
         leading()
         Spacer(Modifier.width(12.dp))
+        val big = bigText()
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             NameText(name)
+            if (big) {
+                // Large text: the small line, the tag, the line and the button each get the full width.
+                if (sub != null) Text(sub, style = MaterialTheme.typography.labelMedium, color = subColor, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                tag?.invoke()
+                if (line != null) Text(line, style = MaterialTheme.typography.bodyMedium, color = lineColor, fontWeight = FontWeight.SemiBold,
+                    maxLines = 3, overflow = TextOverflow.Ellipsis)
+                if (trailing != null) Box(Modifier.padding(top = 4.dp)) { trailing() }
+            }
             // The small line under the name, with the Popular / Highly popular tag after it (as designed).
-            if (sub != null || tag != null) Row(verticalAlignment = Alignment.CenterVertically) {
+            if (!big && (sub != null || tag != null)) Row(verticalAlignment = Alignment.CenterVertically) {
                 if (sub != null) Text(sub, style = MaterialTheme.typography.labelMedium, color = subColor, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false))
                 if (sub != null && tag != null) Spacer(Modifier.width(8.dp))
                 tag?.invoke()
             }
-            if (line != null) Text(line, style = MaterialTheme.typography.bodyMedium, color = lineColor, fontWeight = FontWeight.SemiBold,
+            if (!big && line != null) Text(line, style = MaterialTheme.typography.bodyMedium, color = lineColor, fontWeight = FontWeight.SemiBold,
                 maxLines = 2, overflow = TextOverflow.Ellipsis)
         }
         if (isNew) {
             Spacer(Modifier.width(8.dp))
             NewDot()
         }
-        if (trailing != null) {
+        if (!big && trailing != null) {
             Spacer(Modifier.width(8.dp))
             trailing()
         }
@@ -459,7 +477,9 @@ fun PrimaryButton(
             Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
         }
-        Text(text, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // Two lines on large text rather than "Share in gro…" (24 Nov 2026).
+        Text(text, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center)
     }
 }
 
@@ -769,11 +789,18 @@ fun YourNumberBar(total: Int, up: Int, onClick: (() -> Unit)?, onShare: (() -> U
                     append(if (total == 1) " person has your number" else " people have your number")
                 },
                 color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold,
-                style = MaterialTheme.typography.bodyMedium, maxLines = 2, modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.bodyMedium, maxLines = 3, modifier = Modifier.weight(1f),
             )
             // One thin line on most phones: no arrow (the whole bar opens your card), smaller words.
-            if (up > 0) Text("+${HolderText.grouped(up)}", color = LiveGreen, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+            if (!bigText()) {
+                if (up > 0) Text("+${HolderText.grouped(up)}", color = LiveGreen, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
+                LevelTag(Levels.of(total))
+            }
+        }
+        if (bigText()) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(start = 46.dp, end = 16.dp, bottom = 6.dp)) {
             LevelTag(Levels.of(total))
+            if (up > 0) Text("+${HolderText.grouped(up)}", color = LiveGreen, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodyMedium)
         }
         // How far the next level is, and Share (Y, 23 Nov 2026): the reason to share, where it is
         // always in sight. None at the top level.
@@ -790,9 +817,10 @@ private fun NextLevelLine(step: Levels.Step, words: String, onShare: (() -> Unit
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp, bottom = 4.dp),
     ) {
-        ProgressLine(step.done, Modifier.weight(1f), track = MaterialTheme.colorScheme.surface)
+        // Large text: the words come first and the line shrinks to what's left (never Share).
+        if (!bigText()) ProgressLine(step.done, Modifier.weight(1f), track = MaterialTheme.colorScheme.surface)
         Text(words, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface, maxLines = 1)
+            color = MaterialTheme.colorScheme.onSurface, maxLines = 2, modifier = if (bigText()) Modifier.weight(1f) else Modifier)
         if (onShare != null) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -802,7 +830,8 @@ private fun NextLevelLine(step: Levels.Step, words: String, onShare: (() -> Unit
             ) {
                 Icon(Icons.Filled.Share, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(15.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Share", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text("Share", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1, softWrap = false)
             }
         }
     }
