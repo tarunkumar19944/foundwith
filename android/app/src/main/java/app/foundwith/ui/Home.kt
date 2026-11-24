@@ -212,7 +212,11 @@ fun HomeScreen(
     val allowPermissions = remember {
         buildList {
             add(Manifest.permission.READ_CONTACTS)
-            if (BuildConfig.CALL_LOG) add(Manifest.permission.READ_CALL_LOG)
+            if (BuildConfig.CALL_LOG) {
+                add(Manifest.permission.READ_CALL_LOG)
+                // Phone (24 Nov 2026): to know at once when a call ends; also lets Call call directly.
+                add(Manifest.permission.READ_PHONE_STATE)
+            }
         }.toTypedArray()
     }
     val askAll = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
@@ -356,7 +360,7 @@ fun HomeScreen(
                 return@LazyColumn
             }
 
-            item { Banners(graph, state, onFix, turnOnNotifications) }
+            item { Banners(graph, state, onFix, turnOnNotifications, onAllowPhone = { ask(Manifest.permission.READ_PHONE_STATE) }) }
             state.profile?.takeIf { it.invitedBy.isNotEmpty() && state.setup != Setup.READY }?.let { profile ->
                 item { InvitedCard(profile.invitedBy, profile.invitedByCount, state.cards?.mine?.total ?: 0) }
             }
@@ -514,14 +518,21 @@ private fun HintBox(icon: ImageVector, title: String, text: String) {
 }
 
 @Composable
-private fun Banners(graph: AppGraph, state: AppState, onFix: () -> Unit, onTurnOnNotifications: () -> Unit) {
+private fun Banners(graph: AppGraph, state: AppState, onFix: () -> Unit, onTurnOnNotifications: () -> Unit,
+                    onAllowPhone: () -> Unit) {
     val now = System.currentTimeMillis()
+    var phoneClosed by remember { mutableStateOf(graph.store.phoneBannerClosed) }
     when {
         state.setup == Setup.READY && BuildConfig.CALL_LOG && graph.book.hasCallLogPermission() && (graph.store.notifyUnknownCalls || graph.store.notifyOtherCalls) &&
             graph.store.notifAsked && !graph.notifier.canPost() ->
             Banner(Icons.Filled.Notifications, "Notifications are off. You won't know who called.", "Turn on", warning = true, onAction = onTurnOnNotifications)
         state.lateCalls >= 2 && now - graph.store.fixDismissedAt > Changes.KEEP_MS ->
             Banner(Icons.Filled.Warning, "Your phone stopped WhoHas. Last ${state.lateCalls} calls weren't checked.", "Fix", warning = true, onAction = onFix)
+        // People from before Phone was asked on Allow (24 Nov 2026): once, until allowed or closed.
+        state.setup == Setup.READY && BuildConfig.CALL_LOG && graph.book.hasCallLogPermission() && !graph.book.hasPhonePermission() &&
+            !phoneClosed && graph.store.denials(Manifest.permission.READ_PHONE_STATE) == 0 ->
+            Banner(Icons.Filled.Call, "Get call notifications right after the call", "Allow", onAction = onAllowPhone,
+                onClose = { phoneClosed = true; graph.store.phoneBannerClosed = true })
     }
 }
 
@@ -549,12 +560,13 @@ private fun InvitedCard(names: List<String>, count: Int, total: Int) {
 internal fun AllowCard(onAllow: () -> Unit, onHowItWorks: () -> Unit) {
     WhCard(padding = 20.dp) {
         Text("See who has each number", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text(if (BuildConfig.CALL_LOG) "Allow contacts and call log. Then you can:" else "Allow contacts. Then you can:",
+        // Only the core points (Y, 24 Nov 2026).
+        Text(if (BuildConfig.CALL_LOG) "Allow contacts, call log and phone. Then you can:" else "Allow contacts. Then you can:",
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         TickLine("Find out who has your number")
         TickLine("See who has each number on your phone")
-        TickLine("Know when something new happens or changes")
-        if (BuildConfig.CALL_LOG) TickLine("After a call, get a notification if someone has the caller's number")
+        if (BuildConfig.CALL_LOG) TickLine("Right after a call, know if someone has the caller's number")
+        else TickLine("Know when something new happens or changes")
         // Google Play's prominent disclosure: what is sent and why, right before the Android prompts,
         // with a button that agrees to it (User Data policy).
         // Two short lines right above the button (Y, 23 Nov: no box).

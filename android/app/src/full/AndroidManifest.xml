@@ -2,4 +2,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Only in the "full" flavour. Google Play requires a Permissions Declaration for it. -->
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
+    <!-- Phone (24 Nov 2026): only to know at once when a call ends, so the after-call notification
+         comes in a second or two. WhoHas never listens to or records calls. -->
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+
+    <application>
+        <receiver
+            android:name="app.foundwith.call.CallEndedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.PHONE_STATE" />
+            </intent-filter>
+        </receiver>
+    </application>
 </manifest>

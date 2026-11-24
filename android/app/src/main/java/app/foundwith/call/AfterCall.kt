@@ -105,7 +105,7 @@ object AfterCall {
         return true
     }
 
-    private suspend fun hasUnhandled(context: Context): Boolean {
+    suspend fun hasUnhandled(context: Context): Boolean {
         val graph = context.graph
         if (!graph.book.hasCallLogPermission()) return false
         val now = System.currentTimeMillis()

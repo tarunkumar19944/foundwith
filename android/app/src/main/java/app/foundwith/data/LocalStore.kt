@@ -225,6 +225,10 @@ class LocalStore(context: Context) {
     var notifyOtherCalls: Boolean
         get() = prefs.getBoolean("n_other_calls", true)
         set(value) { prefs.edit().putBoolean("n_other_calls", value).apply() }
+    /** The "Get call notifications right after the call" banner was closed. */
+    var phoneBannerClosed: Boolean
+        get() = prefs.getBoolean("phone_banner_closed", false)
+        set(value) { prefs.edit().putBoolean("phone_banner_closed", value).apply() }
     /** The app's install/update time at the last call check: calls late around an update don't count. */
     var checkedUpdateAt: Long
         get() = prefs.getLong("checked_update_at", 0L)

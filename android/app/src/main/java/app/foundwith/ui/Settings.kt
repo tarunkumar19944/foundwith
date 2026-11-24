@@ -160,12 +160,32 @@ fun NotificationsScreen(graph: AppGraph, onBack: () -> Unit, onFix: () -> Unit) 
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (!granted) graph.store.addDenial(Manifest.permission.POST_NOTIFICATIONS)
     }
+    var phoneOn by remember { mutableStateOf(graph.book.hasPhonePermission()) }
+    val askPhone = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        phoneOn = granted
+        if (granted) graph.store.clearDenials(Manifest.permission.READ_PHONE_STATE)
+        else graph.store.addDenial(Manifest.permission.READ_PHONE_STATE)
+    }
     Page(onBack, "Notifications") {
         if (!graph.notifier.canPost()) {
             Banner(Icons.Filled.Warning, "Notifications are off for WhoHas.", "Turn on", warning = true) {
                 if (Build.VERSION.SDK_INT >= 33 && graph.store.denials(Manifest.permission.POST_NOTIFICATIONS) < 2) {
                     ask.launch(Manifest.permission.POST_NOTIFICATIONS)
                 } else context.openNotificationSettings()
+            }
+        }
+        if (BuildConfig.CALL_LOG && !phoneOn) {
+            // Without Phone, after-call notes wait for Android to run WhoHas: a few minutes late (24 Nov 2026).
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("Tell me right after a call", fontWeight = FontWeight.SemiBold)
+                    Text("Needs Phone. Without it, notifications can come a few minutes late.",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                TextButton(onClick = {
+                    if (graph.store.denials(Manifest.permission.READ_PHONE_STATE) >= 2) context.openAppSettings()
+                    else askPhone.launch(Manifest.permission.READ_PHONE_STATE)
+                }) { Text("Allow") }
             }
         }
         if (BuildConfig.CALL_LOG) {

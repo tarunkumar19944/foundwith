@@ -371,6 +371,9 @@ know. To do that, it compares the numbers on your phone with the numbers on othe
 <li><b>Your contacts</b>, after you allow it: each phone number. The names you saved stay on your phone.</li>
 <li><b>Your call log</b> (only in the version of the app that asks for it, after you allow it): the phone numbers. Not call
 times, not call lengths and not recordings.</li>
+<li><b>Phone</b> (only in the version of the app that asks for it, after you allow it): used only on your phone, to know
+when a call ends so the after-call notification comes at once, and to call a number when you tap Call. Nothing from it
+is sent to WhoHas. WhoHas never listens to or records calls.</li>
 <li><b>Numbers you search</b> and numbers WhoHas checks after a call, with the time.</li>
 <li><b>People you block</b>, numbers you hide, and reports you make.</li>
 <li><b>Numbers you tell about WhoHas</b> (Tell), so that person sees who told them when they join, and whether

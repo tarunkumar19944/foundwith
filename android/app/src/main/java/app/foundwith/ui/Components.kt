@@ -40,6 +40,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
@@ -485,7 +486,8 @@ fun PrimaryButton(
 
 /** A one-line strip above the tabs: offline, notifications off, phone settings. */
 @Composable
-fun Banner(icon: ImageVector, text: String, action: String? = null, warning: Boolean = false, onAction: () -> Unit = {}) {
+fun Banner(icon: ImageVector, text: String, action: String? = null, warning: Boolean = false, onAction: () -> Unit = {},
+           onClose: (() -> Unit)? = null) {
     val bg = if (warning) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
     val fg = if (warning) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSurfaceVariant
     Surface(color = bg, contentColor = fg, shape = RoundedCornerShape(10.dp),
@@ -495,6 +497,9 @@ fun Banner(icon: ImageVector, text: String, action: String? = null, warning: Boo
             Spacer(Modifier.width(8.dp))
             Text(text, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
             if (action != null) TextButton(onClick = onAction, contentPadding = PaddingValues(horizontal = 8.dp)) { Text(action) }
+            if (onClose != null) androidx.compose.material3.IconButton(onClick = onClose, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Filled.Close, contentDescription = "Close", modifier = Modifier.size(18.dp))
+            }
         }
     }
 }

@@ -40,6 +40,8 @@ class DeviceBook(private val context: Context) {
 
     /** Always false in the contactsOnly build, which doesn't declare the permission. */
     fun hasCallLogPermission(): Boolean = BuildConfig.CALL_LOG && granted(Manifest.permission.READ_CALL_LOG)
+    /** Phone: Android tells WhoHas at once when a call ends ([app.foundwith.call.CallEndedReceiver]). */
+    fun hasPhonePermission(): Boolean = BuildConfig.CALL_LOG && granted(Manifest.permission.READ_PHONE_STATE)
 
     fun hasNotificationPermission(): Boolean =
         (Build.VERSION.SDK_INT < 33 || granted(Manifest.permission.POST_NOTIFICATIONS)) &&
