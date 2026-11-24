@@ -55,14 +55,19 @@ class Notifier(private val context: Context) {
                 setSound(null, null)
                 enableVibration(false)
             },
-            NotificationChannel(LAST_CALL, "After every call (quiet)", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Calls with nothing new, in the notification panel only. No pop-up, no sound."
+            // Default importance: the WhoHas icon shows in the status bar (Y, 24 Nov 2026: "without
+            // that the user doesn't know there is a notification"), but no pop-up, sound or vibration.
+            NotificationChannel(LAST_CALL, "After every call (quiet)", NotificationManager.IMPORTANCE_DEFAULT).apply {
+                description = "Calls with nothing new: the WhoHas icon at the top and a note in the panel. No pop-up, no sound."
+                setSound(null, null)
+                enableVibration(false)
             },
             NotificationChannel(LEVEL, "Your level", NotificationManager.IMPORTANCE_LOW).apply {
                 description = "When you reach a new level, or are close. No sound."
             },
         ))
         // Channels from earlier versions.
+        runCatching { manager.deleteNotificationChannel("last_call") }      // was silent: no status-bar icon
         runCatching { manager.deleteNotificationChannel("incoming_calls") }
         runCatching { manager.deleteNotificationChannel("evening") }
         // The quiet call channel before 23 Nov 2026 didn't pop up; a channel's importance can't be raised.
@@ -124,7 +129,8 @@ class Notifier(private val context: Context) {
             .setContentTitle(note.title)
             .setContentText(note.text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(note.text))
-            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setOnlyAlertOnce(true)
             .setSilent(true)
             .setAutoCancel(true)
             .setContentIntent(open)
@@ -282,7 +288,7 @@ class Notifier(private val context: Context) {
     companion object {
         const val CALLS_SOUND = "callers"
         const val CALLS_QUIET = "calls_other"
-        const val LAST_CALL = "last_call"
+        const val LAST_CALL = "after_call"
         private const val TAG_LAST_CALL = "last_call"
         const val CHANGES = "number_changes"
         const val LEVEL = "level"

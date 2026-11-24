@@ -49,7 +49,7 @@ class NotificationsTest {
 
     @Test
     fun sixChannelsAndNoDailySummary() {
-        assertEquals(setOf("callers", "calls_other", "number_changes", "friends_joined", "last_call", "level"), manager.notificationChannels.map { it.id }.toSet())
+        assertEquals(setOf("callers", "calls_other", "number_changes", "friends_joined", "after_call", "level"), manager.notificationChannels.map { it.id }.toSet())
         assertEquals(NotificationManager.IMPORTANCE_HIGH, manager.getNotificationChannel("callers").importance)
         // Other calls, changes and joins pop up on the screen at once too, but make no sound (23 Nov 2026).
         for (id in listOf("calls_other", "number_changes", "friends_joined")) {
@@ -58,7 +58,11 @@ class NotificationsTest {
             assertNull(id, channel.sound)
             assertFalse(id, channel.shouldVibrate())
         }
-        for (quiet in listOf("level", "last_call")) {
+        // After every call: the icon at the top, but no pop-up, sound or vibration (24 Nov 2026).
+        manager.getNotificationChannel("after_call").let {
+            assertEquals(NotificationManager.IMPORTANCE_DEFAULT, it.importance); assertNull(it.sound); assertFalse(it.shouldVibrate())
+        }
+        for (quiet in listOf("level")) {
             assertEquals(quiet, NotificationManager.IMPORTANCE_LOW, manager.getNotificationChannel(quiet).importance)
         }
     }
@@ -73,7 +77,7 @@ class NotificationsTest {
         assertEquals(2, all.size)                                       // the second quiet note replaced the first
         val news = all.single { it.channelId == "calls_other" }
         assertEquals("New", news.extras.getCharSequence(android.app.Notification.EXTRA_SUB_TEXT))
-        val quiet = all.single { it.channelId == "last_call" }
+        val quiet = all.single { it.channelId == "after_call" }
         assertEquals("Call from +91 98765 43210", quiet.extras.getString("android.title"))
         assertEquals(listOf("Share in group", "Truecaller"), quiet.actions.map { it.title.toString() })
     }
