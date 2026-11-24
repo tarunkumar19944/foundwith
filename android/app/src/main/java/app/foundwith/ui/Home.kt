@@ -204,6 +204,7 @@ fun HomeScreen(
         query = ""
         focus.clearFocus()
         searching = false
+        header.open()
     }
     BackHandler(enabled = !searching && query.isEmpty() && tab != homeTab) {
         tab = homeTab
@@ -352,7 +353,7 @@ fun HomeScreen(
             } }
             Surface(color = MaterialTheme.colorScheme.background, shadowElevation = if (header.folded) 6.dp else 0.dp) {
                 Column {
-                    SearchBox(query, onChange = { query = it }, onFocus = { searching = it; if (it) header.fold() })
+                    SearchBox(query, onChange = { query = it }, onFocus = { searching = it; if (it) header.fold() else if (query.isBlank()) header.open() })
                     if (header.folded) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }

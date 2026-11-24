@@ -423,7 +423,7 @@ class PhoneJourneyTest {
     fun step07_settingsPagesOpen() {
         assertTrue(onHome(30_000))
         assertAppOnScreen()
-        compose.onNode(hasContentDescription("Settings")).performClick()
+        compose.onNode(hasContentDescription("Settings")).performSemanticsAction(SemanticsActions.OnClick)
         waitFor("Your data")
         shot("15-settings")
         for ((row, inside) in listOf(
@@ -450,7 +450,7 @@ class PhoneJourneyTest {
     @Test
     fun step08_signsOut() {
         assertTrue(onHome(30_000))
-        compose.onNode(hasContentDescription("Settings")).performClick()
+        compose.onNode(hasContentDescription("Settings")).performSemanticsAction(SemanticsActions.OnClick)
         tap("Your data")
         tap("Sign out")
         waitFor("Sign out?")
