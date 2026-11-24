@@ -48,6 +48,34 @@ class AfterCallTest {
     }
 
     @Test
+    fun afterEveryCallNothingNewIsToldQuietly() {
+        // Y, 24 Nov 2026: with "Tell me after every call", calls with nothing new are told quietly.
+        val contact = CallerInfo("Vijaya Lakshmi", total = 1, knownNames = listOf("Tarun Kumar"), previousTotal = 1)
+        val quiet = AfterCallRules.decide(call(1, "9845011111", CallType.OUTGOING), contact, noon, everyCall = true)
+        assertEquals(Alert.QUIET, quiet.alert)
+        assertEquals("You called Vijaya Lakshmi", quiet.title)
+        assertEquals("Known to Tarun Kumar", quiet.text)
+        assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "9845011111", CallType.OUTGOING), contact, noon).alert)   // switch off: as before
+        val nobody = AfterCallRules.decide(call(2, "9876543210", CallType.ANSWERED), CallerInfo(null, total = 0), noon, everyCall = true)
+        assertEquals("Call from +91 98765 43210", nobody.title)
+        assertEquals("No one on WhoHas has this number yet", nobody.text)
+        assertEquals(true, nobody.nobody)
+        val savedNobody = AfterCallRules.decide(call(3, "9876543210", CallType.MISSED), CallerInfo("Ramesh", total = 0, previousTotal = 0), noon, everyCall = true)
+        assertEquals("No one else on WhoHas has it yet", savedNobody.text)
+        // Something new still pops up, marked New.
+        val news = AfterCallRules.decide(call(4, "7760934418", CallType.MISSED), CallerInfo(null, total = 3), noon, everyCall = true)
+        assertEquals(Alert.SOUND, news.alert)
+        assertEquals(true, news.isNew)
+        // A repeat with nothing new: quiet, not again as news.
+        val repeat = AfterCallRules.decide(call(5, "7760934418", CallType.MISSED), CallerInfo(null, total = 3, lastNotified = 3), noon, everyCall = true)
+        assertEquals(Alert.QUIET, repeat.alert)
+        assertEquals("3 people on WhoHas have this number", repeat.text)
+        // Hidden numbers and numbers you blocked stay silent.
+        assertEquals(Alert.NONE, AfterCallRules.decide(call(6, null, CallType.MISSED), CallerInfo(null, 3), noon, everyCall = true).alert)
+        assertEquals(Alert.NONE, AfterCallRules.decide(call(7, "7760934418", CallType.MISSED), CallerInfo(null, 3, blocked = true), noon, everyCall = true).alert)
+    }
+
+    @Test
     fun everyKindOfCallIsTold() {
         // Y, 24 Nov 2026: a blocked call from a 1600 number known to two people went untold.
         val known = CallerInfo(null, total = 2, knownNames = listOf("Vijaya Lakshmi", "Tarun Kumar"))
@@ -80,7 +108,7 @@ class AfterCallTest {
     @Test
     fun aDialledCallIsToldQuietlyAfterItEnds() {
         val note = AfterCallRules.decide(call(1, "9731120456", CallType.OUTGOING), CallerInfo(null, total = 2, knownNames = listOf("Priya", "Meena")), noon)
-        assertEquals(AfterCallNote(Alert.SILENT, "You called +91 97311 20456", "Known to Priya and Meena", "+919731120456"), note)
+        assertEquals(AfterCallNote(Alert.SILENT, "You called +91 97311 20456", "Known to Priya and Meena", "+919731120456", isNew = true), note)
         val night = AfterCallRules.decide(call(1, "9731120456", CallType.OUTGOING), CallerInfo(null, total = 2), 23)
         assertEquals(Alert.SILENT, night.alert)
         val saved = AfterCallRules.decide(call(1, "9900148823", CallType.OUTGOING), CallerInfo("Kiran Gowda", 12, previousTotal = 9), noon)
@@ -110,7 +138,7 @@ class AfterCallTest {
         val unknownBefore = CallerInfo("Kiran Gowda", total = 12, previousTotal = null)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "9900148823", CallType.ANSWERED), unknownBefore, noon).alert)
         val grew = AfterCallRules.decide(call(1, "9900148823", CallType.ANSWERED), CallerInfo("Kiran Gowda", 12, previousTotal = 9), noon)
-        assertEquals(AfterCallNote(Alert.SILENT, "Call from Kiran Gowda", "3 more people have Kiran Gowda's number · now 12", "+919900148823"), grew)
+        assertEquals(AfterCallNote(Alert.SILENT, "Call from Kiran Gowda", "3 more people have Kiran Gowda's number · now 12", "+919900148823", isNew = true), grew)
         val missed = AfterCallRules.decide(call(1, "9900148823", CallType.MISSED), CallerInfo("Kiran Gowda", 12, previousTotal = 9), noon)
         assertEquals(Alert.SILENT, missed.alert)
         assertEquals("Missed call: Kiran Gowda", missed.title)

@@ -369,7 +369,7 @@ async def test_tokens_move_with_the_phone_and_are_capped(db, people, service):
 def test_fcm_message_has_no_personal_data():
     msg = push.FcmSender.message("tok", repo.PUSH_JOINED)["message"]
     assert msg["data"] == {"why": "joined"} and msg["android"]["priority"] == "high"
-    assert push.FcmSender.message("tok", repo.PUSH_CARDS)["message"]["android"]["priority"] == "normal"
+    assert push.FcmSender.message("tok", repo.PUSH_CARDS)["message"]["android"]["priority"] == "high"   # within a minute (24 Nov 2026)
 
 
 async def test_fcm_sender_sorts_out_replies():

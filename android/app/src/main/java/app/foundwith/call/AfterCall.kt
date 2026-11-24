@@ -158,7 +158,7 @@ object AfterCall {
         var needsRetry = false
 
         // Both call switches off: nothing will be shown, so nothing is looked up (no network, no battery).
-        val notifying = graph.store.notifyUnknownCalls || graph.store.notifyOtherCalls
+        val notifying = graph.store.notifyUnknownCalls || graph.store.notifyOtherCalls || graph.store.notifyEveryCall
         for (call in plan.toNotify) {
             val e164 = call.e164
             if (e164 == null || !notifying) {          // hidden number, or calls switched off: nothing to look up
@@ -187,26 +187,35 @@ object AfterCall {
             health = health.seen(checkedInTime = true, secondsAfterEnd = ((System.currentTimeMillis() - call.endedAt) / 1000).coerceAtLeast(0))
             Log.i(TAG, "call ${call.id} checked ${System.currentTimeMillis() - call.endedAt} ms after it ended")
             if (info == null) continue
-            val note = AfterCallRules.decide(call, info, hour, CallCatchUp.repeats(call, calls))
+            val note = AfterCallRules.decide(call, info, hour, CallCatchUp.repeats(call, calls), everyCall = graph.store.notifyEveryCall)
             Log.i(TAG, "call ${call.id} ${call.type}: ${note.alert} (has ${info.total}, name ${info.ownerName != null})")
             val wanted = when (note.alert) {
                 Alert.SOUND -> graph.store.notifyUnknownCalls
                 Alert.SILENT -> graph.store.notifyOtherCalls
+                Alert.QUIET -> graph.store.notifyEveryCall
                 Alert.NONE -> false
             }
             if (wanted) {
                 graph.notifier.postCall(note)
-                graph.store.setLastNotified(e164, info.total)
+                // A quiet note isn't news: the next change to this number still pops up.
+                if (note.alert != Alert.QUIET) graph.store.setLastNotified(e164, info.total)
             }
         }
         // Older calls from the same number were folded into the newest one's notification.
         for (call in calls) if (call.id !in handled && now - call.at <= CallCatchUp.NOTIFY_WITHIN_MS &&
             plan.toNotify.any { it.e164 == call.e164 && it.id in handled }) handled += call.id
+        // An app update stops WhoHas until it next runs: calls in that gap went late because of the
+        // update, not because the phone stopped it, so they don't count towards "Your phone stopped
+        // WhoHas" (24 Nov 2026). The first check after each update knows by the install time.
+        val updatedAt = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime }.getOrDefault(0L)
+        val firstAfterUpdate = updatedAt > 0 && graph.store.checkedUpdateAt != updatedAt
         for (call in plan.tooLate) {
             handled += call.id
+            if (firstAfterUpdate && call.at >= updatedAt - CallCatchUp.NOTIFY_WITHIN_MS) continue
             health = health.seen(checkedInTime = false)
             late += now
         }
+        if (firstAfterUpdate) graph.store.checkedUpdateAt = updatedAt
         graph.store.saveCallState(handled, late.filter { now - it <= CallCatchUp.LOOK_BACK_MS }, health)
         if (needsRetry) retryWhenOnline(context)
         !needsRetry

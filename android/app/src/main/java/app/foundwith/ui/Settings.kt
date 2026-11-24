@@ -153,6 +153,7 @@ fun NotificationsScreen(graph: AppGraph, onBack: () -> Unit, onFix: () -> Unit) 
     val context = LocalContext.current
     var unknown by remember { mutableStateOf(graph.store.notifyUnknownCalls) }
     var other by remember { mutableStateOf(graph.store.notifyOtherCalls) }
+    var every by remember { mutableStateOf(graph.store.notifyEveryCall) }
     var changes by remember { mutableStateOf(graph.store.notifyChanges) }
     var joined by remember { mutableStateOf(graph.store.notifyJoined) }
     var level by remember { mutableStateOf(graph.store.notifyLevel) }
@@ -174,14 +175,17 @@ fun NotificationsScreen(graph: AppGraph, onBack: () -> Unit, onFix: () -> Unit) 
             ToggleRow("Other calls", "Received and dialled calls, when something is new. Pops up, no sound.", other) {
                 other = it; graph.store.notifyOtherCalls = it
             }
+            ToggleRow("Tell me after every call", "Calls with nothing new arrive quietly, in the notification panel.", every) {
+                every = it; graph.store.notifyEveryCall = it
+            }
         }
         ToggleRow("Changes to your numbers", "Each time more people have a number, or someone you know has a caller's number. Pops up, no sound.", changes) {
             changes = it; graph.store.notifyChanges = it
         }
-        ToggleRow("Friends who join", "Someone in your contacts joins WhoHas. Pops up, no sound.", joined) {
+        ToggleRow("Friends who join", "Someone in your contacts joins WhoHas, or anyone joins with your link. Pops up, no sound.", joined) {
             joined = it; graph.store.notifyJoined = it
         }
-        ToggleRow("Your level", "When you reach Popular or Highly popular, are close, or someone joins with your link.", level) {
+        ToggleRow("Your level", "When you reach Popular or Highly popular, or are close.", level) {
             level = it; graph.store.notifyLevel = it
         }
         Text("No sound from 9 pm to 9 am.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -1,5 +1,13 @@
 package app.foundwith.ui
 
+import androidx.compose.runtime.mutableFloatStateOf
+import kotlin.math.roundToInt
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
@@ -178,9 +186,15 @@ fun HomeScreen(
     val contactsList = rememberLazyListState()
     val callsList = rememberLazyListState()
     fun listFor(t: Tab) = when (t) { Tab.UPDATES -> updatesList; Tab.CONTACTS -> contactsList; Tab.CALLS -> callsList }
+    // Search results have a list of their own (24 Nov 2026): they always start at the top, right under
+    // the search box, and clearing the search returns each tab to where it was.
+    val searchList = rememberLazyListState()
+    // The WhoHas row folds away as the list scrolls up and comes back at the top; the search box
+    // below it stays fixed, outside the list, so one tap always opens the keyboard.
+    val header = remember { FoldingHeader() }
     /** A tab at the bottom: tapping the one you're on jumps to its top. */
     fun pick(t: Tab) {
-        if (tab == t) scope.launch { listFor(t).animateScrollToItem(0) } else tab = t
+        if (tab == t) scope.launch { listFor(t).animateScrollToItem(0); header.open() } else tab = t
     }
 
     // Back closes the search first (it used to close the app), then goes back to Call log.
@@ -307,10 +321,9 @@ fun HomeScreen(
             }
         },
     ) { padding ->
-        val list = listFor(tab)
-        LazyColumn(Modifier.fillMaxSize(), state = list, contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() + 16.dp,
-            top = padding.calculateTopPadding())) {
-            item {
+        val list = if (query.isNotBlank()) searchList else listFor(tab)
+        Column(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding()).nestedScroll(header.connection)) {
+            header.Folding {
                 Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Wordmark()
@@ -330,17 +343,13 @@ fun HomeScreen(
                     IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) { Icon(Icons.Filled.Settings, contentDescription = "Settings") }
                 }
             }
-            // The search stays pinned at the top while the list scrolls under it (22 Nov 2026).
-            stickyHeader(key = "search") {
-                val pinned = list.firstVisibleItemIndex >= SEARCH_ITEM
-                Surface(color = MaterialTheme.colorScheme.background, shadowElevation = if (pinned) 6.dp else 0.dp) {
-                    Column {
-                        SearchBox(query, onChange = { query = it }, onFocus = { searching = it })
-                        if (pinned) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                    }
+            Surface(color = MaterialTheme.colorScheme.background, shadowElevation = if (header.folded) 6.dp else 0.dp) {
+                Column {
+                    SearchBox(query, onChange = { query = it }, onFocus = { searching = it })
+                    if (header.folded) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
-
+        LazyColumn(Modifier.fillMaxWidth().weight(1f), state = list, contentPadding = PaddingValues(bottom = padding.calculateBottomPadding() + 16.dp)) {
             if (query.isNotBlank()) {
                 searchResults(state, query, found, askedFor, onAsk = { askedFor = it }, onNumber)
                 return@LazyColumn
@@ -371,6 +380,7 @@ fun HomeScreen(
                 }
             }
         }
+        }
     }
     }
     menuFor?.let { e164 ->
@@ -378,8 +388,47 @@ fun HomeScreen(
     }
 }
 
-/** The pinned search row is the second item, under WhoHas and Share in group. */
-private const val SEARCH_ITEM = 1
+/**
+ * The WhoHas row on top of Home (24 Nov 2026): it folds away as the list scrolls up and opens again
+ * once the list is back at its top, like WhatsApp's. It sits outside the list, as the search box
+ * under it does, so scrolling and the keyboard never rebuild the search box (it used to take 4 or
+ * 5 taps when the list was scrolled down).
+ */
+private class FoldingHeader {
+    var height by mutableFloatStateOf(0f)
+    var offset by mutableFloatStateOf(0f)        // 0 (open) to -height (folded)
+    val folded: Boolean get() = height > 0f && offset <= -height + 1f
+
+    fun open() { offset = 0f }
+
+    val connection = object : NestedScrollConnection {
+        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+            if (available.y >= 0f || height <= 0f) return Offset.Zero
+            val next = (offset + available.y).coerceIn(-height, 0f)
+            val used = next - offset
+            offset = next
+            return Offset(0f, used)
+        }
+
+        override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+            if (available.y <= 0f || height <= 0f) return Offset.Zero
+            val next = (offset + available.y).coerceIn(-height, 0f)
+            val used = next - offset
+            offset = next
+            return Offset(0f, used)
+        }
+    }
+
+    @Composable
+    fun Folding(content: @Composable () -> Unit) {
+        Box(Modifier.fillMaxWidth().clipToBounds().layout { measurable, constraints ->
+            val placeable = measurable.measure(constraints.copy(minHeight = 0, maxHeight = androidx.compose.ui.unit.Constraints.Infinity))
+            height = placeable.height.toFloat()
+            val shown = (placeable.height + offset).roundToInt().coerceIn(0, placeable.height)
+            layout(placeable.width, shown) { placeable.place(0, offset.roundToInt()) }
+        }) { content() }
+    }
+}
 
 private fun countLabel(total: Int): String = if (total == 1) "person has it" else "people have it"
 
@@ -425,6 +474,8 @@ private fun LazyListScope.searchResults(state: AppState, query: String, found: F
                         tag = if (r.takenOut) null else rowTag(r.total, r.totalIsLowerBound),
                         onClick = { onNumber(r.number) },
                         e164 = r.number,
+                        // Truecaller beside a searched number not in your contacts (24 Nov 2026), as on Calls.
+                        trailing = if (!state.isSaved(r.number) && !r.takenOut) { { TruecallerPill(r.number) } } else null,
                     )
                 }
                 is Found.Problem -> HintBox(Icons.Filled.Warning, found.title, found.text)
@@ -549,9 +600,12 @@ internal fun updateItems(state: AppState): List<UpdateItem> {
         if (ch.ref == mineRef || ch.ref in state.blockedRefs) continue
         e164Of(ch.ref)?.let { events += UpdateEvent(it, ch.at, UpdateWhat.COUNT_UP) }
     }
+    // A contact who joined is news on its own, even when nobody else has their number (24 Nov 2026:
+    // the link-join test found such a join missing from Updates).
+    val joinedNumbers = LinkedHashSet<String>()
     for ((ref, at) in log.joined) {
         if (ref in state.blockedRefs) continue
-        e164Of(ref)?.let { events += UpdateEvent(it, at, UpdateWhat.JOINED) }
+        e164Of(ref)?.let { events += UpdateEvent(it, at, UpdateWhat.JOINED); joinedNumbers += it }
     }
     for (gain in log.gains.values) {
         if (gain.ref == mineRef || gain.ref in state.blockedRefs) continue
@@ -562,6 +616,7 @@ internal fun updateItems(state: AppState): List<UpdateItem> {
     fun shown(e164: String) = !state.isMine(e164) && state.cardFor(e164)?.let { it.total > 0 && !state.isBlocked(it) } == true
     val numbers = LinkedHashSet<String>()
     for (c in state.contacts) c.e164?.let { if (shown(it)) numbers += it }
+    for (e164 in joinedNumbers) if (!state.isMine(e164) && state.cardFor(e164)?.let { state.isBlocked(it) } != true) numbers += e164
     for (call in state.calls) {
         val e164 = call.e164 ?: continue
         if (state.isSaved(e164) || !shown(e164)) continue
@@ -602,7 +657,7 @@ private fun LazyListScope.updatesTab(
         itemsIndexed(news, key = { _, it -> "u:" + it.e164 }) { i, it ->
             InGroup(first = i == 0, last = i == news.lastIndex, tint = true) {
                 // Someone who joined with your link: how far the next level is, and Share in group right under them.
-                if (it.change?.what == UpdateWhat.JOINED && state.cardFor(it.e164)?.ref in linkRefs) {
+                if (it.change?.what == UpdateWhat.JOINED && (state.cardFor(it.e164)?.ref ?: state.refFor(it.e164)) in linkRefs) {
                     Column {
                         UpdateRow(state, it, isNew = true, onNumber)
                         Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -717,7 +772,7 @@ internal data class ChangeLine(val text: String, val what: UpdateWhat)
 internal fun AppState.changeLine(item: UpdateItem, since: Long): ChangeLine? {
     val change = item.change?.takeIf { it == item.latest || it.at > since } ?: return null
     val card = cardFor(item.e164)
-    val ref = card?.ref
+    val ref = card?.ref ?: refFor(item.e164)
     val text = when (change.what) {
         UpdateWhat.COUNT_UP -> ref?.let { changes.changes[it] }?.let { HolderText.crossed(it.before, it.now) ?: HolderText.change(it.now, it.delta) }
         UpdateWhat.JOINED -> {

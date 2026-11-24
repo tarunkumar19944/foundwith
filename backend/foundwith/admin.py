@@ -179,6 +179,30 @@ async def health_report(db: Database, days: int = 14) -> list[dict[str, Any]]:
             for r in rows]
 
 
+def _pct(part: int, whole: int) -> float | None:
+    return round(100 * part / whole, 1) if whole else None
+
+
+async def pilot_report(db: Database, days: int = 14) -> dict[str, Any]:
+    """The pilot's measures: the match rate (a call or search where someone on WhoHas has the
+    number) and the people each person brings with their link. Counts only, no numbers."""
+    async with db.acquire() as conn:
+        r = await repo.pilot_numbers(conn, days)
+    return {
+        "days": days,
+        "calls_checked": r["calls"], "calls_matched_pct": _pct(r["calls_matched"], r["calls"]),
+        "searches": r["searches"], "searches_matched_pct": _pct(r["searches_matched"], r["searches"]),
+        "users": r["users"], "new_users": r["new_users"],
+        "joined_with_a_link": r["joined_with_link"],
+        "joined_with_a_link_pct_of_new": _pct(r["joined_with_link"], r["new_users"]),
+        "people_who_brought_someone": r["inviters"],
+        "brought_per_new_user": round(r["joined_with_link"] / r["new_users"], 2) if r["new_users"] else None,
+        "brought_per_inviter": round(r["joined_with_link"] / r["inviters"], 2) if r["inviters"] else None,
+        "inviters_brought_1": r["brought_1"], "inviters_brought_2_to_4": r["brought_2_to_4"],
+        "inviters_brought_5_plus": r["brought_5_plus"], "most_brought_by_one": r["most_by_one"],
+    }
+
+
 async def run(db: Database, argv: list[str]) -> Any:
     command, args = (argv[0] if argv else ""), argv[1:]
     try:
@@ -202,11 +226,13 @@ async def run(db: Database, argv: list[str]) -> Any:
             return await release_name(db, args[0])
         if command == "health" and len(args) <= 1:
             return await health_report(db, int(args[0]) if args else 14)
+        if command == "pilot" and len(args) <= 1:
+            return await pilot_report(db, int(args[0]) if args else 14)
     except ValueError as exc:
         raise AdminError(f"bad argument: {exc}") from exc
     raise AdminError("usage: hash <number> | number <hash> | suspend-number <hash> <reason> | "
                      "hold-name <hash> <reason> | release-name <hash> | reports | suspend-report <id> <reason> | "
-                     "dismiss-report <id> <reason> | suspend <user id> <reason> | unsuspend <user id> | health [days]")
+                     "dismiss-report <id> <reason> | suspend <user id> <reason> | unsuspend <user id> | health [days] | pilot [days]")
 
 
 async def main(argv: list[str]) -> int:

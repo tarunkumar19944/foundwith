@@ -26,10 +26,12 @@ import math
 import re
 import secrets
 import uuid
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from typing import Any
+
+import anyio
 
 from . import repo
 from .auth import Identity
@@ -205,6 +207,8 @@ class Service:
         self.settings = settings
         self.identity = identity
         self.names = NameCipher(settings.name_key)
+        # Sends due pushes now; set by the app when pushes are on. Used for joins and invites.
+        self.push_now: Callable[[], Awaitable[None]] | None = None
         self.quota_exempt = frozenset(
             hasher.digest(e164) for e164 in (normalise(n, settings.country_code) for n in settings.quota_exempt_numbers) if e164)
 
@@ -602,6 +606,19 @@ class Service:
                     await repo.queue_joined_pushes(conn, user["id"], own, await repo.excluded_ids(conn, user["id"], own))
         except Exception:  # noqa: BLE001
             log.warning("could not queue live updates", exc_info=True, extra={"event": "push_queue_failed"})
+            return
+        if joined:
+            await self._push_now()
+
+    async def _push_now(self) -> None:
+        """Best effort, at most a few seconds: what isn't sent now goes at the next minute's dispatch."""
+        if self.push_now is None:
+            return
+        try:
+            with anyio.move_on_after(5):
+                await self.push_now()
+        except Exception:  # noqa: BLE001
+            log.warning("could not send pushes now", exc_info=True, extra={"event": "push_now_failed"})
 
     # ---------- matching
 
@@ -807,6 +824,8 @@ class Service:
             if s.push_mode != "off":
                 await repo.queue_push(conn, inviter["id"], repo.PUSH_INVITE)
         log.info("invite redeemed", extra={"event": "invite_redeemed"})
+        if s.push_mode != "off":
+            await self._push_now()
         return {"redeemed": True}
 
     # ---------- Tell

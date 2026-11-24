@@ -444,6 +444,11 @@ def create_app(settings: Settings | None = None, *, db: Database | None = None, 
         app.state.push_sender = push_sender
         app.state.push_caller = push_caller
         app.state.service = Service(database, hasher, settings, identity)
+        if push_sender is not None:
+            # Joins and invites are sent at once, not at the next minute's dispatch (24 Nov 2026).
+            async def push_now() -> None:
+                await push.dispatch(database, push_sender)
+            app.state.service.push_now = push_now
         # Download the sign-in certificates before taking traffic, so the first incoming-call
         # lookup on a fresh instance doesn't wait for them.
         warm = getattr(verifier, "warm", None)

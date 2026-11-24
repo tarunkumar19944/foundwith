@@ -55,8 +55,11 @@ class Notifier(private val context: Context) {
                 setSound(null, null)
                 enableVibration(false)
             },
+            NotificationChannel(LAST_CALL, "After every call (quiet)", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "Calls with nothing new, in the notification panel only. No pop-up, no sound."
+            },
             NotificationChannel(LEVEL, "Your level", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "When you reach a new level, are close, or someone joins with your link. No sound."
+                description = "When you reach a new level, or are close. No sound."
             },
         ))
         // Channels from earlier versions.
@@ -84,8 +87,11 @@ class Notifier(private val context: Context) {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pending = PendingIntent.getActivity(context, note.number.hashCode(), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        if (note.alert == Alert.QUIET) { postLastCall(note, pending); return }
         val channel = if (note.alert == Alert.SOUND) CALLS_SOUND else CALLS_QUIET
         val notification = NotificationCompat.Builder(context, channel)
+            // Something new or changed: "New" beside WhoHas at the top of the notification (24 Nov 2026).
+            .setSubText(if (note.isNew) "New" else null)
             .setSmallIcon(R.drawable.ic_stat_found_with)
             .setColor(ACCENT)
             .setContentTitle(note.title)
@@ -104,6 +110,29 @@ class Notifier(private val context: Context) {
             .build()
         @Suppress("MissingPermission")
         runCatching { NotificationManagerCompat.from(context).notify(TAG_CALL, note.number.hashCode(), notification) }
+    }
+
+    /**
+     * A call with nothing new (Y, 24 Nov 2026): one quiet "Last call" note in the notification panel,
+     * no pop-up and no sound; the next call replaces it. Share in group when nobody has the number.
+     */
+    private fun postLastCall(note: AfterCallNote, open: PendingIntent) {
+        val builder = NotificationCompat.Builder(context, LAST_CALL)
+            .setSmallIcon(R.drawable.ic_stat_found_with)
+            .setColor(ACCENT)
+            .setSubText("Last call")
+            .setContentTitle(note.title)
+            .setContentText(note.text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(note.text))
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setSilent(true)
+            .setAutoCancel(true)
+            .setContentIntent(open)
+        if (note.nobody) builder.addAction(0, "Share in group", action(ACTION_SHARE_GROUP, ""))
+        else builder.addAction(0, "Copy number", action(ACTION_COPY, note.number))
+        builder.addAction(0, "Truecaller", action(ACTION_TRUECALLER, note.number))
+        @Suppress("MissingPermission")
+        runCatching { NotificationManagerCompat.from(context).notify(TAG_LAST_CALL, 1, builder.build()) }
     }
 
     /** A button on a notification: opens WhoHas's invisible [NumberActionActivity] with the number. */
@@ -131,6 +160,7 @@ class Notifier(private val context: Context) {
         val pending = PendingIntent.getActivity(context, ("c" + id).hashCode(), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val builder = NotificationCompat.Builder(context, CHANGES)
+            .setSubText("New")      // a change: marked New, as on calls (24 Nov 2026)
             .setSmallIcon(R.drawable.ic_stat_found_with)
             .setColor(ACCENT)
             .setContentTitle(title)
@@ -158,6 +188,7 @@ class Notifier(private val context: Context) {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pending = PendingIntent.getActivity(context, 1, open, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val builder = NotificationCompat.Builder(context, CHANGES)
+            .setSubText("New")      // a change: marked New, as on calls (24 Nov 2026)
             .setSmallIcon(R.drawable.ic_stat_found_with)
             .setColor(ACCENT)
             .setContentTitle(title)
@@ -207,13 +238,14 @@ class Notifier(private val context: Context) {
         }
         val pending = PendingIntent.getActivity(context, ("l" + ref).hashCode(), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val notification = NotificationCompat.Builder(context, LEVEL)
+        val notification = NotificationCompat.Builder(context, JOINED)
+            .setSubText("New")
             .setSmallIcon(R.drawable.ic_stat_found_with)
             .setColor(ACCENT)
             .setContentTitle(title)
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)   // pops up, like a friend joining (24 Nov 2026)
             .setAutoCancel(true)
             .setContentIntent(pending)
             .addAction(0, "Share in group", action(ACTION_SHARE_GROUP, ""))
@@ -233,6 +265,7 @@ class Notifier(private val context: Context) {
         val pending = PendingIntent.getActivity(context, ("j" + e164).hashCode(), open,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val builder = NotificationCompat.Builder(context, JOINED)
+            .setSubText("New")      // a change: marked New, as on calls (24 Nov 2026)
             .setSmallIcon(R.drawable.ic_stat_found_with)
             .setColor(ACCENT)
             .setContentTitle(title)
@@ -249,6 +282,8 @@ class Notifier(private val context: Context) {
     companion object {
         const val CALLS_SOUND = "callers"
         const val CALLS_QUIET = "calls_other"
+        const val LAST_CALL = "last_call"
+        private const val TAG_LAST_CALL = "last_call"
         const val CHANGES = "number_changes"
         const val LEVEL = "level"
         const val JOINED = "friends_joined"

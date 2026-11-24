@@ -117,7 +117,7 @@ class Settings:
     fcm_project_id: str = ""           # defaults to firebase_project_id
     push_caller: str = ""              # the service account Cloud Scheduler signs in as
     push_audience: str = ""            # the audience Cloud Scheduler puts in its token
-    cards_push_gap_s: int = 600        # card changes reach a person at most every 10 minutes
+    cards_push_gap_s: int = 60         # card changes reach a person within about a minute (24 Nov 2026)
 
     # Phones running an older app than this (versionCode, sent as X-App-Version) are asked to update.
     min_app_version: int = 0

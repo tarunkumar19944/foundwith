@@ -1,5 +1,7 @@
 package app.foundwith.ui
 
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
@@ -492,12 +494,20 @@ private const val KEPT_FRESH_MS = 30 * 60 * 1000L
 
 
 /**
- * The latest call with this number, and a small green "Call back" at its end (Y, 24 Nov 2026,
- * option A): for every kind of call. It replaced the Truecaller and Call back buttons on the card.
+ * The latest call with this number, and a small green "Call" at its end (Y, 24 Nov 2026): for every
+ * kind of call. It calls at once; Android asks for the call permission the first time, and if that
+ * is refused, Call opens the dialer with the number instead and never asks again.
  */
 @Composable
 private fun CallBackLine(call: app.foundwith.core.CallEvent, e164: String) {
     val context = androidx.compose.ui.platform.LocalContext.current
+    val store = remember { app.foundwith.data.LocalStore(context) }
+    val permission = android.Manifest.permission.CALL_PHONE
+    val ask = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) context.callNow(e164) else { store.addDenial(permission); context.dial(e164) }
+    }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         CallKindIcon(call, 28.dp)
         Spacer(Modifier.width(8.dp))
@@ -505,16 +515,24 @@ private fun CallBackLine(call: app.foundwith.core.CallEvent, e164: String) {
             modifier = Modifier.weight(1f), maxLines = 2)
         Spacer(Modifier.width(8.dp))
         androidx.compose.material3.Surface(
-            onClick = { context.dial(e164) },
+            onClick = {
+                val granted = androidx.core.content.ContextCompat.checkSelfPermission(context, permission) ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED
+                when {
+                    granted -> context.callNow(e164)
+                    store.denials(permission) > 0 -> context.dial(e164)
+                    else -> ask.launch(permission)
+                }
+            },
             shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
             color = LiveGreen.copy(alpha = 0.14f),
             contentColor = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.height(36.dp),
+            modifier = Modifier.height(36.dp).semantics { contentDescription = "Call ${app.foundwith.core.PhoneNumbers.display(e164)}" },
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                 Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Call back", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+                Text("Call", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
             }
         }
     }

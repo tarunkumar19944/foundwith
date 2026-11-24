@@ -51,9 +51,15 @@ data class CallerInfo(
     val lastNotified: Int? = null,
 )
 
-enum class Alert { NONE, SILENT, SOUND }
+/** QUIET (Y, 24 Nov 2026): a call with nothing new, told in the notification panel only, no pop-up. */
+enum class Alert { NONE, SILENT, SOUND, QUIET }
 
-data class AfterCallNote(val alert: Alert, val title: String, val text: String, val number: String) {
+/**
+ * [isNew]: something new or changed, so it pops up marked New. [nobody]: no one on WhoHas has the
+ * number, so the quiet note offers Share in group.
+ */
+data class AfterCallNote(val alert: Alert, val title: String, val text: String, val number: String,
+                         val isNew: Boolean = false, val nobody: Boolean = false) {
     companion object {
         val NONE = AfterCallNote(Alert.NONE, "", "", "")
     }
@@ -85,7 +91,34 @@ object AfterCallRules {
         else -> "Call from $who"
     }
 
-    fun decide(call: CallEvent, info: CallerInfo, hourOfDay: Int, repeats: Int = 1): AfterCallNote {
+    /**
+     * [everyCall] (Y, 24 Nov 2026, "Tell me after every call"): a call with nothing new is told too,
+     * quietly ([Alert.QUIET]); what is new or changed pops up, marked New.
+     */
+    fun decide(call: CallEvent, info: CallerInfo, hourOfDay: Int, repeats: Int = 1, everyCall: Boolean = false): AfterCallNote {
+        val news = news(call, info, hourOfDay, repeats)
+        if (news.alert != Alert.NONE) return news.copy(isNew = true)
+        if (!everyCall || call.isHidden || info.blocked) return news
+        val e164 = call.e164 ?: return news
+        val saved = !info.contactName.isNullOrBlank() && !Naming.looksLikeNumber(info.contactName)
+        val who = if (saved) info.contactName!!.trim() else PhoneNumbers.display(e164)
+        val missed = call.type == CallType.MISSED || call.type == CallType.REJECTED
+        val title = when {
+            call.isDialled -> "You called $who"
+            missed && !saved && repeats >= 2 -> "$repeats missed calls: $who"
+            missed -> "Missed call: $who"
+            else -> otherTitle(call.type, who)
+        }
+        val text = when {
+            info.total <= 0 -> if (saved) HolderText.NO_ONE_ELSE else HolderText.NO_ONE + " yet"
+            info.knownNames.isNotEmpty() -> HolderText.knownTo(info.knownNames, info.total, info.lowerBound)
+            else -> "${HolderText.count(info.total, info.lowerBound)} on WhoHas " +
+                (if (info.total == 1 && !info.lowerBound) "has" else "have") + " this number"
+        }
+        return AfterCallNote(Alert.QUIET, title, text, e164, isNew = false, nobody = info.total <= 0)
+    }
+
+    private fun news(call: CallEvent, info: CallerInfo, hourOfDay: Int, repeats: Int): AfterCallNote {
         if (!call.isEligible || call.isHidden || info.blocked) return AfterCallNote.NONE
         val e164 = call.e164 ?: return AfterCallNote.NONE
         val dialled = call.isDialled

@@ -419,7 +419,7 @@ class AppModel(private val graph: AppGraph) {
      * has their number, else Updates.
      */
     private fun notifyLinkJoins(refs: Set<String>, mine: Card?, index: NumberIndex) {
-        if (!graph.store.notifyLevel || graph.inFront) return
+        if (!graph.store.notifyJoined || graph.inFront) return
         val total = mine?.total ?: 0
         for (ref in refs) {
             val e164 = index.byRef[ref]?.e164

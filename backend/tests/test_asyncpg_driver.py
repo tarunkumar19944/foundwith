@@ -101,6 +101,8 @@ async def test_main_flows_through_asyncpg(db, pg_conninfo, identity):
         assert (await push.send_wakeups(database, push.LogSender()))["sent"] == 2
         await service.record_health("xiaomi", 14, dt.datetime.now(dt.timezone.utc).date(), 10, 7)
         assert await admin.run(database, ["health", "3650"])
+        pilot = await admin.run(database, ["pilot", "3650"])
+        assert pilot["users"] >= 2 and "calls_matched_pct" in pilot and "brought_per_inviter" in pilot
         await service.forget_device(ravi, "fcm-token-ravi-" + "x" * 20)
 
         # opt-out by someone with no account, then by someone with one

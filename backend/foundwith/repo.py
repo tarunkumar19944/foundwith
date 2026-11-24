@@ -492,6 +492,27 @@ async def holders_page(conn: Conn, viewer_id: int, number_hmac: bytes, after_id:
 
 # ---------------------------------------------------------------- lookups: record and entitlement
 
+async def pilot_numbers(conn: Conn, days: int) -> Row:
+    """The pilot's two measures (24 Nov 2026), over the last `days` days: how often a call or search
+    finds someone on WhoHas with the number, and how many people each person brings with their link."""
+    return await conn.fetchrow(
+        """WITH l AS (SELECT kind, holders_found FROM lookup_log WHERE created_at > now() - make_interval(days => $1)),
+                j AS (SELECT inviter_id, count(*) AS n FROM invite_redemptions
+                      WHERE redeemed_at > now() - make_interval(days => $1) AND inviter_id IS NOT NULL GROUP BY inviter_id)
+           SELECT (SELECT count(*) FROM l WHERE kind = 'call') AS calls,
+                  (SELECT count(*) FROM l WHERE kind = 'call' AND holders_found > 0) AS calls_matched,
+                  (SELECT count(*) FROM l WHERE kind = 'search') AS searches,
+                  (SELECT count(*) FROM l WHERE kind = 'search' AND holders_found > 0) AS searches_matched,
+                  (SELECT count(*) FROM users WHERE created_at > now() - make_interval(days => $1)) AS new_users,
+                  (SELECT count(*) FROM users) AS users,
+                  (SELECT coalesce(sum(n), 0) FROM j) AS joined_with_link,
+                  (SELECT count(*) FROM j) AS inviters,
+                  (SELECT count(*) FROM j WHERE n = 1) AS brought_1,
+                  (SELECT count(*) FROM j WHERE n BETWEEN 2 AND 4) AS brought_2_to_4,
+                  (SELECT count(*) FROM j WHERE n >= 5) AS brought_5_plus,
+                  (SELECT coalesce(max(n), 0) FROM j) AS most_by_one""", days)
+
+
 async def log_lookup(conn: Conn, user_id: int, actor_phone_hmac: bytes, number_hmac: bytes,
                      kind: str, holders_found: int) -> None:
     await conn.execute(

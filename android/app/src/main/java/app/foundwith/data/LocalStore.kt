@@ -225,6 +225,14 @@ class LocalStore(context: Context) {
     var notifyOtherCalls: Boolean
         get() = prefs.getBoolean("n_other_calls", true)
         set(value) { prefs.edit().putBoolean("n_other_calls", value).apply() }
+    /** The app's install/update time at the last call check: calls late around an update don't count. */
+    var checkedUpdateAt: Long
+        get() = prefs.getLong("checked_update_at", 0L)
+        set(value) { prefs.edit().putLong("checked_update_at", value).apply() }
+    /** "Tell me after every call" (Y, 24 Nov 2026): calls with nothing new arrive quietly too. */
+    var notifyEveryCall: Boolean
+        get() = prefs.getBoolean("n_every_call", true)
+        set(value) { prefs.edit().putBoolean("n_every_call", value).apply() }
     var notifyChanges: Boolean
         get() = prefs.getBoolean("n_changes", true)
         set(value) { prefs.edit().putBoolean("n_changes", value).apply() }

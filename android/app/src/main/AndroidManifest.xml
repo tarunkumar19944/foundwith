@@ -12,6 +12,10 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
     <!-- Android 13+: notifications after calls and about changes. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- "Call" on a card places the call at once (Y, 24 Nov 2026); asked only on the first tap. -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+    <!-- Calling doesn't make a SIM a must: tablets without one still get WhoHas from Play. -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
     <!-- No caller ID role, no drawing over other apps, no phone-state permission: Found With learns
          about calls from the call log (full flavour only, see src/full/AndroidManifest.xml). -->
 

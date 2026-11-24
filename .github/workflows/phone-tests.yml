@@ -50,8 +50,8 @@ env:
   # is the 5G one, a14xm: Test Lab has no plain A14, a14m, left, so runs waited 4.5 hours for it.)
   PHONES: >-
     model=a10,version=29 model=a14xm,version=34 model=a16,version=35 model=houji,version=35
-    model=OP5759L1,version=34 model=RE58C2,version=35 model=RMX3231,version=30 model=OP5958L1,version=34
-    model=TECNO-BG6,version=33 model=Infinix-X6525,version=33 model=caprip,version=31 model=akita,version=35
+    model=OP5759L1,version=34 model=RE58C2,version=35 model=OP573DL1,version=34 model=OP5958L1,version=34
+    model=java,version=30 model=Infinix-X6525,version=33 model=caprip,version=31 model=akita,version=35
     model=b6qsqw,version=36 model=gta9pwifi,version=34
 
 jobs:

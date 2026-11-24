@@ -48,8 +48,8 @@ class NotificationsTest {
     private fun posted() = shadowOf(manager).allNotifications
 
     @Test
-    fun fiveChannelsAndNoDailySummary() {
-        assertEquals(setOf("callers", "calls_other", "number_changes", "friends_joined", "level"), manager.notificationChannels.map { it.id }.toSet())
+    fun sixChannelsAndNoDailySummary() {
+        assertEquals(setOf("callers", "calls_other", "number_changes", "friends_joined", "last_call", "level"), manager.notificationChannels.map { it.id }.toSet())
         assertEquals(NotificationManager.IMPORTANCE_HIGH, manager.getNotificationChannel("callers").importance)
         // Other calls, changes and joins pop up on the screen at once too, but make no sound (23 Nov 2026).
         for (id in listOf("calls_other", "number_changes", "friends_joined")) {
@@ -58,9 +58,24 @@ class NotificationsTest {
             assertNull(id, channel.sound)
             assertFalse(id, channel.shouldVibrate())
         }
-        for (quiet in listOf("level")) {
+        for (quiet in listOf("level", "last_call")) {
             assertEquals(quiet, NotificationManager.IMPORTANCE_LOW, manager.getNotificationChannel(quiet).importance)
         }
+    }
+
+    @Test
+    fun everyCallIsToldNewOnesPopUpTheRestQuietlyInOneNote() {
+        // Y, 24 Nov 2026: a notification after every call; what's new pops up marked New.
+        notifier.postCall(AfterCallNote(Alert.SILENT, "You called +91 97311 20456", "Now known to Priya", "+919731120456", isNew = true))
+        notifier.postCall(AfterCallNote(Alert.QUIET, "You called Vijaya Lakshmi", "Known to Tarun Kumar", "+919845011111"))
+        notifier.postCall(AfterCallNote(Alert.QUIET, "Call from +91 98765 43210", "No one on WhoHas has this number yet", "+919876543210", nobody = true))
+        val all = posted()
+        assertEquals(2, all.size)                                       // the second quiet note replaced the first
+        val news = all.single { it.channelId == "calls_other" }
+        assertEquals("New", news.extras.getCharSequence(android.app.Notification.EXTRA_SUB_TEXT))
+        val quiet = all.single { it.channelId == "last_call" }
+        assertEquals("Call from +91 98765 43210", quiet.extras.getString("android.title"))
+        assertEquals(listOf("Share in group", "Truecaller"), quiet.actions.map { it.title.toString() })
     }
 
     @Test
@@ -113,14 +128,14 @@ class NotificationsTest {
     }
 
     @Test
-    fun aJoinWithYourLinkIsItsOwnSilentNoteWithShareInGroup() {
+    fun aJoinWithYourLinkIsItsOwnPopUpWithShareInGroup() {
         notifier.postLinkJoined("r1", "+919845011111", "Ravi Kumar joined with your link", "Has your number. 9 people have it now: 1 more and you’re Popular.")
         notifier.postLinkJoined("r2", null, "Someone joined with your link", "9 people have your number. 1 more and you’re Popular.")
         notifier.postLevel("1 more person and you’re Popular", "9 people have your number. Share WhoHas in a group.")
         val all = posted()
         assertEquals(3, all.size)                                  // one each; none replaces another
         val ravi = all.single { it.extras.getString("android.title") == "Ravi Kumar joined with your link" }
-        assertEquals("level", ravi.channelId)
+        assertEquals("friends_joined", ravi.channelId)                 // pops up, like a friend joining (24 Nov 2026)
         assertEquals(listOf("Share in group"), ravi.actions.map { it.title.toString() })
     }
 

@@ -2,7 +2,8 @@
 
   * Silent refreshes ("cards", "joined", "invite"): the app fetches its cards again. Queued in
     push_queue, one row per person; Cloud Scheduler calls /internal/push every minute. Card
-    changes wait at least cards_push_gap_s after the person's last push.
+    changes wait at least cards_push_gap_s (a minute) after the person's last push; joins and
+    invites are also sent at once, from the request that caused them.
   * Wake-ups ("wake"), a few times a day: the app checks the call log for calls it didn't get to
     check (some phones stop apps in the background). /internal/push/wake.
   There is no daily summary (removed 22 Nov 2026): the app tells about changes itself, when it refreshes.
@@ -118,8 +119,9 @@ class FcmSender:
             "token": token,
             "data": {"why": reasons(why)},
             "android": {
-                # High priority only for news people notice; card refreshes can wait for Doze.
-                "priority": "high" if urgent else "normal",
+                # Every refresh is high priority since 24 Nov 2026, so changes are told within about
+                # a minute even when the phone is dozing. Joins and invites live longer.
+                "priority": "high",
                 "ttl": "86400s" if urgent else "3600s",
                 "collapse_key": "refresh",
             },

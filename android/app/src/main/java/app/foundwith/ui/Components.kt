@@ -205,7 +205,13 @@ fun Context.searchInTruecaller(e164: String): TruecallerRoute {
     return TruecallerRoute.NONE
 }
 
-/** "Call back": the phone's own dialer, with the number filled in. No call permission needed. */
+/** Places the call at once (needs the call permission); the dialer if that fails. */
+fun Context.callNow(e164: String) {
+    val ok = runCatching { startActivity(Intent(Intent.ACTION_CALL, Uri.parse("tel:$e164")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+    if (!ok) dial(e164)
+}
+
+/** The phone's own dialer, with the number filled in. No call permission needed. */
 fun Context.dial(e164: String) {
     runCatching { startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$e164")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }
