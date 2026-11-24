@@ -155,6 +155,7 @@ Every call under its day (Today, Yesterday, Friday, 12 Nov), each with the phone
 | Phone with arrow out, grey | You called · not answered · 7:30 pm |
 | Phone with a slash, red | Rejected · 8:02 am |
 | Second line | Known to Priya and 2 more · 3 people have it · No one on WhoHas has this number |
+| Truecaller (Y, 24 Nov) | A small grey **⌕ Truecaller** button on the right of rows whose number isn't in your contacts (Call log and Updates): copies the number and opens Truecaller on it. Not on contacts or blocked numbers. |
 | Hidden number | Private number · Can't check hidden numbers |
 | Another country's number | +971501234567 · checked like any number (23 Nov) |
 | A short code (121) | WhoHas can't check this number |

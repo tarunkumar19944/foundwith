@@ -759,12 +759,16 @@ internal fun UpdateRow(state: AppState, item: UpdateItem, isNew: Boolean, onNumb
     val change = state.changeLine(item, state.markSince(e164))
     val changeText = change?.text
     // When the latest change happened, on the right; under New in blue, with the dot.
-    val time: (@Composable () -> Unit)? = if (at == null) null else {
+    // Truecaller under it for numbers that aren't your contacts (Y, 24 Nov 2026).
+    val time: (@Composable () -> Unit)? = if (at == null && saved) null else {
         {
             Column(horizontalAlignment = Alignment.End) {
-                Text(whenText(at), style = MaterialTheme.typography.labelMedium,
-                    color = if (isNew) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                if (isNew) { Spacer(Modifier.height(6.dp)); NewDot() }
+                if (at != null) {
+                    Text(whenText(at), style = MaterialTheme.typography.labelMedium,
+                        color = if (isNew) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (isNew) { Spacer(Modifier.height(6.dp)); NewDot() }
+                }
+                if (!saved) { Spacer(Modifier.height(6.dp)); TruecallerPill(e164) }
             }
         }
     }
@@ -961,6 +965,8 @@ internal fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, onNumb
                 else -> knownColour(card)
             },
             isNew = mark != null,
+            // Truecaller on numbers that aren't your contacts (Y, 24 Nov 2026).
+            trailing = if (!state.isSaved(e164) && !blocked) { { TruecallerPill(e164) } } else null,
             onClick = { onNumber(e164) },
             e164 = e164,
             tag = rowTag(state.cardFor(e164)?.total, state.cardFor(e164)?.totalIsLowerBound == true),

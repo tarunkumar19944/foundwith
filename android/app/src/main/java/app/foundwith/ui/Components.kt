@@ -81,6 +81,8 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import app.foundwith.BuildConfig
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.material.icons.filled.Search
 import app.foundwith.core.HolderText
 import app.foundwith.core.Levels
 import app.foundwith.core.ShownName
@@ -864,6 +866,25 @@ fun CopyNumberButton(e164: String) {
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
         androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(app.foundwith.R.drawable.ic_copy),
             contentDescription = "Copy number", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+    }
+}
+
+/**
+ * A small grey "Truecaller" button on a row for a number that isn't in your contacts (Y, 24 Nov
+ * 2026, option A): copies the number and opens Truecaller on it, as the card's button does.
+ */
+@Composable
+fun TruecallerPill(e164: String) {
+    val context = LocalContext.current
+    androidx.compose.material3.FilledTonalButton(
+        onClick = { context.searchInTruecaller(e164) },
+        shape = RoundedCornerShape(50),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp),
+        modifier = Modifier.height(34.dp).semantics { contentDescription = "Search ${app.foundwith.core.PhoneNumbers.display(e164)} in Truecaller" },
+    ) {
+        Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(15.dp))
+        Spacer(Modifier.width(4.dp))
+        Text("Truecaller", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
     }
 }
 
