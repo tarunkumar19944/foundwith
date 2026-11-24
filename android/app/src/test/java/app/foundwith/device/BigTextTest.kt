@@ -110,14 +110,14 @@ class BigTextTest {
             ContactRow(s, s.contacts[0], null) {}
             for (item in items) UpdateRow(s, item, isNew = true) {}
             WhCard { CompareBox(Level.HIGHLY_POPULAR, 8) }
-            Column(Modifier.padding(horizontal = 16.dp)) { CallBackLine(s.calls[0], "+917760934418") }
+            Column(Modifier.padding(horizontal = 16.dp)) { CallBackLine(s.calls[0], "+917760934418"); CallBackLine(null, "+919845011111") }
             ToggleRow("Tell me after every call", "Calls with nothing new arrive quietly, in the notification panel.", true) {}
         }
         fun present(text: String, substring: Boolean = false) = assert(
             compose.onAllNodesWithText(text, substring = substring, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()) { text }
         present("Vijaya Lakshmi Narasimhamurthy", substring = true)    // in Calls, Contacts and Updates
         compose.onAllNodesWithText("Truecaller", useUnmergedTree = true).assertCountEquals(2)   // the two rows for a stranger
-        present("Call"); present("Tell me after every call"); present("Share")
+        present("No calls yet"); present("Call"); present("Tell me after every call"); present("Share")
     }
 
     @Test fun busyRowsAt130PercentText() = busyRows("big-130-small-phone", 1.3f)

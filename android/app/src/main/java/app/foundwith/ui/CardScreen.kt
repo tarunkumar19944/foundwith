@@ -9,6 +9,7 @@ import app.foundwith.core.LinkJoins
 import app.foundwith.core.InviteList
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -209,9 +210,9 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                     Spacer(Modifier.width(8.dp))
                     CopyNumberButton(e164)
                 }
-                if (!mine && lastCall != null) CallBackLine(lastCall, e164)
+                if (!mine) CallBackLine(lastCall, e164)
             } else {
-                if (lastCall != null) CallBackLine(lastCall, e164)
+                CallBackLine(lastCall, e164)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(shown(e164), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f, fill = false).clickable { context.copyNumber(e164) })
@@ -500,7 +501,7 @@ private const val KEPT_FRESH_MS = 30 * 60 * 1000L
  * is refused, Call opens the dialer with the number instead and never asks again.
  */
 @Composable
-internal fun CallBackLine(call: app.foundwith.core.CallEvent, e164: String) {
+internal fun CallBackLine(call: app.foundwith.core.CallEvent?, e164: String) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val store = remember { app.foundwith.data.LocalStore(context) }
     val permission = android.Manifest.permission.CALL_PHONE
@@ -510,9 +511,16 @@ internal fun CallBackLine(call: app.foundwith.core.CallEvent, e164: String) {
         if (granted) context.callNow(e164) else { store.addDenial(permission); context.dial(e164) }
     }
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-        CallKindIcon(call, 28.dp)
+        // No calls with this number yet: the same line, "No calls yet", so Call is always in one place
+        // on every card (Y, 24 Nov 2026, option C).
+        if (call != null) CallKindIcon(call, 28.dp)
+        else Box(Modifier.size(28.dp).background(MaterialTheme.colorScheme.surfaceVariant, androidx.compose.foundation.shape.CircleShape),
+            contentAlignment = Alignment.Center) {
+            Icon(CallIcons.Phone, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(13.dp))
+        }
         Spacer(Modifier.width(8.dp))
-        Text(callLine(call), style = MaterialTheme.typography.labelLarge, color = callKindColour(call),
+        Text(if (call != null) callLine(call) else "No calls yet", style = MaterialTheme.typography.labelLarge,
+            color = if (call != null) callKindColour(call) else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(1f), maxLines = 2)
         Spacer(Modifier.width(8.dp))
         androidx.compose.material3.Surface(
