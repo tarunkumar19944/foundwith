@@ -259,6 +259,9 @@ class PhoneJourneyTest {
         compose.waitForIdle()
         device.waitForIdle(2_000)   // let the screen finish moving to the card before the picture
         Thread.sleep(800)
+        // Call back sits on the card's call line (24 Nov 2026); the card has no Truecaller button any more.
+        waitFor("Call back")
+        assertTrue("The card has no Truecaller button now", !exists("Truecaller"))
         shot("14-caller-card")
         back()
         assertAppOnScreen()

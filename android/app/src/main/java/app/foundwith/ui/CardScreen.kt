@@ -206,14 +206,9 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                     Spacer(Modifier.width(8.dp))
                     CopyNumberButton(e164)
                 }
+                if (!mine && lastCall != null) CallBackLine(lastCall, e164)
             } else {
-                if (lastCall != null) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        CallKindIcon(lastCall, 28.dp)
-                        Spacer(Modifier.width(8.dp))
-                        Text(callLine(lastCall), style = MaterialTheme.typography.labelLarge, color = callKindColour(lastCall))
-                    }
-                }
+                if (lastCall != null) CallBackLine(lastCall, e164)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(shown(e164), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f, fill = false).clickable { context.copyNumber(e164) })
@@ -402,7 +397,6 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                             }
                         }
                     }
-                    if (!mine) CardButtons(e164, callBack = !saved && lastCall != null && lastCall.isIncoming)
                 }
 
                 // How popular it is, below the actions. Your own number has it in its count card.
@@ -495,3 +489,33 @@ private fun MeaningRow(title: String, text: String) {
 
 /** A lookup kept from a call's notification is shown as it is for 30 minutes; after that the card refreshes it. */
 private const val KEPT_FRESH_MS = 30 * 60 * 1000L
+
+
+/**
+ * The latest call with this number, and a small green "Call back" at its end (Y, 24 Nov 2026,
+ * option A): for every kind of call. It replaced the Truecaller and Call back buttons on the card.
+ */
+@Composable
+private fun CallBackLine(call: app.foundwith.core.CallEvent, e164: String) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        CallKindIcon(call, 28.dp)
+        Spacer(Modifier.width(8.dp))
+        Text(callLine(call), style = MaterialTheme.typography.labelLarge, color = callKindColour(call),
+            modifier = Modifier.weight(1f), maxLines = 2)
+        Spacer(Modifier.width(8.dp))
+        androidx.compose.material3.Surface(
+            onClick = { context.dial(e164) },
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
+            color = LiveGreen.copy(alpha = 0.14f),
+            contentColor = MaterialTheme.colorScheme.tertiary,
+            modifier = Modifier.height(36.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
+                Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Call back", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+            }
+        }
+    }
+}

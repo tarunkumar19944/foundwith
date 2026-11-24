@@ -192,7 +192,7 @@ Order on screen (22 Nov 2026): who it is, with a copy icon beside the number →
 |---|---|---|
 | Not-a-contact subtitle | (none) | Missed call · 10:42 am · not in your contacts |
 | The number | | A copy icon beside the number (blue, "Copy number" for screen readers); tapping the number copies it too (the plain 10 digits). Android 13+ shows its own "Copied"; older phones: Number copied |
-| Buttons under the card | | **Truecaller** (23 Nov: copies the number, then opens Truecaller straight on it: its "search with Truecaller" action, else its page for the number, else its dial pad with the number typed, else Truecaller itself; without Truecaller, truecaller.com search. Test builds show which in a short note: Opened Truecaller search / …) · **Call back** beside it after a call from a number not in your contacts |
+| Buttons under the card | | **None since 24 Nov (Y).** The latest call's line under the name ends with a small green **📞 Call back** (every kind of call: received, dialled, missed, blocked; contacts too), which opens the dialer. Truecaller moved off the card: it is on the rows in Call log and Updates, and in press and hold. |
 | Owner's own name | Raju Sharma (name they gave) | **Their own name: Raju Sharma** (chip) |
 | Name 3+ people have for it | Raju Plumber (popular name) | **5 people know it as "Raju Plumber"** **Off since 23 Nov 2026** (Google Play's contacts policy): not shown, and saved names are no longer sent. |
 | Main line | Found with Priya, Ravi and 21 others | **12 people** have this number · **You know 3 of them** |
