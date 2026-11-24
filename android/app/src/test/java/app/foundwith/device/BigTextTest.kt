@@ -113,11 +113,11 @@ class BigTextTest {
             Column(Modifier.padding(horizontal = 16.dp)) { CallBackLine(s.calls[0], "+917760934418") }
             ToggleRow("Tell me after every call", "Calls with nothing new arrive quietly, in the notification panel.", true) {}
         }
-        compose.onNodeWithText("Vijaya Lakshmi Narasimhamurthy", substring = true, useUnmergedTree = true).assertExists()
-        compose.onAllNodesWithText("Truecaller", useUnmergedTree = true).assertCountEquals(2)   // the two calls from a stranger
-        compose.onNodeWithText("Call", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Tell me after every call", useUnmergedTree = true).assertExists()
-        compose.onNodeWithText("Share", useUnmergedTree = true).assertExists()
+        fun present(text: String, substring: Boolean = false) = assert(
+            compose.onAllNodesWithText(text, substring = substring, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()) { text }
+        present("Vijaya Lakshmi Narasimhamurthy", substring = true)    // in Calls, Contacts and Updates
+        compose.onAllNodesWithText("Truecaller", useUnmergedTree = true).assertCountEquals(2)   // the two rows for a stranger
+        present("Call"); present("Tell me after every call"); present("Share")
     }
 
     @Test fun busyRowsAt130PercentText() = busyRows("big-130-small-phone", 1.3f)
