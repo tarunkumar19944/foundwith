@@ -87,6 +87,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -287,7 +288,7 @@ fun HomeScreen(
                     selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     selectedTextColor = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
-                Column {
+                FrameText(max = 1.2f) { Column {
                 // Your number stays here, the same on every tab; only the list above changes.
                 val mine = state.cards?.mine
                 YourNumberBar(
@@ -300,17 +301,17 @@ fun HomeScreen(
                     // Call log · Contacts · Updates (Y, 22 Nov 2026). Each carries a red count (Y, 23 Nov):
                     // how many numbers in it changed that haven't been seen in Updates or on their card yet.
                     if (BuildConfig.CALL_LOG) {
-                        NavigationBarItem(selected = tab == Tab.CALLS, onClick = { pick(Tab.CALLS) }, label = { Text("Call log") }, colors = tabColors,
+                        NavigationBarItem(selected = tab == Tab.CALLS, onClick = { pick(Tab.CALLS) }, label = { Text("Call log", maxLines = 1, softWrap = false) }, colors = tabColors,
                             modifier = Modifier.semantics { if (inCalls > 0) stateDescription = "$inCalls new" },
                             icon = { TabBadge(inCalls) { Icon(Icons.Filled.Call, contentDescription = null) } })
                     }
-                    NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { pick(Tab.CONTACTS) }, label = { Text("Contacts") }, colors = tabColors,
+                    NavigationBarItem(selected = tab == Tab.CONTACTS, onClick = { pick(Tab.CONTACTS) }, label = { Text("Contacts", maxLines = 1, softWrap = false) }, colors = tabColors,
                         modifier = Modifier.semantics { if (inContacts > 0) stateDescription = "$inContacts new" },
                         icon = { TabBadge(inContacts) { Icon(Icons.Filled.Person, contentDescription = null) } })
                     // Someone not on this phone who joined with your link has no row of their own, only the note on top of Updates.
                     val unseen = if (tab == Tab.UPDATES) 0 else UpdatesOrder.newSince(updates, state.updatesSeenAt, state.seenNumbers).size +
                         state.linkJoins().count { it.e164 == null && state.updatesSeenAt > 0 && (it.at ?: 0L) > state.updatesSeenAt }
-                    NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { pick(Tab.UPDATES) }, label = { Text("Updates") }, colors = tabColors,
+                    NavigationBarItem(selected = tab == Tab.UPDATES, onClick = { pick(Tab.UPDATES) }, label = { Text("Updates", maxLines = 1, softWrap = false) }, colors = tabColors,
                         modifier = Modifier.semantics { if (unseen > 0) stateDescription = "$unseen new" },
                         icon = {
                             BadgedBox(badge = {
@@ -322,35 +323,36 @@ fun HomeScreen(
                             }
                         })
                 }
-                }
+                } }
             }
         },
     ) { padding ->
         val list = if (query.isNotBlank()) searchList else listFor(tab)
         Column(Modifier.fillMaxSize().padding(top = padding.calculateTopPadding()).nestedScroll(header.connection)) {
-            header.Folding {
+            header.Folding { FrameText {
                 Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp, top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                         Wordmark()
                         if (state.setup != Setup.NOT_ALLOWED || state.cards != null) LiveStatus(state.cards?.savedAt, state.offline)
                     }
                     // Share in group: solid blue, on every Home screen (22 Nov 2026).
+                    // Large text: "Share" only, so WhoHas keeps its one line.
                     Button(
                         onClick = shareGroup,
                         shape = RoundedCornerShape(22.dp),
                         contentPadding = PaddingValues(horizontal = 14.dp),
-                        modifier = Modifier.heightIn(min = 44.dp),
+                        modifier = Modifier.heightIn(min = 44.dp).semantics { contentDescription = "Share in group" },
                     ) {
                         Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Share in group", fontWeight = FontWeight.Bold, maxLines = 1)
+                        Text(if (bigText()) "Share" else "Share in group", fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                     }
                     IconButton(onClick = onSettings, modifier = Modifier.size(48.dp)) { Icon(Icons.Filled.Settings, contentDescription = "Settings") }
                 }
-            }
+            } }
             Surface(color = MaterialTheme.colorScheme.background, shadowElevation = if (header.folded) 6.dp else 0.dp) {
                 Column {
-                    SearchBox(query, onChange = { query = it }, onFocus = { searching = it })
+                    SearchBox(query, onChange = { query = it }, onFocus = { searching = it; if (it) header.fold() })
                     if (header.folded) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
@@ -405,6 +407,8 @@ private class FoldingHeader {
     val folded: Boolean get() = height > 0f && offset <= -height + 1f
 
     fun open() { offset = 0f }
+    /** While searching: the header folds away so the results have the room (24 Nov 2026). */
+    fun fold() { if (height > 0f) offset = -height }
 
     val connection = object : NestedScrollConnection {
         override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {

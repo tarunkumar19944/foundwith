@@ -348,6 +348,19 @@ private fun rowClick(e164: String?, onClick: (() -> Unit)?): Modifier {
 @Composable
 fun bigText(): Boolean = LocalDensity.current.fontScale >= 1.25f
 
+/**
+ * The app's frame (the WhoHas header, your number bar and the tabs) grows with the phone's text
+ * size only up to 130% (24 Nov 2026): at 200% on a small phone it filled the whole screen and left
+ * no room for the list. Names, numbers and cards inside still grow fully.
+ */
+@Composable
+fun FrameText(max: Float = 1.3f, content: @Composable () -> Unit) {
+    val d = LocalDensity.current
+    if (d.fontScale <= max) content()
+    else androidx.compose.runtime.CompositionLocalProvider(
+        LocalDensity provides androidx.compose.ui.unit.Density(d.density, max), content = content)
+}
+
 @Composable
 fun NumberRow(
     leading: @Composable () -> Unit,
@@ -550,6 +563,7 @@ fun Wordmark(size: TextUnit = 22.sp) {
             withStyle(SpanStyle(color = MaterialTheme.colorScheme.primary)) { append("Has") }
         },
         fontSize = size, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp,
+        maxLines = 1, softWrap = false,
     )
 }
 
@@ -859,7 +873,13 @@ fun LevelProgress(total: Int) {
     val level = Levels.of(total)
     val step = Levels.step(total)
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (bigText() && step != null) {
+            // Large text: the line on its own, the two tags under it (else "Po…" on small phones).
+            ProgressLine(step.done, Modifier.fillMaxWidth(), height = 8.dp)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LevelTag(level); Spacer(Modifier.weight(1f)); LevelTag(step.next)
+            }
+        } else Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             LevelTag(level)
             if (step != null) {
                 ProgressLine(step.done, Modifier.weight(1f), height = 8.dp)
