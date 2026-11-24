@@ -3,13 +3,13 @@ Unknown number calling? WhoHas shows which of your people have that number, so y
 For any phone number, WhoHas shows how many people on WhoHas have it in their contacts or call log, and which of them you know. People you know are shown by name; everyone else is just a count.
 
 WHAT YOU GET
-• After a call: if someone on WhoHas has the caller's number, a notification tells you who you know has it. Copy the number or check it in Truecaller in one tap.
+• Right after a call: if someone on WhoHas has the caller's number, a notification tells you who you know has it. Copy the number, check it in Truecaller, or call back in one tap.
 • Search any number: see how many people have it and ask someone you know on WhatsApp.
 • Updates: every number on your phone that people on WhoHas have, with what changed on top.
 • Your own number: see how many people have it, how close you are to the next level, and when a friend joins with your link.
 
 YOUR PRIVACY
-• WhoHas never messages or calls anyone, never reads your messages and never records calls.
+• WhoHas never messages or calls anyone on its own, never reads your messages and never listens to or records calls.
 • Phone numbers are stored only as one-way codes, on servers in India. The names in your contacts stay on your phone.
 • Your name is shown only to people who already have your number: as someone they know, or when they look up your number.
 • Turn off contacts or call log any time, download your data, or delete your account in the app.
