@@ -142,7 +142,7 @@ class PhoneJourneyTest {
         tap("FW Test Plumber")
         waitForAny(listOf("have this number", "has this number", "No one else on WhoHas has it yet", "No one on WhoHas has this number"), 30_000)
         shot("08-card")
-        compose.onNode(hasContentDescription("More")).performClick()
+        compose.onNode(hasContentDescription("More")).performSemanticsAction(SemanticsActions.OnClick)
         waitFor("Share number")
         shot("09-card-menu")
         device.pressBack()
@@ -536,6 +536,16 @@ class PhoneJourneyTest {
     /** Taps the element whose text is exactly [text], or failing that the first that contains it. */
     private fun tap(text: String) {
         waitFor(text)
+        // Through the click action when there is one (24 Nov 2026): with large text a row can sit at
+        // the edge of the screen, where an injected tap lands on the bar below it instead.
+        for (matcher in listOf(hasText(text), hasText(text, substring = true))) {
+            val clickable = compose.onAllNodes(matcher and hasClickAction())
+            if (clickable.fetchSemanticsNodes().isNotEmpty()) {
+                clickable.onFirst().performSemanticsAction(SemanticsActions.OnClick)
+                compose.waitForIdle()
+                return
+            }
+        }
         val exact = compose.onAllNodes(hasText(text))
         if (exact.fetchSemanticsNodes().isNotEmpty()) exact.onFirst().performClick()
         else compose.onAllNodes(hasText(text, substring = true)).onFirst().performClick()
