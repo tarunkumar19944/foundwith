@@ -258,6 +258,7 @@ Rules (Y, 21–22 Nov): a call (received, missed or dialled) is told only when s
 | Received | **Call from +91 80950 66231** · 4 people on WhoHas have this number · Copy number · Truecaller |
 | Dialled | **You called +91 97311 20456** · Known to Priya and Meena · Copy number · Truecaller |
 | Repeat missed calls | **2 missed calls: +91 98450 77120** |
+| Every other kind of call (Y, 24 Nov: every call counts) | **Blocked call: +91 16001 13814** · **Voicemail: …** · **Call from … · answered on another device** · **Call: …** (a kind Android doesn't name). Same lines as above, without sound. Call log: Blocked · Voicemail · Answered on another device. |
 | A contact whose count went up | **Missed call: Raju Plumber** (or Call from / You called) · 3 more people have Raju Plumber's number · now 12 |
 | Friend joined | **Priya joined WhoHas** · Has your number |
 | Joined with your link (23 Nov, on the Your level channel, silent) | **Ravi Kumar joined with your link** (or Someone joined with your link) · Has your number. 9 people have it now: 1 more and you're Popular. (when WhoHas doesn't show that they have it: 9 people have your number. 1 more and you're Popular.) · Share in group. Not told again as "joined WhoHas". |

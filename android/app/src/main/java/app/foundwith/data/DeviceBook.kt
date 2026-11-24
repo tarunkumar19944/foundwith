@@ -156,6 +156,9 @@ class DeviceBook(private val context: Context) {
                         CallLog.Calls.MISSED_TYPE -> CallType.MISSED
                         CallLog.Calls.REJECTED_TYPE -> CallType.REJECTED
                         CallLog.Calls.OUTGOING_TYPE -> CallType.OUTGOING
+                        CallLog.Calls.BLOCKED_TYPE -> CallType.BLOCKED
+                        CallLog.Calls.VOICEMAIL_TYPE -> CallType.VOICEMAIL
+                        CallLog.Calls.ANSWERED_EXTERNALLY_TYPE -> CallType.ELSEWHERE
                         else -> CallType.OTHER
                     }
                     out += CallEvent(cursor.getLong(idCol), cursor.getString(numberCol)?.trim(), type,

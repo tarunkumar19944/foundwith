@@ -48,11 +48,30 @@ class AfterCallTest {
     }
 
     @Test
+    fun everyKindOfCallIsTold() {
+        // Y, 24 Nov 2026: a blocked call from a 1600 number known to two people went untold.
+        val known = CallerInfo(null, total = 2, knownNames = listOf("Vijaya Lakshmi", "Tarun Kumar"))
+        val blocked = AfterCallRules.decide(call(1, "+911600113814", CallType.BLOCKED), known, noon)
+        assertEquals(Alert.SILENT, blocked.alert)
+        assertEquals("Blocked call: +91 16001 13814", blocked.title)
+        assertEquals("Known to Vijaya Lakshmi and Tarun Kumar", blocked.text)
+        assertEquals("Voicemail: +91 77609 34418", AfterCallRules.decide(call(2, "7760934418", CallType.VOICEMAIL), known, noon).title)
+        assertEquals("Call from +91 77609 34418 · answered on another device",
+            AfterCallRules.decide(call(3, "7760934418", CallType.ELSEWHERE), known, noon).title)
+        assertEquals("Call: +91 77609 34418", AfterCallRules.decide(call(4, "7760934418", CallType.OTHER), known, noon).title)
+        // Only missed and rejected calls ring with sound.
+        assertEquals(Alert.SOUND, AfterCallRules.decide(call(5, "7760934418", CallType.MISSED), known, noon).alert)
+        assertEquals(Alert.SILENT, AfterCallRules.decide(call(6, "7760934418", CallType.VOICEMAIL), known, noon).alert)
+        // A saved contact whose count went up, blocked: told with its name.
+        val contact = CallerInfo("Bank", total = 4, previousTotal = 2)
+        assertEquals("Blocked call: Bank", AfterCallRules.decide(call(7, "7760934418", CallType.BLOCKED), contact, noon).title)
+    }
+
+    @Test
     fun nothingForCallsThatTellNothing() {
         val nobody = CallerInfo(null, total = 0)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "6362140987", CallType.MISSED), nobody, noon).alert)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "6362140987", CallType.OUTGOING), nobody, noon).alert)
-        assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "7760934418", CallType.OTHER), CallerInfo(null, 5), noon).alert)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, null, CallType.MISSED), CallerInfo(null, 5), noon).alert)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "", CallType.MISSED), CallerInfo(null, 5), noon).alert)
         assertEquals(Alert.NONE, AfterCallRules.decide(call(1, "7760934418", CallType.MISSED), CallerInfo(null, 5, blocked = true), noon).alert)

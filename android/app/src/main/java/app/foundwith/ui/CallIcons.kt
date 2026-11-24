@@ -47,6 +47,9 @@ fun CallKindIcon(call: CallEvent, size: Dp = 40.dp) {
         CallType.REJECTED -> CallIcons.Rejected to MaterialTheme.colorScheme.error
         CallType.ANSWERED -> CallIcons.Received to MaterialTheme.colorScheme.tertiary
         CallType.OUTGOING -> CallIcons.Called to if (call.duration > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+        CallType.BLOCKED -> CallIcons.Rejected to MaterialTheme.colorScheme.onSurfaceVariant
+        CallType.VOICEMAIL -> CallIcons.Missed to MaterialTheme.colorScheme.error
+        CallType.ELSEWHERE -> CallIcons.Received to MaterialTheme.colorScheme.onSurfaceVariant
         CallType.OTHER -> CallIcons.Phone to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Box(Modifier.size(size).background(MaterialTheme.colorScheme.surfaceVariant, CircleShape), contentAlignment = Alignment.Center) {

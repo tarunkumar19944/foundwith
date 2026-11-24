@@ -1,7 +1,9 @@
 package app.foundwith.core
 
 /** A call as the phone's call log records it. */
-enum class CallType { ANSWERED, MISSED, OUTGOING, REJECTED, OTHER }
+/** BLOCKED (by the phone or a spam app), VOICEMAIL and ELSEWHERE (answered on another device) since 24 Nov 2026:
+ *  every kind of call counts (Y). OTHER: a kind this Android version doesn't name. */
+enum class CallType { ANSWERED, MISSED, OUTGOING, REJECTED, BLOCKED, VOICEMAIL, ELSEWHERE, OTHER }
 
 data class CallEvent(
     /** The call log's row id: never reused, so a call is only ever handled once. */
@@ -26,10 +28,10 @@ data class CallEvent(
     val isHidden: Boolean get() = raw.isNullOrBlank() || raw.trim().startsWith("-") || raw.none { it.isDigit() }
     /** Another country's number (checked like any other since 23 Nov 2026). */
     val isForeign: Boolean get() = !isHidden && e164?.startsWith("+91") == false
-    val isIncoming: Boolean get() = type == CallType.ANSWERED || type == CallType.MISSED || type == CallType.REJECTED
+    val isIncoming: Boolean get() = type != CallType.OUTGOING
     val isDialled: Boolean get() = type == CallType.OUTGOING
-    /** Calls WhoHas may tell about: received, missed, rejected and dialled. */
-    val isEligible: Boolean get() = isIncoming || isDialled
+    /** Every kind of call is told about (Y, 24 Nov 2026), blocked ones and voicemail included. */
+    val isEligible: Boolean get() = true
 }
 
 /** What WhoHas knows about the caller's number when deciding. */
@@ -74,11 +76,20 @@ object AfterCallRules {
     fun isQuiet(hourOfDay: Int): Boolean = hourOfDay >= QUIET_FROM_HOUR || hourOfDay < QUIET_UNTIL_HOUR
 
     /** [repeats]: missed calls from this number in the last hour, this one included. */
+    /** "Call from …" for a received call; the other kinds say what happened. */
+    private fun otherTitle(type: CallType, who: String): String = when (type) {
+        CallType.BLOCKED -> "Blocked call: $who"
+        CallType.VOICEMAIL -> "Voicemail: $who"
+        CallType.ELSEWHERE -> "Call from $who · answered on another device"
+        CallType.OTHER -> "Call: $who"
+        else -> "Call from $who"
+    }
+
     fun decide(call: CallEvent, info: CallerInfo, hourOfDay: Int, repeats: Int = 1): AfterCallNote {
         if (!call.isEligible || call.isHidden || info.blocked) return AfterCallNote.NONE
         val e164 = call.e164 ?: return AfterCallNote.NONE
         val dialled = call.isDialled
-        val missed = !dialled && call.type != CallType.ANSWERED
+        val missed = call.type == CallType.MISSED || call.type == CallType.REJECTED
         val saved = !info.contactName.isNullOrBlank() && !Naming.looksLikeNumber(info.contactName)
         val line = HolderText.knownTo(info.knownNames, info.total, info.lowerBound)
         if (info.lastNotified != null && info.total <= info.lastNotified) return AfterCallNote.NONE
@@ -90,7 +101,7 @@ object AfterCallRules {
             val title = when {
                 dialled -> "You called $who"
                 missed -> "Missed call: $who"
-                else -> "Call from $who"
+                else -> otherTitle(call.type, who)
             }
             return AfterCallNote(Alert.SILENT, title, HolderText.changeFor(who, info.total, info.total - before), e164)
         }
@@ -100,7 +111,7 @@ object AfterCallRules {
         val number = PhoneNumbers.display(e164)
         val title = when {
             dialled -> "You called $number"
-            !missed -> "Call from $number"
+            !missed -> otherTitle(call.type, number)
             repeats >= 2 -> "$repeats missed calls: $number"
             else -> "Missed call: $number"
         }
@@ -149,7 +160,7 @@ object CallCatchUp {
     fun repeats(call: CallEvent, calls: List<CallEvent>): Int {
         val e164 = call.e164 ?: return 1
         return calls.count {
-            it.type != CallType.ANSWERED && it.isIncoming && it.e164 == e164 &&
+            (it.type == CallType.MISSED || it.type == CallType.REJECTED) && it.e164 == e164 &&
                 it.at <= call.at && call.at - it.at <= NOTIFY_WITHIN_MS
         }.coerceAtLeast(1)
     }

@@ -110,6 +110,9 @@ fun callKind(call: CallEvent): String = when (call.type) {
     CallType.REJECTED -> "Rejected"
     CallType.ANSWERED -> "Received"
     CallType.OUTGOING -> if (call.duration > 0) "You called" else "You called · not answered"
+    CallType.BLOCKED -> "Blocked"
+    CallType.VOICEMAIL -> "Voicemail"
+    CallType.ELSEWHERE -> "Answered on another device"
     CallType.OTHER -> "Call"
 }
 
