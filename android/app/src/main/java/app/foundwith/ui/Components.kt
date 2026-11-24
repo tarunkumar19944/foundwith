@@ -451,7 +451,7 @@ fun PrimaryButton(
     Button(
         onClick = onClick,
         enabled = enabled,
-        modifier = modifier.fillMaxWidth().height(48.dp),
+        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp),
         colors = colors,
         shape = RoundedCornerShape(8.dp),
     ) {
@@ -613,7 +613,7 @@ fun TellButton(told: Boolean, name: String, onClick: () -> Unit) {
     if (told) {
         Surface(color = MaterialTheme.colorScheme.surfaceVariant, contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             shape = RoundedCornerShape(22.dp)) {
-            Row(Modifier.height(44.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.heightIn(min = 44.dp).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text("Told", fontWeight = FontWeight.Bold)
@@ -623,7 +623,7 @@ fun TellButton(told: Boolean, name: String, onClick: () -> Unit) {
     }
     Button(
         onClick = onClick,
-        modifier = Modifier.height(44.dp),
+        modifier = Modifier.heightIn(min = 44.dp),
         shape = RoundedCornerShape(22.dp),
         contentPadding = PaddingValues(horizontal = 18.dp),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary, contentColor = MaterialTheme.colorScheme.onSecondary),
@@ -886,7 +886,7 @@ fun TruecallerPill(e164: String) {
         onClick = { context.searchInTruecaller(e164) },
         shape = RoundedCornerShape(50),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp),
-        modifier = Modifier.height(34.dp).semantics { contentDescription = "Search ${app.foundwith.core.PhoneNumbers.display(e164)} in Truecaller" },
+        modifier = Modifier.heightIn(min = 34.dp).semantics { contentDescription = "Search ${app.foundwith.core.PhoneNumbers.display(e164)} in Truecaller" },
     ) {
         Icon(Icons.Filled.Search, contentDescription = null, modifier = Modifier.size(15.dp))
         Spacer(Modifier.width(4.dp))

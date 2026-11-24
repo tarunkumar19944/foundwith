@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -326,7 +327,7 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                                 line = line,
                                 trailing = if (askMode) ({
                                     OutlinedButton(onClick = { context.messagePerson(person.e164, Messages.ask(e164, card?.name, card?.popularName)) },
-                                        shape = RoundedCornerShape(22.dp), modifier = Modifier.height(44.dp)) { Text("Ask") }
+                                        shape = RoundedCornerShape(22.dp), modifier = Modifier.heightIn(min = 44.dp)) { Text("Ask") }
                                 }) else null,
                                 onClick = person.e164?.let { p -> { onNumber(p) } },
                             )
@@ -381,7 +382,7 @@ fun CardScreen(graph: AppGraph, e164: String, onBack: () -> Unit, onNumber: (Str
                     when {
                         mine -> {
                             PrimaryButton("Share in group", shareGroup, icon = Icons.Filled.Share)
-                            OutlinedButton(onClick = onInviteFriends, modifier = Modifier.fillMaxWidth().height(48.dp)) { Text("Invite friends") }
+                            OutlinedButton(onClick = onInviteFriends, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Invite friends") }
                         }
                         saved && PhoneNumbers.isIndianMobile(e164) && !member -> {
                             val who = name.text
@@ -499,7 +500,7 @@ private const val KEPT_FRESH_MS = 30 * 60 * 1000L
  * is refused, Call opens the dialer with the number instead and never asks again.
  */
 @Composable
-private fun CallBackLine(call: app.foundwith.core.CallEvent, e164: String) {
+internal fun CallBackLine(call: app.foundwith.core.CallEvent, e164: String) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val store = remember { app.foundwith.data.LocalStore(context) }
     val permission = android.Manifest.permission.CALL_PHONE
@@ -527,7 +528,7 @@ private fun CallBackLine(call: app.foundwith.core.CallEvent, e164: String) {
             shape = androidx.compose.foundation.shape.RoundedCornerShape(50),
             color = LiveGreen.copy(alpha = 0.14f),
             contentColor = MaterialTheme.colorScheme.tertiary,
-            modifier = Modifier.height(36.dp).semantics { contentDescription = "Call ${app.foundwith.core.PhoneNumbers.display(e164)}" },
+            modifier = Modifier.heightIn(min = 36.dp).semantics { contentDescription = "Call ${app.foundwith.core.PhoneNumbers.display(e164)}" },
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 12.dp)) {
                 Icon(Icons.Filled.Call, contentDescription = null, modifier = Modifier.size(16.dp))

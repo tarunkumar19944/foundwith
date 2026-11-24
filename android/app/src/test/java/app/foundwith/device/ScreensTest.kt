@@ -238,6 +238,23 @@ class ScreensTest {
     }
 
     @Test
+    fun aContactWhoJoinedIsInUpdatesEvenWhenNobodyElseHasTheirNumber() {
+        // 24 Nov 2026: the link-join test on the Pixel found such a join missing from Updates.
+        val now = System.currentTimeMillis()
+        val ravi = "+919845044444"
+        val state = AppState(
+            cards = CachedCards(savedAt = now, totalCards = 1, mine = Card("me", total = 9),
+                cards = listOf(Card("r7", inContacts = true, total = 0, knownCount = 0))),
+            index = NumberIndex(byRef = mapOf("r7" to NumberLabel(ravi)), refByE164 = mapOf(ravi to "r7")),
+            contacts = listOf(SavedNumber("98450 44444", "Ravi Kumar")),
+            changes = ChangeLog(joined = mapOf("r7" to now - 60_000L)),
+            dotsSince = now - 60 * 60_000L, updatesSeenAt = now - 60 * 60_000L, loaded = true,
+        )
+        assertEquals(listOf(ravi), updateItems(state).map { it.e164 })
+        assertEquals(listOf(ravi), UpdatesOrder.newSince(updateItems(state), state.dotsSince, state.seenNumbers).map { it.e164 })
+    }
+
+    @Test
     fun yourCardShowsWhatGrowsYourCount() {
         val state = linkState(System.currentTimeMillis())
         val joins = state.linkJoins()

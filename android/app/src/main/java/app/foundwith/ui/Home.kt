@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -334,7 +335,7 @@ fun HomeScreen(
                         onClick = shareGroup,
                         shape = RoundedCornerShape(22.dp),
                         contentPadding = PaddingValues(horizontal = 14.dp),
-                        modifier = Modifier.height(44.dp),
+                        modifier = Modifier.heightIn(min = 44.dp),
                     ) {
                         Icon(Icons.Filled.Share, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
@@ -905,7 +906,7 @@ private fun NotificationsCard(onTurnOn: () -> Unit, onLater: () -> Unit) {
         Text("Get told who knows a caller right after a missed call.", color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             PrimaryButton("Turn on", { dismissed = true; onTurnOn() }, Modifier.weight(1f))
-            OutlinedButton(onClick = { dismissed = true; onLater() }, modifier = Modifier.weight(1f).height(52.dp),
+            OutlinedButton(onClick = { dismissed = true; onLater() }, modifier = Modifier.weight(1f).heightIn(min = 52.dp),
                 shape = RoundedCornerShape(26.dp)) { Text("Later") }
         }
     }
@@ -937,7 +938,7 @@ private fun NameCard(graph: AppGraph) {
                     if (error == null) graph.store.nameAsked = true
                 }
             }, Modifier.weight(1f), enabled = name.isNotBlank() && !saving)
-            OutlinedButton(onClick = { graph.store.nameAsked = true; dismissed = true }, modifier = Modifier.weight(1f).height(52.dp),
+            OutlinedButton(onClick = { graph.store.nameAsked = true; dismissed = true }, modifier = Modifier.weight(1f).heightIn(min = 52.dp),
                 shape = RoundedCornerShape(26.dp)) { Text("Later") }
         }
     }
