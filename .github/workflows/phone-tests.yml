@@ -25,6 +25,9 @@ on:
       joiner:
         description: "A test number that joins with the phones' invite link (once per number, ever; use one device)"
         default: ""
+      big:
+        description: "Large text: a font scale like 1.3 or 2 (display size goes up a step too); empty for normal"
+        default: ""
 
 permissions:
   contents: write   # publishes screenshots and logs as the test-screens release
@@ -135,6 +138,7 @@ jobs:
         env:
           SET: ${{ steps.which.outputs.set }}
           ONLY_PHONES: ${{ github.event.inputs.phone_models }}
+          BIG: ${{ github.event.inputs.big }}
         run: |
           set -uo pipefail
           apks=android/app/build/outputs/apk
@@ -148,7 +152,7 @@ jobs:
               --app "$apks/$flavour/debug/app-$flavour-debug.apk" \
               --test "$apks/androidTest/$flavour/debug/app-$flavour-debug-androidTest.apk" \
               "${args[@]}" \
-              --environment-variables "fwCode=$FW_CODE,fwNumber=9000000010,fwCaller=+919000000077${FW_EXTRA:-}" \
+              --environment-variables "fwCode=$FW_CODE,fwNumber=9000000010,fwCaller=+919000000077${FW_EXTRA:-}${BIG:+,fwBig=$BIG}" \
               --results-bucket=$PROJECT-test-lab --results-dir="run-$GITHUB_RUN_ID-$label" \
               --directories-to-pull=/sdcard/Android/data/app.whohas/files \
               --timeout=15m --num-flaky-test-attempts=1 2> "$RUNNER_TEMP/$label.txt"

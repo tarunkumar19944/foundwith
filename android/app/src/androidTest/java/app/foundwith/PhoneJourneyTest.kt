@@ -619,6 +619,12 @@ class PhoneJourneyTest {
             // Permission Denied Activity"), and the test then waits until Test Lab's time runs out. A
             // person opening the app from the home screen or a notification isn't affected. Xiaomi's own
             // app-op 10021 ("open new windows while running in the background") allows it.
+            // Large text runs (fwBig=1.3 or 2, 24 Nov 2026): the font scale, and the display size one step up.
+            InstrumentationRegistry.getArguments().getString("fwBig")?.toFloatOrNull()?.let { scale ->
+                shell(ui, "settings put system font_scale $scale")
+                val physical = Regex("Physical density: (\\d+)").find(shell(ui, "wm density"))?.groupValues?.get(1)?.toIntOrNull()
+                if (physical != null) shell(ui, "wm density ${(physical * 1.15f).toInt()}")
+            }
             if (Build.MANUFACTURER.equals("Xiaomi", ignoreCase = true)) {
                 runCatching {
                     android.os.ParcelFileDescriptor.AutoCloseInputStream(
@@ -636,6 +642,10 @@ class PhoneJourneyTest {
                 runCatching { addCall(context, "+919000000070", CallLog.Calls.OUTGOING_TYPE, hourAgo + 60_000) }
             }
         }
+
+        private fun shell(ui: android.app.UiAutomation, command: String): String = runCatching {
+            android.os.ParcelFileDescriptor.AutoCloseInputStream(ui.executeShellCommand(command)).use { String(it.readBytes()) }
+        }.getOrDefault("")
 
         private fun addContact(context: Context, name: String, number: String) {
             val ops = arrayListOf(
