@@ -1009,7 +1009,7 @@ internal fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, count:
         }
         InfoRow(
             leading = { CallKindIcon(call) },
-            name = app.foundwith.core.ShownName(if (count > 1) "$title ($count)" else title, app.foundwith.core.NameSource.NUMBER),
+            name = app.foundwith.core.ShownName(title, app.foundwith.core.NameSource.NUMBER),
             sub = sub, subColor = callKindColour(call),
             line = when {
                 call.isHidden -> "Can't check hidden numbers"
@@ -1025,7 +1025,7 @@ internal fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, count:
     Marked(mark != null) {
         InfoRow(
             leading = { CallKindIcon(call) },
-            name = state.nameFor(e164, card).let { if (count > 1) it.copy(text = "${it.text} ($count)") else it },
+            name = state.nameFor(e164, card),
             sub = sub, subColor = callKindColour(call),
             line = when {
                 blocked -> "Blocked"
