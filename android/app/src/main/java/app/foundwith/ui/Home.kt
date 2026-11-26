@@ -986,20 +986,21 @@ private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, marks: Map<
         val mark = call.e164?.let { marks[it] } ?: continue
         if (markedNumbers.add(mark.e164)) markedCalls[call.id] = mark
     }
-    state.calls.groupBy { dayHeading(it.at, now) }.forEach { (day, calls) ->
+    // Repeat calls are one row with a count, like the phone's call log (26 Nov 2026).
+    app.foundwith.core.CallGroups.group(state.calls).groupBy { dayHeading(it.latest.at, now) }.forEach { (day, groups) ->
         item(key = "day:$day") { SectionLabel(day) }
-        itemsIndexed(calls, key = { _, it -> "c:" + it.id }) { i, call ->
+        itemsIndexed(groups, key = { _, it -> "c:" + it.latest.id }) { i, group ->
             Column {
-                CallRow(state, call, markedCalls[call.id], onNumber)
-                if (i < calls.lastIndex) RowLine()
+                CallRow(state, group.latest, group.ids.firstNotNullOfOrNull { markedCalls[it] }, onNumber, count = group.count)
+                if (i < groups.lastIndex) RowLine()
             }
         }
     }
 }
 
 @Composable
-internal fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, onNumber: (String) -> Unit) {
-    val sub = callLine(call, withDay = false)
+internal fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, onNumber: (String) -> Unit, count: Int = 1) {
+    val sub = callLine(call, withDay = false, count = count)
     val e164 = call.e164
     if (e164 == null) {
         val title = when {
@@ -1008,7 +1009,7 @@ internal fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, onNumb
         }
         InfoRow(
             leading = { CallKindIcon(call) },
-            name = app.foundwith.core.ShownName(title, app.foundwith.core.NameSource.NUMBER),
+            name = app.foundwith.core.ShownName(if (count > 1) "$title ($count)" else title, app.foundwith.core.NameSource.NUMBER),
             sub = sub, subColor = callKindColour(call),
             line = when {
                 call.isHidden -> "Can't check hidden numbers"
@@ -1024,7 +1025,7 @@ internal fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, onNumb
     Marked(mark != null) {
         InfoRow(
             leading = { CallKindIcon(call) },
-            name = state.nameFor(e164, card),
+            name = state.nameFor(e164, card).let { if (count > 1) it.copy(text = "${it.text} ($count)") else it },
             sub = sub, subColor = callKindColour(call),
             line = when {
                 blocked -> "Blocked"
