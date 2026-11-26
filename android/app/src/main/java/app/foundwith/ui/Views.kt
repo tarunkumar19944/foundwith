@@ -142,13 +142,11 @@ fun callWhen(at: Long, now: Long = System.currentTimeMillis()): String {
  * "Missed call · today, 10:42 am", "Received · yesterday, 6:15 pm · 4 min". With [withDay] false
  * (under a day heading in the call log) just the time: "Received · 6:15 pm · 4 min".
  */
-fun callLine(call: CallEvent, now: Long = System.currentTimeMillis(), withDay: Boolean = true, count: Int = 1): String {
+fun callLine(call: CallEvent, now: Long = System.currentTimeMillis(), withDay: Boolean = true): String {
     val at = if (withDay) callWhen(call.at, now)
     else Instant.ofEpochMilli(call.at).atZone(IST).format(DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)).lowercase(Locale.ENGLISH)
     val talked = call.duration.takeIf { it > 0 && (call.type == CallType.ANSWERED || call.type == CallType.OUTGOING) }
-    // A grouped row: "2 missed calls · 9:06 pm"; other kinds keep their words, the name has the count.
-    val kind = if (count > 1 && (call.type == CallType.MISSED || call.type == CallType.REJECTED)) "$count missed calls" else callKind(call)
-    return "$kind · $at" + (talked?.let { " · ${durationText(it)}" } ?: "")
+    return "${callKind(call)} · $at" + (talked?.let { " · ${durationText(it)}" } ?: "")
 }
 
 /** The heading over a day of calls: "Today", "Yesterday", "Fri", "12 Nov". */
