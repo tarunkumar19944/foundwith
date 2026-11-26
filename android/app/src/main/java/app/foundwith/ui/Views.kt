@@ -146,14 +146,8 @@ fun callLine(call: CallEvent, now: Long = System.currentTimeMillis(), withDay: B
     val at = if (withDay) callWhen(call.at, now)
     else Instant.ofEpochMilli(call.at).atZone(IST).format(DateTimeFormatter.ofPattern("h:mm a", Locale.ENGLISH)).lowercase(Locale.ENGLISH)
     val talked = call.duration.takeIf { it > 0 && (call.type == CallType.ANSWERED || call.type == CallType.OUTGOING) }
-    // A grouped row says how many in words, never "(2)" by the name (Y, 26 Nov 2026).
-    val kind = if (count <= 1) callKind(call) else when (call.type) {
-        CallType.MISSED, CallType.REJECTED -> "$count missed calls"
-        CallType.OUTGOING -> if (call.duration > 0) "You called $count times" else "You called $count times · not answered"
-        CallType.ANSWERED -> "Received $count calls"
-        CallType.BLOCKED -> "Blocked $count calls"
-        else -> "${callKind(call)} · $count calls"
-    }
+    // A grouped row: "2 missed calls · 9:06 pm"; other kinds keep their words, the name has the count.
+    val kind = if (count > 1 && (call.type == CallType.MISSED || call.type == CallType.REJECTED)) "$count missed calls" else callKind(call)
     return "$kind · $at" + (talked?.let { " · ${durationText(it)}" } ?: "")
 }
 
