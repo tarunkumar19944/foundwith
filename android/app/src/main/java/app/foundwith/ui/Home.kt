@@ -991,7 +991,7 @@ private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, marks: Map<
         item(key = "day:$day") { SectionLabel(day) }
         itemsIndexed(groups, key = { _, it -> "c:" + it.latest.id }) { i, group ->
             Column {
-                CallRow(state, group.latest, group.ids.firstNotNullOfOrNull { markedCalls[it] }, count = group.count, onNumber = onNumber)
+                CallRow(state, group.latest, group.ids.firstNotNullOfOrNull { markedCalls[it] }, onNumber, count = group.count)
                 if (i < groups.lastIndex) RowLine()
             }
         }
@@ -999,7 +999,7 @@ private fun LazyListScope.callsTab(graph: AppGraph, state: AppState, marks: Map<
 }
 
 @Composable
-internal fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, count: Int = 1, onNumber: (String) -> Unit) {
+internal fun CallRow(state: AppState, call: CallEvent, mark: UpdateItem?, onNumber: (String) -> Unit, count: Int = 1) {
     val sub = callLine(call, withDay = false, count = count)
     val e164 = call.e164
     if (e164 == null) {
